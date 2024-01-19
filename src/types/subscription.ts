@@ -20,12 +20,13 @@ export const SubscriptionCollection = Type.Object({
 export type SubscriptionCollectionType = Static<typeof SubscriptionCollection>
 
 // MongoDB response when inserting:
-export const SubscriptionCollectionResponse = Type.Object({
+export const SubscriptionResponse = Type.Object({
     acknowledged: Type.Boolean(),
 
     // This is actually MongoDB's ObjectId object:
     insertedId: Type.Optional(Type.Unknown()), 
 })
+export type SubscriptionResponseType = Static<typeof SubscriptionResponse>
 
 // Request to add new subscription:
 export const SubscriptionRequest = Type.Object({
@@ -34,9 +35,3 @@ export const SubscriptionRequest = Type.Object({
     query: Type.String()
 })
 export type SubscriptionRequestType = Static<typeof SubscriptionRequest>
-
-// Response sent from route as a response to new subscription:
-export const SubscriptionResponse = Type.Object({
-    email: Type.String(),
-})
-export type SubscriptionResponseType = Static<typeof SubscriptionResponse>

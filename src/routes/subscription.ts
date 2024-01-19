@@ -1,10 +1,10 @@
 import { FastifyPluginAsync } from "fastify"
 import { 
+  SubscriptionResponse,
+  SubscriptionResponseType,
   SubscriptionCollectionType,
   SubscriptionRequest, 
   SubscriptionRequestType, 
-  SubscriptionResponse, 
-  SubscriptionResponseType,
   SubscriptionStatus,
 } from "../types/subscription";
 
@@ -29,9 +29,11 @@ const subscription: FastifyPluginAsync = async (fastify, opts): Promise<void> =>
       modified: new Date(),
       status: SubscriptionStatus.INACTIVE
     };
-    const r = await collection?.insertOne(subscription);
-    console.log(r)
-    return { email: request.body.email };
+    const response = await collection?.insertOne(subscription);
+    return {
+      acknowledged: response.acknowledged,
+      insertedId: response.insertedId
+    }
   });
 };
 
