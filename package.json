@@ -13,7 +13,8 @@
     "watch:ts": "tsc -w",
     "dev": "npm run build:ts && concurrently -k -p \"[{name}]\" -n \"TypeScript,App\" -c \"yellow.bold,cyan.bold\" \"npm:watch:ts\" \"npm:dev:start\"",
     "dev:start": "fastify start --ignore-watch=.ts$ -w -l info -P dist/app.js",
-    "info": "fastify print-routes ./routes/root.ts"
+    "info": "fastify print-routes ./routes/root.ts",
+    "cron": "echo not implemented"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +25,7 @@
     "@fastify/sensible": "^5.0.0",
     "@fastify/type-provider-typebox": "^4.0.0",
     "@sinclair/typebox": "^0.32.9",
+    "axios": "^1.6.7",
     "dotenv": "^16.3.1",
     "fastify": "^4.0.0",
     "fastify-cli": "^6.0.1",

@@ -9,12 +9,21 @@ export enum SubscriptionStatus {
 export const SubscriptionStatusType = Type.Enum(SubscriptionStatus)  
 
 // Subscription Collection schema:
+
+export const SubscriptionCollectionLanguage = Type.Union([
+    Type.Literal('en'),
+    Type.Literal('fi'),
+    Type.Literal('sv'),
+])
+export type SubscriptionCollectionLanguageType = Static<typeof SubscriptionCollectionLanguage>
+
 export const SubscriptionCollection = Type.Object({
     email: Type.String(),
     elastic_query: Type.String(),
     query: Type.String(),
     created: Type.Date(),
     modified: Type.Date(),
+    lang: SubscriptionCollectionLanguage,
     status: Type.Enum(SubscriptionStatus)
 })
 export type SubscriptionCollectionType = Static<typeof SubscriptionCollection>
@@ -32,6 +41,21 @@ export type SubscriptionResponseType = Static<typeof SubscriptionResponse>
 export const SubscriptionRequest = Type.Object({
     email: Type.String(),
     elastic_query: Type.String(),
-    query: Type.String()
+    query: Type.String(),
+    lang: SubscriptionCollectionLanguage
 })
 export type SubscriptionRequestType = Static<typeof SubscriptionRequest>
+
+// Generic request with SubscriptionId
+export const SubscriptionGenericPostRequest = Type.Object({
+    id: Type.String()
+})
+export type SubscriptionGenericPostRequestType = Static<typeof SubscriptionGenericPostRequest>
+
+// Generic response with id and status code
+export const SubscriptionGenericPostResponse = Type.Object({
+    id: Type.Optional(Type.String()),
+    statusCode: Type.Number(),
+    statusMessage: Type.Optional(Type.String())
+})
+export type SubscriptionGenericPostResponseType = Static<typeof SubscriptionGenericPostResponse>

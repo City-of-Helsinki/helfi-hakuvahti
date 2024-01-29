@@ -1,23 +1,34 @@
-# Getting Started with [Fastify-CLI](https://www.npmjs.com/package/fastify-cli)
-This project was bootstrapped with Fastify-CLI.
+## Running Hakuvahti
 
-## Available Scripts
+- `npm i`
+- Copy .env.dist as .env and configure MongoDB + ElasticProxy settings.
+- `npm start` or `npm run dev`
 
-In the project directory, you can run:
+## Endpoints:
 
-### `npm run dev`
+`/subscription (POST)`
 
-To start the app in dev mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+Adds news Hakuvahti subscription:
 
-### `npm start`
+```
+{
+    "elastic_query": "test", // Query for elatic proxu
+    "query": "test",         // Queryparam URL at the website for linkback
+    "email": "test asd",     // Subscriber email. This will be hashed automatically
+    "lang": "fi"             // Locale for email templates.
+}
+```
 
-For production mode
+`/subscription/:id (DELETE)`
 
-### `npm run test`
+Deletes a subscription
 
-Run the test cases.
+### Running cron:
 
-## Learn More
+npm run 
 
-To learn Fastify, check out the [Fastify documentation](https://www.fastify.io/docs/latest/).
+### TODO:
+
+- Finish token auth in src/plugins/token.ts
+- Finish ATV integration in src/plugins/atv.ts
+- Send emails in cron

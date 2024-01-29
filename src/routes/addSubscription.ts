@@ -11,10 +11,15 @@ import {
   SubscriptionCollectionType,
   SubscriptionRequest, 
   SubscriptionRequestType, 
-  SubscriptionStatus,
+  SubscriptionStatus
 } from "../types/subscription";
 
-import { Generic500Error, Generic500ErrorType } from '../types/error';
+import { 
+  Generic500Error, 
+  Generic500ErrorType 
+} from '../types/error';
+
+// Add subscription to given query parameters
 
 const subscription: FastifyPluginAsync = async (
   fastify: FastifyInstance,
@@ -38,11 +43,16 @@ const subscription: FastifyPluginAsync = async (
     const mongodb = fastify.mongo;
     const collection = mongodb.db?.collection('subscription');
 
-    const isValid = validateSubscriptionRequest(request.body);
+    // Replace email in request with ATV hashed email
+    if (request?.atvResponse?.email) {
+      request.body.email = request.atvResponse.email
+    } else {
+      // Bail out if we can't get hashed email from ATV
 
-    if (!isValid) {
-      reply.code(500).header('Content-Type', 'application/json; charset=utf-8').send({ error: 'Invalid subscription request.' });
-      return;
+      return reply
+        .code(500)
+        .header('Content-Type', 'application/json; charset=utf-8')
+        .send({ error: 'Could not find hashed email. Subscription not added.' });
     }
 
     const subscription: Partial<SubscriptionCollectionType> = {
@@ -56,24 +66,23 @@ const subscription: FastifyPluginAsync = async (
       const response = await collection?.insertOne(subscription);
       
       if (response) {
-        reply.code(200).header('Content-Type', 'application/json; charset=utf-8').send(response);
+        return reply
+          .code(200)
+          .header('Content-Type', 'application/json; charset=utf-8')
+          .send(response);
       } else {
-        reply.code(500).header('Content-Type', 'application/json; charset=utf-8').send({ error: 'Could not add new subscription.' });
+        return reply
+          .code(500)
+          .header('Content-Type', 'application/json; charset=utf-8')
+          .send({ error: 'Could not add new subscription.' });
       }
-    } catch (error) {
-      reply.code(500).header('Content-Type', 'application/json; charset=utf-8').send({ error: error.message });
+    } catch (e: unknown) {
+      return reply
+        .code(500)
+        .header('Content-Type', 'application/json; charset=utf-8')
+        .send({ error: e });
     }
   });
-};
-
-
-// Validate that the subscription request matches the partial SubscriptionCollectionType.
-const validateSubscriptionRequest = (request: SubscriptionRequestType): boolean => {
-  if (!request.elastic_query || !request.query || !request.email) {
-    return false;
-  }
-  
-  return true;
 };
 
 export default subscription;

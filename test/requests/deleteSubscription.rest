@@ -1,0 +1,4 @@
+### Create new subsciption
+DELETE http://127.0.0.1:3000/subscription/delete/65b8b45ab47d8432f2f59a63 HTTP/1.1
+Content-Type: application/json
+token: test
