@@ -12,7 +12,7 @@ Adds news Hakuvahti subscription:
 
 ```
 {
-    "elastic_query": "test", // Query for elatic proxu
+    "elastic_query": "test", // Query for elatic proxy
     "query": "test",         // Queryparam URL at the website for linkback
     "email": "test asd",     // Subscriber email. This will be hashed automatically
     "lang": "fi"             // Locale for email templates.
@@ -25,7 +25,7 @@ Deletes a subscription
 
 ### Running cron:
 
-npm run 
+npm run cron
 
 ### TODO:
 
