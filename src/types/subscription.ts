@@ -20,6 +20,7 @@ export type SubscriptionCollectionLanguageType = Static<typeof SubscriptionColle
 export const SubscriptionCollection = Type.Object({
     email: Type.String(),
     elastic_query: Type.String(),
+    hash: Type.Optional(Type.String()),
     query: Type.String(),
     created: Type.Date(),
     modified: Type.Date(),
