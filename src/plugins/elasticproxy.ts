@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import fp from 'fastify-plugin'
 
 // Query Elastic Proxy
@@ -17,7 +17,7 @@ export default fp<ElasticProxyPluginOptions>(async (fastify, opts) => {
       'Content-Type': 'application/x-ndjson'
     }
 
-    const response = await axios.post(
+    const response: AxiosResponse = await axios.post(
       elasticProxyUrl,
       elasticQueryJson,
       {
@@ -25,6 +25,7 @@ export default fp<ElasticProxyPluginOptions>(async (fastify, opts) => {
       }
     );
 
+    // TODO: type this:
     return response.data
   })
 })
