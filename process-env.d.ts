@@ -5,7 +5,7 @@ declare global {
     ELASTIC_PROXY_URL: string;
     MONGODB: string;
     FASTIFY_PORT: number;
-    FASTIFY_ADDRESS: string | undefined;
+    FASTIFY_ADDRESS: string | undefined;
 
     // add more environment variables and their types here
     }
