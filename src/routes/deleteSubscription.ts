@@ -24,7 +24,7 @@ const deleteSubscription: FastifyPluginAsync = async (
 ): Promise<void> => {
   fastify.delete<{
     Reply: SubscriptionGenericPostResponseType | Generic500ErrorType
-  }>('/subscription/delete/:id', {
+  }>('/subscription/delete/:id/:hash', {
     schema: {
       response: {
         200: SubscriptionGenericPostResponse,
@@ -37,10 +37,10 @@ const deleteSubscription: FastifyPluginAsync = async (
   ) => {
     const mongodb = fastify.mongo
     const collection = mongodb.db?.collection('subscription');
-    const { id } = <{ id: string }>request.params;
+    const { id, hash } = <{ id: string, hash: string }>request.params;
 
     try {
-      const result = await collection?.deleteOne({ _id: new ObjectId(id) });
+      const result = await collection?.deleteOne({ _id: new ObjectId(id), hash: hash });
 
       request.log.info({ 
         level: 'info', 
@@ -64,7 +64,7 @@ const deleteSubscription: FastifyPluginAsync = async (
           message: 'Subscription deleted'
         });
     } catch (error) {
-      console.log('DELETE failed')
+      console.log('Subscription deletion failed')
       console.log(error)
       return reply
         .code(500)
