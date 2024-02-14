@@ -22,12 +22,12 @@ const queryApp = async (): Promise<unknown> => {
   const result = await collection?.find({ status: 1 }).toArray();
 
   if (result && result.length > 0) {
-    for (const subscription of result) {
-      const elasticQuery = subscription.elastic_query;
-      const elasticResponse = await server.queryElasticProxy(elasticQuery);
+    //for (const subscription of result) {
+      // const elasticQuery = subscription.elastic_query;
+      // const elasticResponse = await server.queryElasticProxy(elasticQuery);
 
       // TODO: finish this
-    }
+    //}
   }
 
   return {};
