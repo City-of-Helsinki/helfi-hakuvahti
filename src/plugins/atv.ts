@@ -47,7 +47,7 @@ const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDoc
 
     const response: AxiosResponse<Partial<AtvDocumentType>> = await axios.post(`${process.env.ATV_API_URL}/v1/documents/`, documentObject, {
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'multipart/form-data'
       }
     });
 
