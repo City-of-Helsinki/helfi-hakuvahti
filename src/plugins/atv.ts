@@ -23,7 +23,11 @@ interface AtvResponse {
  */
 const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDocumentType>> => {
   try {
-    const response: AxiosResponse<Partial<AtvDocumentType>> = await axios.get(`${process.env.ATV_API_URL}/v1/documents/${atvDocumentId}`);
+    const response: AxiosResponse<Partial<AtvDocumentType>> = await axios.get(`${process.env.ATV_API_URL}/v1/documents/${atvDocumentId}`, {
+      headers: {
+        'x-api-key': process.env.ATV_API_KEY
+      }
+    });
     return response.data;
   } catch (error: unknown) {
     console.log(error);
@@ -38,31 +42,42 @@ const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDo
  * @returns A promise that resolves with the created document.
  */
 const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDocumentType>> => {
-  try {
+    const timestamp = Math.floor(Date.now() / 1000).toString()
     const documentObject: Partial<AtvDocumentType> = {
-      content: {
-        email: email
-      }
+      'draft': 'false',
+      'tos_function_id': 'atvCreateDocumentWithEmail', 
+      'tos_record_id': timestamp,
+      'content': JSON.stringify({
+        'email': email
+      })
     }
 
-    const response: AxiosResponse<Partial<AtvDocumentType>> = await axios.post(`${process.env.ATV_API_URL}/v1/documents/`, documentObject, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
+    // TODO: set expiry date for the document
 
-    return response.data;
-  } catch (error: unknown) {
-    console.log(error)
+    try {
+      const response: AxiosResponse<Partial<AtvDocumentType>> = await axios.post(
+        `${process.env.ATV_API_URL}/v1/documents/`, 
+        documentObject, 
+        {
+          headers: {
+          'Content-Type': 'multipart/form-data',
+            'X-Api-Key': process.env.ATV_API_KEY
+          }
+        }
+      );
 
-    throw new Error('Failed to create document:');
-  }
+      return response.data;
+    } catch (error: unknown) {
+      console.log(error)
+
+      throw new Error('Failed to create document. See error log.')
+    }
 }
 
 const requestEmailHook = async (request: FastifyRequest) => {
   try {
-    const body: Partial<SubscriptionRequestType> = <any>request.body;
-    const email = body.email;
+    const body: Partial<SubscriptionRequestType> = <any>request.body
+    const email = body.email
 
     if (!email) {
       return;
@@ -79,7 +94,8 @@ const requestEmailHook = async (request: FastifyRequest) => {
     }
   } catch (error) {
     console.error('An error occurred:', error);
-    // Handle the error or rethrow it as needed
+
+    throw new Error('Could not create document to ATV. Cannot subscribe.')
   }
 }
 

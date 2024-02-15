@@ -37,7 +37,8 @@ export const AtvDocument = Type.Object({
     content: Type.Any(),
 
     // Is this document a draft or not. Drafts can be modified by a user.
-    draft: Type.Boolean(),
+    // Draft is actually a boolean but we must send it to the api as 'string'
+    draft: Type.Optional(Type.Unknown()),
 
     // Date and time after which this document cannot be modified, except for deleting. This field should be filled by the calling service if it knows e.g. that a certain application has a deadline.
     // string($date-time)

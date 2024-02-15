@@ -4,8 +4,8 @@ Content-Type: application/json
 token: test
 
 {
-    "elastic_query": "test",
-    "query": "test",
-    "email": "test asd",
+    "elastic_query": "TestiQuery",
+    "query": "httpsomewhere",
+    "email": "testi@hel.fi",
     "lang": "fi"
 }
