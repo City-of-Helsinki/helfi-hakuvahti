@@ -1,22 +1,19 @@
 import fp from 'fastify-plugin'
 import axios, { AxiosResponse } from 'axios';
 import { AtvDocumentType } from '../types/atv';
-
-import { 
-  SubscriptionRequestType, 
-} from "../types/subscription";
-
+import { SubscriptionRequestType } from "../types/subscription";
 import { FastifyRequest } from 'fastify/types/request';
 
 export interface AtvPluginOptions {
 }
 
 interface AtvResponse {
-  email: string;
+  atvDocumentId: string;
 }
 
 /**
- * Fetches content by ID from the ATV API.
+ * Fetches Document content by ID from the ATV API. Returns only contents
+ * of the returned document.
  * 
  * @param atvDocumentId The ID of the ATV document to fetch.
  * @returns A promise that resolves with the fetched ATV document data.
@@ -27,32 +24,37 @@ const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDo
       headers: {
         'x-api-key': process.env.ATV_API_KEY
       }
-    });
-    return response.data;
+    })
+
+    return response.data.content
   } catch (error: unknown) {
     console.log(error);
 
-    throw new Error('Error fetching content by ID');
+    throw new Error('Error fetching Document by id');
   }
 }
 
 /**
  * Creates a document with the provided email.
- * @param email - The email to associate with the document.
+ * 
+ * @param email - The email to store in the document.
  * @returns A promise that resolves with the created document.
  */
 const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDocumentType>> => {
     const timestamp = Math.floor(Date.now() / 1000).toString()
+    const deleteAfter = new Date()
+    const maxAge: number = +process.env.SUBSCRIPTION_MAX_AGE!;
+    deleteAfter.setDate(deleteAfter.getDate() + maxAge)
+
     const documentObject: Partial<AtvDocumentType> = {
       'draft': 'false',
       'tos_function_id': 'atvCreateDocumentWithEmail', 
       'tos_record_id': timestamp,
+      //'delete_after': deleteAfter.toISOString(),
       'content': JSON.stringify({
         'email': email
       })
     }
-
-    // TODO: set expiry date for the document
 
     try {
       const response: AxiosResponse<Partial<AtvDocumentType>> = await axios.post(
@@ -64,7 +66,7 @@ const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDoc
             'X-Api-Key': process.env.ATV_API_KEY
           }
         }
-      );
+      )
 
       return response.data;
     } catch (error: unknown) {
@@ -76,7 +78,7 @@ const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDoc
 
 const requestEmailHook = async (request: FastifyRequest) => {
   try {
-    const body: Partial<SubscriptionRequestType> = <any>request.body
+    const body: Partial<SubscriptionRequestType> = request.body as Partial<SubscriptionRequestType>
     const email = body.email
 
     if (!email) {
@@ -89,7 +91,7 @@ const requestEmailHook = async (request: FastifyRequest) => {
     // If we created the document successfully, set the documentId in the request
     if (atvDocumentId) {
       request.atvResponse = {
-        email: atvDocumentId,
+        atvDocumentId: atvDocumentId,
       }
     }
   } catch (error) {

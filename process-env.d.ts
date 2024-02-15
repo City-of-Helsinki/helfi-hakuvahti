@@ -17,6 +17,9 @@ declare global {
     ATV_API_KEY: string;
     ATV_API_URL: string;
 
+    // Maximum age of subscription in days
+    SUBSCRIPTION_MAX_AGE: number;
+
     // add more environment variables and their types here
     }
   }

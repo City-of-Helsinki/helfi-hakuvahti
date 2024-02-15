@@ -45,8 +45,8 @@ const subscription: FastifyPluginAsync = async (
     const hash = fastify.getRandHash()
 
     // Replace email in request with ATV hashed email
-    if (request?.atvResponse?.email) {
-      request.body.email = request.atvResponse.email
+    if (request?.atvResponse?.atvDocumentId) {
+      request.body.email = request.atvResponse.atvDocumentId
     } else {
       // Bail out if we can't get hashed email from ATV
 
