@@ -43,14 +43,14 @@ const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDo
 const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDocumentType>> => {
     const timestamp = Math.floor(Date.now() / 1000).toString()
     const deleteAfter = new Date()
-    const maxAge: number = +process.env.SUBSCRIPTION_MAX_AGE!;
+    const maxAge: number = +process.env.SUBSCRIPTION_MAX_AGE!
     deleteAfter.setDate(deleteAfter.getDate() + maxAge)
 
     const documentObject: Partial<AtvDocumentType> = {
       'draft': 'false',
       'tos_function_id': 'atvCreateDocumentWithEmail', 
       'tos_record_id': timestamp,
-      //'delete_after': deleteAfter.toISOString(),
+      'delete_after': deleteAfter.toISOString().substring(0, 10),
       'content': JSON.stringify({
         'email': email
       })
