@@ -20,6 +20,13 @@ declare global {
     // Maximum age of subscription in days
     SUBSCRIPTION_MAX_AGE: number;
 
+    MAIL_FROM: string;
+    MAIL_HOST: string;
+    MAIL_PORT: string;
+    MAIL_SECURE: string;
+    MAIL_AUTH_USER: string;
+    MAIL_AUTH_PASS: string;
+
     // add more environment variables and their types here
     }
   }
