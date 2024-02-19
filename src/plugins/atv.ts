@@ -1,14 +1,10 @@
 import fp from 'fastify-plugin'
 import axios, { AxiosResponse } from 'axios';
-import { AtvDocumentType } from '../types/atv';
+import { AtvDocumentType, AtvResponse } from '../types/atv';
 import { SubscriptionRequestType } from "../types/subscription";
 import { FastifyRequest } from 'fastify/types/request';
 
 export interface AtvPluginOptions {
-}
-
-interface AtvResponse {
-  atvDocumentId: string;
 }
 
 /**
@@ -41,39 +37,39 @@ const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDo
  * @returns A promise that resolves with the created document.
  */
 const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDocumentType>> => {
-    const timestamp = Math.floor(Date.now() / 1000).toString()
-    const deleteAfter = new Date()
-    const maxAge: number = +process.env.SUBSCRIPTION_MAX_AGE!
-    deleteAfter.setDate(deleteAfter.getDate() + maxAge)
+  const timestamp = Math.floor(Date.now() / 1000).toString()
+  const deleteAfter = new Date()
+  const maxAge: number = +process.env.SUBSCRIPTION_MAX_AGE!
+  deleteAfter.setDate(deleteAfter.getDate() + maxAge)
 
-    const documentObject: Partial<AtvDocumentType> = {
-      'draft': 'false',
-      'tos_function_id': 'atvCreateDocumentWithEmail', 
-      'tos_record_id': timestamp,
-      'delete_after': deleteAfter.toISOString().substring(0, 10),
-      'content': JSON.stringify({
-        'email': email
-      })
-    }
+  const documentObject: Partial<AtvDocumentType> = {
+    'draft': 'false',
+    'tos_function_id': 'atvCreateDocumentWithEmail',
+    'tos_record_id': timestamp,
+    'delete_after': deleteAfter.toISOString().substring(0, 10),
+    'content': JSON.stringify({
+      'email': email
+    })
+  }
 
-    try {
-      const response: AxiosResponse<Partial<AtvDocumentType>> = await axios.post(
-        `${process.env.ATV_API_URL}/v1/documents/`, 
-        documentObject, 
-        {
-          headers: {
+  try {
+    const response: AxiosResponse<Partial<AtvDocumentType>> = await axios.post(
+      `${process.env.ATV_API_URL}/v1/documents/`,
+      documentObject,
+      {
+        headers: {
           'Content-Type': 'multipart/form-data',
-            'X-Api-Key': process.env.ATV_API_KEY
-          }
+          'X-Api-Key': process.env.ATV_API_KEY
         }
-      )
+      }
+    )
 
-      return response.data;
-    } catch (error: unknown) {
-      console.log(error)
+    return response.data;
+  } catch (error: unknown) {
+    console.log(error)
 
-      throw new Error('Failed to create document. See error log.')
-    }
+    throw new Error('Failed to create document. See error log.')
+  }
 }
 
 const requestEmailHook = async (request: FastifyRequest) => {
@@ -126,5 +122,5 @@ declare module 'fastify' {
   export interface FastifyInstance {
     atvQueryEmail(email: string): Promise<Partial<AtvDocumentType>>;
     atvCreateDocumentWithEmail: (email: string) => Promise<Partial<AtvDocumentType>>;
-  }  
+  }
 }
