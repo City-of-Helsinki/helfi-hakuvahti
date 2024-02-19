@@ -1,17 +1,11 @@
 import fp from 'fastify-plugin'
 import { FastifyInstance } from 'fastify'
-import { Transporter } from 'nodemailer'
-
-export interface FastifyMailerNamedInstance {
-  [namespace: string]: Transporter;
-}
-
-export type FastifyMailer = FastifyMailerNamedInstance & Transporter;
+import { FastifyMailer } from '../types/mailer';
 
 export default fp(async function (fastify: FastifyInstance) {
-  fastify.register(require('fastify-mailer'), {
+  const opts = {
     defaults: { 
-      from: process.env.MAIl_FROM 
+      from: process.env.MAIL_FROM 
     },
     transport: {
       host: process.env.MAIL_HOST,
@@ -22,7 +16,9 @@ export default fp(async function (fastify: FastifyInstance) {
         pass: process.env.MAIL_AUTH_PASS
       }
     }
-  })
+  }
+
+  fastify.register(require('fastify-mailer'), opts)
 })
 
 declare module "fastify" {
