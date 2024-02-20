@@ -8,11 +8,10 @@ export interface AtvPluginOptions {
 }
 
 /**
- * Fetches Document content by ID from the ATV API. Returns only contents
- * of the returned document.
- * 
- * @param atvDocumentId The ID of the ATV document to fetch.
- * @returns A promise that resolves with the fetched ATV document data.
+ * Fetches content by document id from the ATV API.
+ *
+ * @param {string} atvDocumentId - The id of the ATV document
+ * @return {Promise<Partial<AtvDocumentType>>} The content of the document
  */
 const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDocumentType>> => {
   try {
@@ -22,7 +21,11 @@ const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDo
       }
     })
 
-    return response.data.content
+    if (response.data && response.data.content) {
+      return response.data.content
+    } else {
+      throw new Error('Empty content returned from API')
+    }
   } catch (error: unknown) {
     console.log(error);
 
@@ -31,28 +34,28 @@ const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDo
 }
 
 /**
- * Creates a document with the provided email.
- * 
- * @param email - The email to store in the document.
- * @returns A promise that resolves with the created document.
+ * Creates a document with the provided email address.
+ *
+ * @param {string} email - The email address to associate with the document
+ * @return {Promise<Partial<AtvDocumentType>>} The partially created AtvDocumentType object
  */
 const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDocumentType>> => {
-  const timestamp = Math.floor(Date.now() / 1000).toString()
-  const deleteAfter = new Date()
-  const maxAge: number = +process.env.SUBSCRIPTION_MAX_AGE!
-  deleteAfter.setDate(deleteAfter.getDate() + maxAge)
-
-  const documentObject: Partial<AtvDocumentType> = {
-    'draft': 'false',
-    'tos_function_id': 'atvCreateDocumentWithEmail',
-    'tos_record_id': timestamp,
-    'delete_after': deleteAfter.toISOString().substring(0, 10),
-    'content': JSON.stringify({
-      'email': email
-    })
-  }
-
   try {
+    const timestamp = Math.floor(Date.now() / 1000).toString()
+    const deleteAfter = new Date()
+    const maxAge: number = +process.env.SUBSCRIPTION_MAX_AGE!
+    deleteAfter.setDate(deleteAfter.getDate() + maxAge)
+
+    const documentObject: Partial<AtvDocumentType> = {
+      'draft': 'false',
+      'tos_function_id': 'atvCreateDocumentWithEmail',
+      'tos_record_id': timestamp,
+      'delete_after': deleteAfter.toISOString().substring(0, 10),
+      'content': JSON.stringify({
+        'email': email
+      })
+    }
+
     const response: AxiosResponse<Partial<AtvDocumentType>> = await axios.post(
       `${process.env.ATV_API_URL}/v1/documents/`,
       documentObject,
@@ -66,25 +69,30 @@ const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDoc
 
     return response.data;
   } catch (error: unknown) {
-    console.log(error)
+    console.log(error);
 
-    throw new Error('Failed to create document. See error log.')
+    throw new Error('Failed to create document. See error log.');
   }
 }
 
+/**
+ * Asynchronously handles a request and creates a document with an email for ATV.
+ *
+ * @param {FastifyRequest} request - the request object
+ * @return {Promise<void>} 
+ */
 const requestEmailHook = async (request: FastifyRequest) => {
   try {
     const body: Partial<SubscriptionRequestType> = request.body as Partial<SubscriptionRequestType>
-    const email = body.email
+    const email: string = body.email as string
 
     if (!email) {
       return;
     }
 
-    const atvDocument = await atvCreateDocumentWithEmail(email);
-    const atvDocumentId = atvDocument.id;
+    const atvDocument: Partial<AtvDocumentType> = await atvCreateDocumentWithEmail(email);
+    const atvDocumentId: string | undefined = atvDocument.id;
 
-    // If we created the document successfully, set the documentId in the request
     if (atvDocumentId) {
       request.atvResponse = {
         atvDocumentId: atvDocumentId,
@@ -92,7 +100,6 @@ const requestEmailHook = async (request: FastifyRequest) => {
     }
   } catch (error) {
     console.error('An error occurred:', error);
-
     throw new Error('Could not create document to ATV. Cannot subscribe.')
   }
 }

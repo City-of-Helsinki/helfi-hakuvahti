@@ -10,13 +10,13 @@ export const AtvDocument = Type.Object({
   updated_at: Type.Optional(Type.String()),
 
   // Status information given by the owning service. Could be e.g. some constant string.
-  status: Type.String(),
+  status: Type.Optional(Type.String()),
 
   // Status display values/translations. It's recommended to use ISO 639-1 language codes as key values.
   status_display_values: Type.Optional(Type.String()),
 
   // Type information given by the owning service. Could be e.g. the type of the document.
-  type: Type.String(),
+  type: Type.Optional(Type.String()),
 
   // Document type and translations for end user. It's recommended to use ISO 639-1 language codes as key values.
   human_readable_type: Type.Optional(Type.String()),
