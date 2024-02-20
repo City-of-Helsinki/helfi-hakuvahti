@@ -6,18 +6,25 @@ import fp from 'fastify-plugin'
 export interface ElasticProxyPluginOptions {
 }
 
-const queryElasticProxy = async function (elasticQueryJson: string): Promise<unknown> {
-  if (!process.env.ELASTIC_PROXY_URL) {
-      throw new Error('ELASTIC_PROXY_URL is not set');
-  }
-
-  const elasticProxyUrl: string = process.env.ELASTIC_PROXY_URL + '/_msearch';
-  const headers: { [key: string]: string } = {
-    'Content-Type': 'application/x-ndjson'
-  };
-
+/**
+ * Function to query ElasticSearch proxy with the given ElasticSearch query JSON.
+ *
+ * @param {string} elasticQueryJson - the JSON string representing the ElasticSearch query
+ * @return {Promise<unknown>} the response data from the ElasticSearch proxy
+ * @todo create type the return value from elastic
+ */
+const queryElasticProxy = async (elasticQueryJson: string): Promise<unknown> => {
   try {
-    const response: AxiosResponse<unknown> = await axios.post(
+    if (!process.env.ELASTIC_PROXY_URL) {
+      throw new Error('ELASTIC_PROXY_URL is not set');
+    }
+
+    const elasticProxyUrl: string = process.env.ELASTIC_PROXY_URL + '/_msearch';
+    const headers: { [key: string]: string } = {
+      'Content-Type': 'application/x-ndjson'
+    };
+
+    const response: AxiosResponse<unknown> = await axios.post<unknown>(
       elasticProxyUrl,
       elasticQueryJson,
       {
