@@ -15,26 +15,27 @@ void server.register(elasticproxy)
 // ElasticProxy and add them to email queue
 // (collection: emailqueue)
 
-const queryApp = async (): Promise<unknown> => {
+const app = async (): Promise<unknown> => {
   const collection = server.mongo.db?.collection('subscription');
 
   // Get all enabled subscriptions
   const result = await collection?.find({ status: 1 }).toArray();
 
   if (result && result.length > 0) {
-    //for (const subscription of result) {
-      // const elasticQuery = subscription.elastic_query;
-      // const elasticResponse = await server.queryElasticProxy(elasticQuery);
+    for (const subscription of result) {
+      const elasticQuery = subscription.elastic_query;
+      const elasticResponse = await server.queryElasticProxy(elasticQuery);
+      console.log(elasticResponse)
 
       // TODO: finish this
-    //}
+    }
   }
 
   return {};
 };
 
 server.get('/', async function (request, reply) {
-  return await queryApp()
+  return await app()
 })
 
 server.ready((err) => {
