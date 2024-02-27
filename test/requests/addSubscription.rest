@@ -7,5 +7,5 @@ token: test
     "elastic_query": "TestiQuery",
     "query": "httpsomewhere",
     "email": "testi@hel.fi",
-    "lang": "fi"
+    "lang": "sv"
 }

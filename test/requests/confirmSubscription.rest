@@ -1,0 +1,5 @@
+### Create new subsciption
+GET http://127.0.0.1:3000/subscription/confirm/65dd80fdbc9129dc77dc4aee/x19vbpajdd HTTP/1.1
+Content-Type: application/json
+token: test
+
