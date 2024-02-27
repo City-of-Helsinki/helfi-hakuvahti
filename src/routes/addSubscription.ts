@@ -19,6 +19,10 @@ import {
   Generic500ErrorType 
 } from '../types/error';
 
+import { 
+  confirmationEmail
+} from '../lib/email';
+
 // Add subscription to given query parameters
 
 const subscription: FastifyPluginAsync = async (
@@ -40,8 +44,8 @@ const subscription: FastifyPluginAsync = async (
     request: FastifyRequest<{ Body: SubscriptionRequestType }>,
     reply: FastifyReply
   ) => {
-    const mongodb = fastify.mongo;
-    const collection = mongodb.db?.collection('subscription');
+    const mongodb = fastify.mongo
+    const collection = mongodb.db?.collection('subscription')
     const hash = fastify.getRandHash()
 
     // Replace email in request with ATV hashed email
@@ -68,6 +72,22 @@ const subscription: FastifyPluginAsync = async (
       const response = await collection?.insertOne(subscription);
       
       if (response) {
+        // Insert email in queue
+        const emailContent = await confirmationEmail(request.body.lang, {
+          confirmation_link: process.env.EMAIL_CONFIRMATION_LINK + '/' + request.body.lang + `/subscription/confirm/${response.insertedId}/${hash}`
+        })
+
+        const email = {
+          email: request.body.email,
+          content: emailContent
+        }
+
+        const q = mongodb.db?.collection('queue')
+        const r = await q?.insertOne(email)
+
+        console.log(r)
+        console.log(emailContent)
+
         return reply
           .code(200)
           .header('Content-Type', 'application/json; charset=utf-8')
@@ -79,6 +99,7 @@ const subscription: FastifyPluginAsync = async (
           .send({ error: 'Could not add new subscription.' });
       }
     } catch (e: unknown) {
+      console.log('Unknown error!', e)
       return reply
         .code(500)
         .header('Content-Type', 'application/json; charset=utf-8')
