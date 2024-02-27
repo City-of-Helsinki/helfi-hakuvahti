@@ -83,6 +83,10 @@ const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDoc
  */
 const requestEmailHook = async (request: FastifyRequest) => {
   try {
+    if (request.method !== 'POST') {
+      return;
+    }
+
     const body: Partial<SubscriptionRequestType> = request.body as Partial<SubscriptionRequestType>
     const email: string = body.email as string
 
