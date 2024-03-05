@@ -1,5 +1,6 @@
-import axios, { AxiosResponse } from 'axios';
+import axios from 'axios';
 import fp from 'fastify-plugin'
+import { ElasticProxyResponseType } from '../types/elasticproxy';
 
 // Query Elastic Proxy
 
@@ -7,32 +8,33 @@ export interface ElasticProxyPluginOptions {
 }
 
 /**
- * Function to query ElasticSearch proxy with the given ElasticSearch query JSON.
- *
- * @param {string} elasticQueryJson - the JSON string representing the ElasticSearch query
- * @return {Promise<unknown>} the response data from the ElasticSearch proxy
- * @todo create type the return value from elastic
+ * Sends a query to the ElasticSearch proxy.
+ * @param elasticQueryJson - The JSON string representing the ElasticSearch query.
+ * @returns The response data from the ElasticSearch proxy.
  */
-const queryElasticProxy = async (elasticQueryJson: string): Promise<unknown> => {
+const queryElasticProxy = async (elasticQueryJson: string): Promise<ElasticProxyResponseType> => {
+  if (!process.env.ELASTIC_PROXY_URL) {
+    throw new Error('ELASTIC_PROXY_URL is not set');
+  }
+
+  const elasticProxyUrl: string = process.env.ELASTIC_PROXY_URL + '/_msearch';
+  const headers: { [key: string]: string } = {
+    'Content-Type': 'application/x-ndjson'
+  };
+
   try {
-    if (!process.env.ELASTIC_PROXY_URL) {
-      throw new Error('ELASTIC_PROXY_URL is not set');
-    }
-
-    const elasticProxyUrl: string = process.env.ELASTIC_PROXY_URL + '/_msearch';
-    const headers: { [key: string]: string } = {
-      'Content-Type': 'application/x-ndjson'
-    };
-
-    const response: AxiosResponse<unknown> = await axios.post<unknown>(
+    const response = await axios.post<ElasticProxyResponseType>(
       elasticProxyUrl,
-      elasticQueryJson,
+      // ElasticProxy requests must terminate to newline or server returns Bad request
+      elasticQueryJson + (elasticQueryJson.endsWith("\n") ? '' : '\n'),
       {
         headers: headers
       }
-    );
-    return response.data;
+    )
+
+    return response.data
   } catch (error) {
+    console.error(error);
     throw new Error('Error while sending request to ElasticSearch proxy');
   }
 }
@@ -43,6 +45,6 @@ export default fp<ElasticProxyPluginOptions>(async (fastify, opts) => {
 
 declare module 'fastify' {
   export interface FastifyInstance {
-    queryElasticProxy(elasticQueryJson: string): unknown;
+    queryElasticProxy(elasticQueryJson: string): Promise<ElasticProxyResponseType>
   }
 }
