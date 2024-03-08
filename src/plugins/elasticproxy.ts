@@ -14,13 +14,11 @@ export interface ElasticProxyPluginOptions {
  */
 const queryElasticProxy = async (elasticQueryJson: string): Promise<ElasticProxyResponseType> => {
   if (!process.env.ELASTIC_PROXY_URL) {
-    throw new Error('ELASTIC_PROXY_URL is not set');
+    throw new Error('ELASTIC_PROXY_URL is not set')
   }
 
-  const elasticProxyUrl: string = process.env.ELASTIC_PROXY_URL + '/_msearch';
-  const headers: { [key: string]: string } = {
-    'Content-Type': 'application/x-ndjson'
-  };
+  const elasticProxyUrl: string = process.env.ELASTIC_PROXY_URL + (elasticQueryJson.startsWith("{}\n") ? '/_msearch' : '/_search');
+  const contentType: string = elasticQueryJson.startsWith("{}\n") ? 'application/x-ndjson' : 'application/json';
 
   try {
     const response = await axios.post<ElasticProxyResponseType>(
@@ -28,13 +26,15 @@ const queryElasticProxy = async (elasticQueryJson: string): Promise<ElasticProxy
       // ElasticProxy requests must terminate to newline or server returns Bad request
       elasticQueryJson + (elasticQueryJson.endsWith("\n") ? '' : '\n'),
       {
-        headers: headers
+        headers: {
+          'Content-Type': contentType
+        }
       }
-    )
+    );
 
-    return response.data
+    return response.data;
   } catch (error) {
-    console.error(error);
+    console.error(error)
     throw new Error('Error while sending request to ElasticSearch proxy');
   }
 }
