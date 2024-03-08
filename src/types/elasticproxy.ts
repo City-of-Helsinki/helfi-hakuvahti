@@ -10,9 +10,26 @@ export const ElasticProxyResponseItem = Type.Object({
 })
 export type ElasticProxyResponseItemType = Static<typeof ElasticProxyResponseItem>
 
-export const ElasticProxyResponse = Type.Object({
+export const ElasticProxyResponseHits = Type.Object({
+    total: Type.Unknown(),
+    max_score: Type.Unknown(),
+    hits: Type.Array(ElasticProxyResponseItem),
+})
+export type ElasticProxyResponseHitsType = Static<typeof ElasticProxyResponseHits>
+
+export const ElasticProxyJsonResponse = Type.Object({
     took: Type.Number(),
     responses: Type.Array(ElasticProxyResponseItem),
 })
-export type ElasticProxyResponseType = Static<typeof ElasticProxyResponse>
+export type ElasticProxyJsonResponseType = Static<typeof ElasticProxyJsonResponse>
 
+export const PartialDrupalNode = Type.Object({
+    _language: Type.String(),
+    entity_type: Type.Array(Type.String()),
+    url: Type.Array(Type.String()),,
+    langcode: Type.Array(Type.String()),,
+    title: Type.String(),
+    field_publication_starts: Type.Array(Type.Number()),
+    entity_type: Type.Array(Type.String()),
+})
+export type PartialDrupalNodeType = Static<typeof PartialDrupalNode>
