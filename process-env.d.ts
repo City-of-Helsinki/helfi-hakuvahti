@@ -6,6 +6,9 @@ declare global {
       // Elastic Proxy url
       ELASTIC_PROXY_URL: string;
 
+      // Base url for the website
+      BASE_URL: string;
+
       // MongoDB connection
       MONGODB: string;
 
