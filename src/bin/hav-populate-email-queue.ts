@@ -5,8 +5,7 @@ import dotenv from 'dotenv'
 import { SubscriptionStatus } from '../types/subscription'
 import decode from '../plugins/base64'
 import encode from '../plugins/base64'
-import { ElasticProxyResponseType } from '../types/elasticproxy';
-import { groupResponseAggs } from '../lib/elasticresponse';
+import { ElasticProxyResponseItemType, PartialDrupalNodeType } from '../types/elasticproxy';
 
 dotenv.config()
 
@@ -35,23 +34,40 @@ const massDeleteSubscriptions = async (modifyStatus: SubscriptionStatus, olderTh
   }
 }
 
-const app = async (): Promise<unknown> => {
-  const collection = server.mongo.db?.collection('subscription');
+const app = async (): Promise<{}> => {
+  try {
+    const baseUrl: string = process.env.BASE_URL || 'http://localhost:3000';
+    const collection = server.mongo.db!.collection('subscription');
+    const result = await collection.find({ status: 1 }).toArray();
 
-  // Get all enabled subscriptions
-  const result = await collection?.find({ status: 1 }).toArray();
+    if (result.length > 0) {
+      for (const subscription of result) {
+        const elasticQuery: string = server.b64decode(subscription.elastic_query);
+        const elasticResponse: ElasticProxyResponseItemType = await server.queryElasticProxy(elasticQuery);
 
-  if (result && result.length > 0) {
-    for (const subscription of result) {
-      const elasticQuery = server.b64decode(subscription.elastic_query)
-      const elasticResponse: ElasticProxyResponseType = await server.queryElasticProxy(elasticQuery);
-      const groupedResponse = groupResponseAggs(elasticResponse.responses)
-      console.log(groupedResponse)
+        // Last checked timestamp as Unixtime
+        const lastChecked: number = subscription.last_checked ? Math.floor(new Date(subscription.last_checked).getTime() / 1000) : Math.floor(new Date().getTime() / 1000);
 
-      // TODO: finish this
+        if (!elasticResponse.hits.hits) {
+          continue;
+        }
 
-      break;
+        // Get new hits for this subscription query since last_checked timestamp
+        const newHits: PartialDrupalNodeType[] = elasticResponse.hits.hits
+          .filter((hit: { _source: { field_publication_starts: number[]; }; }) => hit._source.field_publication_starts[0] >= lastChecked)
+          .map((hit: { _source: PartialDrupalNodeType; }) => hit._source);
+
+        // Update last checked timestamp to current date
+        await collection.updateOne(
+          { _id: subscription._id },
+          { $set: { last_checked: new Date() } }
+        );
+
+        console.log(newHits);
+      }
     }
+  } catch (error) {
+    console.error(error);
   }
 
   return {};
