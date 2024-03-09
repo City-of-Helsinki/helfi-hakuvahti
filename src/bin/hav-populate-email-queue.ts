@@ -5,7 +5,8 @@ import dotenv from 'dotenv'
 import { SubscriptionStatus } from '../types/subscription'
 import decode from '../plugins/base64'
 import encode from '../plugins/base64'
-import { ElasticProxyResponseItemType, PartialDrupalNodeType } from '../types/elasticproxy';
+import { ElasticProxyJsonResponseType, PartialDrupalNodeType } from '../types/elasticproxy';
+import { newHitsEmail } from '../lib/email';
 
 dotenv.config()
 
@@ -36,35 +37,42 @@ const massDeleteSubscriptions = async (modifyStatus: SubscriptionStatus, olderTh
 
 const app = async (): Promise<{}> => {
   try {
-    const baseUrl: string = process.env.BASE_URL || 'http://localhost:3000';
     const collection = server.mongo.db!.collection('subscription');
+    const queueCollection = server.mongo.db!.collection('queue')
     const result = await collection.find({ status: 1 }).toArray();
 
-    if (result.length > 0) {
-      for (const subscription of result) {
-        const elasticQuery: string = server.b64decode(subscription.elastic_query);
-        const elasticResponse: ElasticProxyResponseItemType = await server.queryElasticProxy(elasticQuery);
+    for (const subscription of result) {
+      const elasticQuery: string = server.b64decode(subscription.elastic_query);
+      const elasticResponse: ElasticProxyJsonResponseType = await server.queryElasticProxy(elasticQuery);
 
-        // Last checked timestamp as Unixtime
-        const lastChecked: number = subscription.last_checked ? Math.floor(new Date(subscription.last_checked).getTime() / 1000) : Math.floor(new Date().getTime() / 1000);
-
-        if (!elasticResponse.hits.hits) {
-          continue;
-        }
-
-        // Get new hits for this subscription query since last_checked timestamp
-        const newHits: PartialDrupalNodeType[] = elasticResponse.hits.hits
-          .filter((hit: { _source: { field_publication_starts: number[]; }; }) => hit._source.field_publication_starts[0] >= lastChecked)
-          .map((hit: { _source: PartialDrupalNodeType; }) => hit._source);
-
-        // Update last checked timestamp to current date
-        await collection.updateOne(
-          { _id: subscription._id },
-          { $set: { last_checked: new Date() } }
-        );
-
-        console.log(newHits);
+      if (!elasticResponse.hits.hits) {
+        continue;
       }
+
+      const lastChecked: number = subscription.last_checked ? Math.floor(new Date(subscription.last_checked).getTime() / 1000) : Math.floor(new Date().getTime() / 1000);
+      const newHits: PartialDrupalNodeType[] = elasticResponse.hits.hits
+        .filter((hit: { _source: { field_publication_starts: number[]; }; }) => hit._source.field_publication_starts[0] >= lastChecked)
+        .map((hit: { _source: PartialDrupalNodeType; }) => hit._source);
+
+      if (newHits.length === 0) {
+        continue
+      }
+
+      const emailContent = await newHitsEmail(subscription.lang, {
+        hits: newHits
+      })
+
+      const email = {
+        email: subscription.email,
+        content: emailContent
+      }
+
+      await queueCollection.insertOne(email)
+
+      await collection.updateOne(
+        { _id: subscription._id },
+        { $set: { last_checked: new Date() } }
+      )
     }
   } catch (error) {
     console.error(error);
@@ -83,6 +91,7 @@ server.get('/', async function (request, reply) {
   // Remove expired subscriptions
   await massDeleteSubscriptions(SubscriptionStatus.ACTIVE, confirmedSubscriptionMaxAge)
 
+  // Loop through subscriptions and add new results to email queue
   return await app()
 })
 

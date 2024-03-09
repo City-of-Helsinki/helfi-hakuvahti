@@ -19,6 +19,7 @@ export type ElasticProxyResponseHitsType = Static<typeof ElasticProxyResponseHit
 
 export const ElasticProxyJsonResponse = Type.Object({
     took: Type.Number(),
+    hits: Type.Object(Type.Unknown()),
     responses: Type.Array(ElasticProxyResponseItem),
 })
 export type ElasticProxyJsonResponseType = Static<typeof ElasticProxyJsonResponse>
