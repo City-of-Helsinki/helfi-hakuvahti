@@ -1,6 +1,6 @@
 import axios from 'axios';
 import fp from 'fastify-plugin'
-import { ElasticProxyResponseType } from '../types/elasticproxy';
+import { ElasticProxyJsonResponseType } from '../types/elasticproxy';
 
 // Query Elastic Proxy
 
@@ -12,7 +12,7 @@ export interface ElasticProxyPluginOptions {
  * @param elasticQueryJson - The JSON string representing the ElasticSearch query.
  * @returns The response data from the ElasticSearch proxy.
  */
-const queryElasticProxy = async (elasticQueryJson: string): Promise<ElasticProxyResponseType> => {
+const queryElasticProxy = async (elasticQueryJson: string): Promise<ElasticProxyJsonResponseType> => {
   if (!process.env.ELASTIC_PROXY_URL) {
     throw new Error('ELASTIC_PROXY_URL is not set')
   }
@@ -21,7 +21,7 @@ const queryElasticProxy = async (elasticQueryJson: string): Promise<ElasticProxy
   const contentType: string = elasticQueryJson.startsWith("{}\n") ? 'application/x-ndjson' : 'application/json';
 
   try {
-    const response = await axios.post<ElasticProxyResponseType>(
+    const response = await axios.post<ElasticProxyJsonResponseType>(
       elasticProxyUrl,
       // ElasticProxy requests must terminate to newline or server returns Bad request
       elasticQueryJson + (elasticQueryJson.endsWith("\n") ? '' : '\n'),
@@ -45,6 +45,6 @@ export default fp<ElasticProxyPluginOptions>(async (fastify, opts) => {
 
 declare module 'fastify' {
   export interface FastifyInstance {
-    queryElasticProxy(elasticQueryJson: string): Promise<ElasticProxyResponseType>
+    queryElasticProxy(elasticQueryJson: string): Promise<ElasticProxyJsonResponseType>
   }
 }
