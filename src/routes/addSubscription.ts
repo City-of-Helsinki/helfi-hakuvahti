@@ -74,7 +74,7 @@ const subscription: FastifyPluginAsync = async (
       if (response) {
         // Insert email in queue
         const emailContent = await confirmationEmail(request.body.lang, {
-          confirmation_link: process.env.EMAIL_CONFIRMATION_LINK + '/' + request.body.lang + `/subscription/confirm/${response.insertedId}/${hash}`
+          link: process.env.MAIL_CONFIRMATION_LINK + '/' + request.body.lang + `/subscription/confirm/${response.insertedId}/${hash}`
         })
 
         const email = {
@@ -83,9 +83,8 @@ const subscription: FastifyPluginAsync = async (
         }
 
         const q = mongodb.db?.collection('queue')
-        const r = await q?.insertOne(email)
+        await q?.insertOne(email)
 
-        console.log(r)
         console.log(emailContent)
 
         return reply

@@ -1,7 +1,22 @@
-<p>Hei!</p>
-<p>Tälle sähköpostille luotiin hakuvahti Helsingin kaupungin verkkosivustolla. Vahvista hakuvahdin tilaus klikkaamalla alla olevaa linkkiä:</p>
-<p>{{ confirmation_link }}</p>
-<p>Jos et tilannut hakuvahtia, voit jättää tämän sähköpostin huomioimatta.</p>
-<p></p>
-<p>Ystävällisin terveisin,</p>
-<p>Helsingin kaupunki</p>
+<!DOCTYPE html>
+<html lang="{{ lang }}" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>Vahvista hakuvahdin tilaus sivustolta hel.fi</title>
+</head>
+
+<body style="margin:0;padding:0;">
+  <p>Hei!</p>
+  <p>Tälle sähköpostille luotiin hakuvahti Helsingin kaupungin verkkosivustolla. Vahvista hakuvahdin tilaus
+    klikkaamalla alla olevaa linkkiä:</p>
+  <a href="{{ link }}">Vahvista hakuvahti</a>
+  <p>Jos et tilannut hakuvahtia, voit jättää tämän sähköpostin huomioimatta.</p>
+  <p></p>
+  <p>Ystävällisin terveisin,</p>
+  <p>Helsingin kaupunki</p>
+</body>
+
+</html>

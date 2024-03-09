@@ -1,7 +1,22 @@
-<p>Hej!</p>
-<p>En sökvakt på Helsingfors stads webbplats har skapats för den här epostadressen. Bekräfta beställningen av sökvakten genom att klicka på länken nedan:</p>
-<p>{{ confirmation_link }}</p>
-<p>Om du inte har beställt sökvakten, kan strunta i det här epostmeddelandet.</p>
-<p></p>
-<p>Med vänlig hälsning,</p>
-<p>Helsingfors stad</p>
+<!DOCTYPE html>
+<html lang="{{ lang }}" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>Bekräfta beställningen av en sökvakt på webbplatsen till hel.fi</title>
+</head>
+
+<body style="margin:0;padding:0;">
+  <p>Hej!</p>
+  <p>En sökvakt på Helsingfors stads webbplats har skapats för den här epostadressen. Bekräfta beställningen av
+    sökvakten genom att klicka på länken nedan:</p>
+  <a href="{{ link }}">Bekräfta sökvakten</a>
+  <p>Om du inte har beställt sökvakten, kan strunta i det här epostmeddelandet.</p>
+  <p></p>
+  <p>Med vänlig hälsning,</p>
+  <p>Helsingfors stad</p>
+</body>
+
+</html>

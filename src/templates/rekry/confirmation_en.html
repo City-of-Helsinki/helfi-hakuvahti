@@ -1,7 +1,22 @@
-<p>Hi!</p>
-<p>This email address was used to save a search on the City of Helsinki website. Please confirm the saved search to receive notifications. Click on the link below:</p>
-<p>{{ confirmation_link }}</p>
-<p>If you did not save a search, you can ignore this message.</p>
-<p></p>
-<p>Kind regards,</p>
-<p>City of Helsinki</p>
+<!DOCTYPE html>
+<html lang="{{ lang }}" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>Confirm a saved search on hel.fi</title>
+</head>
+
+<body style="margin:0;padding:0;">
+  <p>Hi!</p>
+  <p>This email address was used to save a search on the City of Helsinki website. Please confirm the saved search to
+    receive notifications. Click on the link below:</p>
+  <a href="{{ link }}">Confirm saved search</a>
+  <p>If you did not save a search, you can ignore this message.</p>
+  <p></p>
+  <p>Kind regards,</p>
+  <p>City of Helsinki</p>
+</body>
+
+</html>
