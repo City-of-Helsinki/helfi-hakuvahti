@@ -34,6 +34,8 @@ declare global {
       MAIL_TEMPLATE_PATH: string;
       MAIL_CONFIRMATION_LINK: string;
 
+      REMOVE_CONFIRMATION_LINK: string;
+
       // add more environment variables and their types here
     }
   }

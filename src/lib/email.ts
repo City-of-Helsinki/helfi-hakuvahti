@@ -4,6 +4,7 @@ import { PartialDrupalNodeType } from "../types/elasticproxy";
 
 const dir = process.env.MAIL_TEMPLATE_PATH || 'dist/templates'
 const baseUrl: string = process.env.BASE_URL || 'http://localhost:3000';
+const removeUrl: string = process.env.REMOVE_CONFIRMATION_LINK || 'http://localhost:3000/subcription/delete';
 
 export const confirmationEmail = async (lang: SubscriptionCollectionLanguageType, data: { link: string; }) => {
   try {
@@ -20,6 +21,7 @@ export const newHitsEmail = async (lang: SubscriptionCollectionLanguageType, dat
   hits: PartialDrupalNodeType[], 
   search_description: string,
   search_link: string,
+  remove_link: string,
   created_date: string,
   num_hits: number }) => {
   try {
@@ -32,6 +34,7 @@ export const newHitsEmail = async (lang: SubscriptionCollectionLanguageType, dat
       lang: lang,
       hits: hitsContent,
       search_link: baseUrl + data.search_link,
+      remove_link: removeUrl + data.remove_link,
       search_description: data.search_description,
       created_date: data.created_date
     })

@@ -63,6 +63,7 @@ const app = async (): Promise<{}> => {
         created_date: createdDate,
         search_description: subscription.search_description,
         search_link: subscription.query,
+        remove_link: '/' + subscription._id + '/' + subscription.hash,
         num_hits: newHits.length,
         hits: newHits
       })
