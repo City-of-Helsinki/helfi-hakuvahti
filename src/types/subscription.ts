@@ -1,14 +1,11 @@
 import { Static, Type } from '@sinclair/typebox'
 
-// Subscription status:
 export enum SubscriptionStatus {
     DISABLED = 2,
     ACTIVE = 1,
     INACTIVE = 0
 }
 export const SubscriptionStatusType = Type.Enum(SubscriptionStatus)  
-
-// Subscription Collection schema:
 
 export const SubscriptionCollectionLanguage = Type.Union([
     Type.Literal('en'),
@@ -20,11 +17,13 @@ export type SubscriptionCollectionLanguageType = Static<typeof SubscriptionColle
 export const SubscriptionCollection = Type.Object({
     email: Type.String(),
     elastic_query: Type.String(),
+    search_description: Type.Optional(Type.String()),
     hash: Type.Optional(Type.String()),
     query: Type.String(),
     created: Type.Date(),
     modified: Type.Date(),
     lang: SubscriptionCollectionLanguage,
+    expiry_notification_sent: Type.Enum(SubscriptionStatus),
     status: Type.Enum(SubscriptionStatus)
 })
 export type SubscriptionCollectionType = Static<typeof SubscriptionCollection>
@@ -43,6 +42,7 @@ export const SubscriptionRequest = Type.Object({
     email: Type.String(),
     elastic_query: Type.String(),
     query: Type.String(),
+    search_description: Type.Optional(Type.String()),
     lang: SubscriptionCollectionLanguage
 })
 export type SubscriptionRequestType = Static<typeof SubscriptionRequest>
