@@ -19,6 +19,7 @@ export const confirmationEmail = async (lang: SubscriptionCollectionLanguageType
 export const newHitsEmail = async (lang: SubscriptionCollectionLanguageType, data: {
   hits: PartialDrupalNodeType[], 
   search_description: string,
+  search_link: string,
   created_date: string,
   num_hits: number }) => {
   try {
@@ -30,6 +31,7 @@ export const newHitsEmail = async (lang: SubscriptionCollectionLanguageType, dat
     return sprightly(`dist/templates/${dir}/newhits_${lang}.html`, {
       lang: lang,
       hits: hitsContent,
+      search_link: baseUrl + data.search_link,
       search_description: data.search_description,
       created_date: data.created_date
     })
@@ -38,4 +40,3 @@ export const newHitsEmail = async (lang: SubscriptionCollectionLanguageType, dat
     throw error
   }
 }
-

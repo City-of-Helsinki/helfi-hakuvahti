@@ -62,6 +62,7 @@ const app = async (): Promise<{}> => {
       const emailContent = await newHitsEmail(subscription.lang, {
         created_date: createdDate,
         search_description: subscription.search_description,
+        search_link: subscription.query,
         num_hits: newHits.length,
         hits: newHits
       })
