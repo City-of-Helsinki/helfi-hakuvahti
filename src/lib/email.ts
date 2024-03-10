@@ -16,7 +16,11 @@ export const confirmationEmail = async (lang: SubscriptionCollectionLanguageType
   }
 }
 
-export const newHitsEmail = async (lang: SubscriptionCollectionLanguageType, data: { hits: PartialDrupalNodeType[] }) => {
+export const newHitsEmail = async (lang: SubscriptionCollectionLanguageType, data: {
+  hits: PartialDrupalNodeType[], 
+  search_description: string,
+  created_date: string,
+  num_hits: number }) => {
   try {
     const hitsContent = data.hits.map(item => sprightly('dist/templates/link_text.html', {
       link: baseUrl + item.url,
@@ -24,8 +28,10 @@ export const newHitsEmail = async (lang: SubscriptionCollectionLanguageType, dat
     })).join('')
 
     return sprightly(`dist/templates/${dir}/newhits_${lang}.html`, {
-      lang,
-      hits: hitsContent
+      lang: lang,
+      hits: hitsContent,
+      search_description: data.search_description,
+      created_date: data.created_date
     })
   } catch (error) {
     console.error(error)

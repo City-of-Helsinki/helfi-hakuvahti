@@ -49,6 +49,7 @@ const app = async (): Promise<{}> => {
         continue;
       }
 
+      const createdDate: string = new Date(subscription.created).toISOString().substring(0, 10)
       const lastChecked: number = subscription.last_checked ? Math.floor(new Date(subscription.last_checked).getTime() / 1000) : Math.floor(new Date().getTime() / 1000);
       const newHits: PartialDrupalNodeType[] = elasticResponse.hits.hits
         .filter((hit: { _source: { field_publication_starts: number[]; }; }) => hit._source.field_publication_starts[0] >= lastChecked)
@@ -59,6 +60,9 @@ const app = async (): Promise<{}> => {
       }
 
       const emailContent = await newHitsEmail(subscription.lang, {
+        created_date: createdDate,
+        search_description: subscription.search_description,
+        num_hits: newHits.length,
         hits: newHits
       })
 
