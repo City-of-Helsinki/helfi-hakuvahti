@@ -19,9 +19,8 @@ import {
   Generic500ErrorType
 } from '../types/error'
 
-import { 
-  confirmationEmail
-} from '../lib/email'
+import { confirmationEmail } from '../lib/email'
+import { QueueInsertDocumentType } from '../types/mailer'
 
 // Add subscription to given query parameters
 
@@ -81,7 +80,7 @@ const subscription: FastifyPluginAsync = async (
         })
 
         // Email data to queue
-        const email = {
+        const email:QueueInsertDocumentType = {
           email: request.body.email,
           content: emailContent
         }
