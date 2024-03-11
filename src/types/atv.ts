@@ -65,3 +65,9 @@ export const AtvDocument = Type.Object({
 })
 
 export type AtvDocumentType = Static<typeof AtvDocument>
+
+export const AtvDocumentBatch = Type.Object({
+  document_ids: Type.Array(Type.String())
+})
+
+export type AtvDocumentBatchType = Static<typeof AtvDocumentBatch>
