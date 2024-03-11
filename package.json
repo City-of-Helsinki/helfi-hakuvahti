@@ -17,8 +17,7 @@
     "info": "fastify print-routes ./routes/root.ts",
     "hav:initialize-mongo-collections": "node dist/bin/hav-init-mongo-collections.js",
     "hav:populate-email-queue": "node dist/bin/hav-populate-email-queue.js",
-    "hav:send-emails-from-queue": "node dist/bin/hav-populate-email-queue.js",
-    "hav:list-emails-in-queue": "node dist/bin/hav-list-emails-in-queue.js"
+    "hav:send-emails-in-queue": "node dist/bin/hav-send-emails-in-queue.js"
   },
   "keywords": [],
   "author": "",
@@ -30,6 +29,7 @@
     "@fastify/type-provider-typebox": "^4.0.0",
     "@sinclair/typebox": "^0.32.9",
     "axios": "^1.6.7",
+    "dom-parser": "^1.1.5",
     "dotenv": "^16.3.1",
     "fastify": "^4.0.0",
     "fastify-cli": "^6.0.1",
