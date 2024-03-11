@@ -65,6 +65,7 @@ const subscription: FastifyPluginAsync = async (
       hash: hash,
       created: new Date(),
       modified: new Date(),
+      last_checked: Math.floor(Date.now() / 1000),
       expiry_notification_sent: SubscriptionStatus.INACTIVE,
       status: SubscriptionStatus.INACTIVE
     };

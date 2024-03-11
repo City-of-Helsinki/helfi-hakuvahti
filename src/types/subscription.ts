@@ -23,7 +23,7 @@ export const SubscriptionCollection = Type.Object({
   created: Type.Date(),
   modified: Type.Date(),
   lang: SubscriptionCollectionLanguage,
-  last_checked: Type.Optional(Type.String()),
+  last_checked: Type.Optional(Type.Number()),
   expiry_notification_sent: Type.Enum(SubscriptionStatus),
   status: Type.Enum(SubscriptionStatus)
 })
