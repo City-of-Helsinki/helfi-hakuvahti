@@ -17,6 +17,7 @@ const queryElasticProxy = async (elasticQueryJson: string): Promise<ElasticProxy
     throw new Error('ELASTIC_PROXY_URL is not set')
   }
 
+  // Elastic proxy supports ndjson (multipart json requests) or single json searches
   const elasticProxyUrl: string = process.env.ELASTIC_PROXY_URL + (elasticQueryJson.startsWith("{}\n") ? '/_msearch' : '/_search');
   const contentType: string = elasticQueryJson.startsWith("{}\n") ? 'application/x-ndjson' : 'application/json';
 

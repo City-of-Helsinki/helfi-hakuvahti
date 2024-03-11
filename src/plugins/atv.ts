@@ -42,10 +42,13 @@ const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDo
 const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDocumentType>> => {
   try {
     const timestamp = Math.floor(Date.now() / 1000).toString()
+
+    // ATV automatically deleted the document after deleteAfter date has passed
     const deleteAfter = new Date()
     const maxAge: number = +process.env.SUBSCRIPTION_MAX_AGE!
     deleteAfter.setDate(deleteAfter.getDate() + maxAge)
 
+    // Minimal document required by ATV
     const documentObject: Partial<AtvDocumentType> = {
       'draft': 'false',
       'tos_function_id': 'atvCreateDocumentWithEmail',
@@ -83,10 +86,13 @@ const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDoc
  */
 const requestEmailHook = async (request: FastifyRequest) => {
   try {
+    // Hook only runs on POST requests
     if (request.method !== 'POST') {
       return;
     }
 
+    // If the POST request has 'email' variable, automatically create ATV document
+    // and store email there. Only the ATV document Id gets saved in HAV database.
     const body: Partial<SubscriptionRequestType> = request.body as Partial<SubscriptionRequestType>
     const email: string = body.email as string
 
