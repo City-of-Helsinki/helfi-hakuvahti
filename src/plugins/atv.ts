@@ -1,6 +1,7 @@
 import fp from 'fastify-plugin'
 import axios, { AxiosResponse } from 'axios'
 import { 
+  AtvDocumentBatchType,
   AtvDocumentType,
   AtvResponse } from '../types/atv'
 import { SubscriptionRequestType } from '../types/subscription'
@@ -36,10 +37,10 @@ const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDo
 }
 
 /**
- * Creates a document with the provided email address.
+ * Create a document with the given email and return a partial AtvDocumentType.
  *
- * @param {string} email - The email address to associate with the document
- * @return {Promise<Partial<AtvDocumentType>>} The partially created AtvDocumentType object
+ * @param {string} email - the email to be included in the document
+ * @return {Promise<Partial<AtvDocumentType>>} the created document
  */
 const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDocumentType>> => {
   try {
@@ -81,10 +82,41 @@ const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDoc
 }
 
 /**
- * Asynchronously handles a request and creates a document with an email for ATV.
+ * Retrieves a batch of documents for the given emails.
+ *
+ * @param {string[]} emails - The array of email addresses for which to retrieve documents
+ * @return {Promise<Partial<AtvDocumentType[]>>} A promise that resolves with a partial array of AtvDocumentType objects
+ */
+const atvGetDocumentBatch = async (emails: string[]): Promise<Partial<AtvDocumentType[]>> => {
+  try {
+    const documentObject: AtvDocumentBatchType = {
+      document_ids: emails
+    }
+
+    const response: AxiosResponse<Partial<AtvDocumentType[]>> = await axios.post(
+      `${process.env.ATV_API_URL}/v1/documents/batch-list/`,
+      documentObject,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'X-Api-Key': process.env.ATV_API_KEY
+        }
+      }
+    )
+
+    return response.data
+  } catch (error: unknown) {
+    console.log(error)
+
+    throw new Error('Failed to fetch document. See error log.')
+  }
+}
+
+/**
+ * Request email hook function.
  *
  * @param {FastifyRequest} request - the request object
- * @return {Promise<void>} 
+ * @return {void} no return value
  */
 const requestEmailHook = async (request: FastifyRequest) => {
   try {
@@ -131,6 +163,11 @@ export default fp(async (fastify, opts) => {
     return atvCreateDocumentWithEmail(email)
   })
 
+  // Expose atvGetDocumentBatch function to global scope
+  fastify.decorate('atvGetDocumentBatch', async function (emails: string[]) {
+    return atvGetDocumentBatch(emails)
+  })
+
 })
 
 declare module 'fastify' {
@@ -141,5 +178,6 @@ declare module 'fastify' {
   export interface FastifyInstance {
     atvQueryEmail(email: string): Promise<Partial<AtvDocumentType>>;
     atvCreateDocumentWithEmail: (email: string) => Promise<Partial<AtvDocumentType>>;
+    atvGetDocumentBatch: (emails: string[]) => Promise<Partial<AtvDocumentType[]>>;
   }
 }
