@@ -10,6 +10,7 @@ import {
   PartialDrupalNodeType 
 } from '../types/elasticproxy'
 import { newHitsEmail } from '../lib/email'
+import { QueueInsertDocumentType } from '../types/mailer';
 
 dotenv.config()
 
@@ -95,7 +96,7 @@ const app = async (): Promise<{}> => {
         hits: newHits
       })
 
-      const email = {
+      const email:QueueInsertDocumentType = {
         email: subscription.email,
         content: emailContent
       }
