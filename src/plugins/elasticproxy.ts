@@ -31,12 +31,13 @@ const queryElasticProxy = async (elasticQueryJson: string): Promise<ElasticProxy
           'Content-Type': contentType
         }
       }
-    );
+    )
 
     return response.data;
   } catch (error) {
     console.error(error)
-    throw new Error('Error while sending request to ElasticSearch proxy');
+
+    throw new Error('Error while sending request to ElasticSearch proxy')
   }
 }
 

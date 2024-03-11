@@ -1,8 +1,10 @@
 import fp from 'fastify-plugin'
-import axios, { AxiosResponse } from 'axios';
-import { AtvDocumentType, AtvResponse } from '../types/atv';
-import { SubscriptionRequestType } from "../types/subscription";
-import { FastifyRequest } from 'fastify/types/request';
+import axios, { AxiosResponse } from 'axios'
+import { 
+  AtvDocumentType,
+  AtvResponse } from '../types/atv'
+import { SubscriptionRequestType } from '../types/subscription'
+import { FastifyRequest } from 'fastify/types/request'
 
 export interface AtvPluginOptions {
 }
@@ -29,7 +31,7 @@ const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDo
   } catch (error: unknown) {
     console.log(error);
 
-    throw new Error('Error fetching Document by id');
+    throw new Error('Error fetching Document by id')
   }
 }
 
@@ -72,9 +74,9 @@ const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDoc
 
     return response.data;
   } catch (error: unknown) {
-    console.log(error);
+    console.log(error)
 
-    throw new Error('Failed to create document. See error log.');
+    throw new Error('Failed to create document. See error log.')
   }
 }
 
@@ -88,7 +90,7 @@ const requestEmailHook = async (request: FastifyRequest) => {
   try {
     // Hook only runs on POST requests
     if (request.method !== 'POST') {
-      return;
+      return
     }
 
     // If the POST request has 'email' variable, automatically create ATV document
@@ -97,11 +99,11 @@ const requestEmailHook = async (request: FastifyRequest) => {
     const email: string = body.email as string
 
     if (!email) {
-      return;
+      return
     }
 
-    const atvDocument: Partial<AtvDocumentType> = await atvCreateDocumentWithEmail(email);
-    const atvDocumentId: string | undefined = atvDocument.id;
+    const atvDocument: Partial<AtvDocumentType> = await atvCreateDocumentWithEmail(email)
+    const atvDocumentId: string | undefined = atvDocument.id
 
     if (atvDocumentId) {
       request.atvResponse = {
@@ -109,7 +111,7 @@ const requestEmailHook = async (request: FastifyRequest) => {
       }
     }
   } catch (error) {
-    console.error('An error occurred:', error);
+    console.error('An error occurred:', error)
     throw new Error('Could not create document to ATV. Cannot subscribe.')
   }
 }

@@ -3,7 +3,7 @@ import {
   FastifyRequest, 
   FastifyReply, 
   FastifyInstance 
-} from 'fastify';
+} from 'fastify'
 
 import { 
   SubscriptionResponse,
@@ -12,16 +12,16 @@ import {
   SubscriptionRequest, 
   SubscriptionRequestType, 
   SubscriptionStatus
-} from "../types/subscription";
+} from '../types/subscription'
 
 import { 
   Generic500Error, 
-  Generic500ErrorType 
-} from '../types/error';
+  Generic500ErrorType
+} from '../types/error'
 
 import { 
   confirmationEmail
-} from '../lib/email';
+} from '../lib/email'
 
 // Add subscription to given query parameters
 
@@ -57,9 +57,10 @@ const subscription: FastifyPluginAsync = async (
       return reply
         .code(500)
         .header('Content-Type', 'application/json; charset=utf-8')
-        .send({ error: 'Could not find hashed email. Subscription not added.' });
+        .send({ error: 'Could not find hashed email. Subscription not added.' })
     }
 
+    // Subscription data that goes to collection
     const subscription: Partial<SubscriptionCollectionType> = {
       ...request.body,
       hash: hash,
@@ -71,7 +72,7 @@ const subscription: FastifyPluginAsync = async (
     };
 
     try {
-      const response = await collection?.insertOne(subscription);
+      const response = await collection?.insertOne(subscription)
       
       if (response) {
         // Insert email in queue
@@ -79,6 +80,7 @@ const subscription: FastifyPluginAsync = async (
           link: process.env.MAIL_CONFIRMATION_LINK + '/' + request.body.lang + `/subscription/confirm/${response.insertedId}/${hash}`
         })
 
+        // Email data to queue
         const email = {
           email: request.body.email,
           content: emailContent
@@ -97,16 +99,16 @@ const subscription: FastifyPluginAsync = async (
         return reply
           .code(500)
           .header('Content-Type', 'application/json; charset=utf-8')
-          .send({ error: 'Could not add new subscription.' });
+          .send({ error: 'Could not add new subscription.' })
       }
     } catch (e: unknown) {
       console.log('Unknown error!', e)
       return reply
         .code(500)
         .header('Content-Type', 'application/json; charset=utf-8')
-        .send({ error: e });
+        .send({ error: e })
     }
-  });
-};
+  })
+}
 
-export default subscription;
+export default subscription

@@ -1,6 +1,6 @@
 import fp from 'fastify-plugin'
 import { FastifyInstance } from 'fastify'
-import { FastifyMailer } from '../types/mailer';
+import { FastifyMailer } from '../types/mailer'
 
 // Initialize mailer as plugin
 

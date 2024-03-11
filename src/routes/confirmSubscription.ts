@@ -3,20 +3,20 @@ import {
   FastifyReply, 
   FastifyInstance, 
   FastifyRequest
-} from 'fastify';
+} from 'fastify'
 
 import { 
   Generic500Error, 
   Generic500ErrorType 
-} from '../types/error';
+} from '../types/error'
 
 import { 
   SubscriptionGenericPostResponse, 
   SubscriptionGenericPostResponseType, 
   SubscriptionStatus
-} from '../types/subscription';
+} from '../types/subscription'
 
-import { ObjectId } from '@fastify/mongodb';
+import { ObjectId } from '@fastify/mongodb'
   
 // Confirms subscription
   
@@ -39,7 +39,7 @@ const confirmSubscription: FastifyPluginAsync = async (
   ) => {
     const mongodb = fastify.mongo
     const collection = mongodb.db?.collection('subscription');
-    const { id, hash } = <{ id: string, hash: string }>request.params;
+    const { id, hash } = <{ id: string, hash: string }>request.params
 
     try {
       const subscription = await collection?.findOne({ 
@@ -57,6 +57,7 @@ const confirmSubscription: FastifyPluginAsync = async (
           });
       }
 
+      // Activate subscription
       const updateResult = await collection?.updateOne({ 
         _id: new ObjectId(id) 
       }, { 
@@ -67,14 +68,14 @@ const confirmSubscription: FastifyPluginAsync = async (
         level: 'info', 
         message: 'Subscription enabled',
         result: updateResult
-      });
+      })
 
       return reply
         .code(200)
         .send({ 
           statusCode: 200,
           message: 'Subscription enabled'
-        });
+        })
     } catch (error) {
       console.log('Enabling subscription failed')
       console.log(error)
@@ -83,10 +84,10 @@ const confirmSubscription: FastifyPluginAsync = async (
         .send({ 
           statusCode: 500, 
           statusMessage: 'Something went wrong' 
-        });
+        })
     }
-  });
-};
+  })
+}
   
-  export default confirmSubscription;
+  export default confirmSubscription
   

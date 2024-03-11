@@ -1,10 +1,15 @@
 import { sprightly } from "sprightly";
-import { SubscriptionCollectionLanguageType } from "../types/subscription";
-import { PartialDrupalNodeType } from "../types/elasticproxy";
+import { SubscriptionCollectionLanguageType } from "../types/subscription"
+import { PartialDrupalNodeType } from "../types/elasticproxy"
 
+// Base dir for email templates
 const dir = process.env.MAIL_TEMPLATE_PATH || 'dist/templates'
-const baseUrl: string = process.env.BASE_URL || 'http://localhost:3000';
-const removeUrl: string = process.env.REMOVE_CONFIRMATION_LINK || 'http://localhost:3000/subcription/delete';
+
+// Base url for the website (not HAV)
+const baseUrl: string = process.env.BASE_URL || 'http://localhost:3000'
+
+// Link to the website to remove subscription
+const removeUrl: string = process.env.REMOVE_CONFIRMATION_LINK || 'http://localhost:3000/subcription/delete'
 
 /**
  * Sends a confirmation email in the specified language with the provided link.

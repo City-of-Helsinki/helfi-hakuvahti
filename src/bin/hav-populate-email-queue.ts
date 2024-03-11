@@ -5,8 +5,11 @@ import dotenv from 'dotenv'
 import { SubscriptionStatus } from '../types/subscription'
 import decode from '../plugins/base64'
 import encode from '../plugins/base64'
-import { ElasticProxyJsonResponseType, PartialDrupalNodeType } from '../types/elasticproxy';
-import { newHitsEmail } from '../lib/email';
+import { 
+  ElasticProxyJsonResponseType,
+  PartialDrupalNodeType 
+} from '../types/elasticproxy'
+import { newHitsEmail } from '../lib/email'
 
 dotenv.config()
 
@@ -51,19 +54,19 @@ const massDeleteSubscriptions = async (modifyStatus: SubscriptionStatus, olderTh
 const app = async (): Promise<{}> => {
   try {
     // Subscriptions
-    const collection = server.mongo.db!.collection('subscription');
+    const collection = server.mongo.db!.collection('subscription')
 
     // Email queue
     const queueCollection = server.mongo.db!.collection('queue')
 
     // List of all enabled subscriptions
-    const result = await collection.find({ status: 1 }).toArray();
+    const result = await collection.find({ status: 1 }).toArray()
 
     for (const subscription of result) {
 
       // Query for new results from ElasticProxy
-      const elasticQuery: string = server.b64decode(subscription.elastic_query);
-      const elasticResponse: ElasticProxyJsonResponseType = await server.queryElasticProxy(elasticQuery);
+      const elasticQuery: string = server.b64decode(subscription.elastic_query)
+      const elasticResponse: ElasticProxyJsonResponseType = await server.queryElasticProxy(elasticQuery)
 
       // Skip subscription if there's no hits for the query
       if (!elasticResponse.hits.hits) {
@@ -72,10 +75,10 @@ const app = async (): Promise<{}> => {
 
       // Filter out new hits:
       const createdDate: string = new Date(subscription.created).toISOString().substring(0, 10)
-      const lastChecked: number = subscription.last_checked ? Math.floor(new Date(subscription.last_checked).getTime() / 1000) : Math.floor(new Date().getTime() / 1000);
+      const lastChecked: number = subscription.last_checked ? Math.floor(new Date(subscription.last_checked).getTime() / 1000) : Math.floor(new Date().getTime() / 1000)
       const newHits: PartialDrupalNodeType[] = elasticResponse.hits.hits
         .filter((hit: { _source: { field_publication_starts: number[]; }; }) => hit._source.field_publication_starts[0] >= lastChecked)
-        .map((hit: { _source: PartialDrupalNodeType; }) => hit._source);
+        .map((hit: { _source: PartialDrupalNodeType; }) => hit._source)
 
       // No new hits
       if (newHits.length === 0) {
@@ -107,10 +110,10 @@ const app = async (): Promise<{}> => {
       )
     }
   } catch (error) {
-    console.error(error);
+    console.error(error)
   }
 
-  return {};
+  return {}
 };
 
 server.get('/', async function (request, reply) {
