@@ -5,7 +5,6 @@ import mailer from '../plugins/mailer';
 import dotenv from 'dotenv'
 import { AtvDocumentType } from '../types/atv';
 import { ObjectId } from '@fastify/mongodb';
-import { parseFromString } from 'dom-parser';
 
 dotenv.config()
 
@@ -24,6 +23,8 @@ const app = async (): Promise<{}> => {
   try {
     // Email queue
     const queueCollection = server.mongo.db!.collection('queue')
+    const jsdom = require('jsdom')
+    const { JSDOM } = jsdom
 
     let hasMoreResults = true
 
@@ -56,8 +57,8 @@ const app = async (): Promise<{}> => {
         // Send emails
         for (const email of result) {
           const plaintextEmail = emailIdsMap.get(email.email)
-          const dom = parseFromString(email.content);
-          const title = dom.getElementsByTagName('title')[0]?.textContent || 'Untitled'
+          const dom = new JSDOM(email.content)
+          const title = dom.window.document.querySelector('title')?.textContent || 'Untitled'
           
           // Send email
           const res = server.mailer.sendMail({

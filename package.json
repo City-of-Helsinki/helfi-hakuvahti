@@ -29,16 +29,17 @@
     "@fastify/type-provider-typebox": "^4.0.0",
     "@sinclair/typebox": "^0.32.9",
     "axios": "^1.6.7",
-    "dom-parser": "^1.1.5",
     "dotenv": "^16.3.1",
     "fastify": "^4.0.0",
     "fastify-cli": "^6.0.1",
     "fastify-mailer": "^2.3.1",
     "fastify-plugin": "^4.0.0",
+    "jsdom": "^24.0.0",
     "nodemailer": "^6.9.9",
     "sprightly": "^2.0.1"
   },
   "devDependencies": {
+    "@types/jsdom": "^21.1.6",
     "@types/node": "^20.4.4",
     "@types/nodemailer": "^6.4.14",
     "@types/tap": "^15.0.5",
