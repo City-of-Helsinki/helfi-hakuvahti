@@ -84,7 +84,7 @@ const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDoc
 /**
  * Retrieves a batch of documents for the given emails.
  *
- * @param {string[]} emails - The array of email addresses for which to retrieve documents
+ * @param {string[]} emails - The array of document ids for which to retrieve documents
  * @return {Promise<Partial<AtvDocumentType[]>>} A promise that resolves with a partial array of AtvDocumentType objects
  */
 const atvGetDocumentBatch = async (emails: string[]): Promise<Partial<AtvDocumentType[]>> => {
@@ -93,19 +93,21 @@ const atvGetDocumentBatch = async (emails: string[]): Promise<Partial<AtvDocumen
       document_ids: emails
     }
 
+    console.log(documentObject)
+
     const response: AxiosResponse<Partial<AtvDocumentType[]>> = await axios.post(
       `${process.env.ATV_API_URL}/v1/documents/batch-list/`,
       documentObject,
       {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': 'application/json',
           'X-Api-Key': process.env.ATV_API_KEY
         }
       }
     )
 
     return response.data
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.log(error)
 
     throw new Error('Failed to fetch document. See error log.')
