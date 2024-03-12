@@ -61,16 +61,17 @@ const app = async (): Promise<{}> => {
           const title = dom.window.document.querySelector('title')?.textContent || 'Untitled'
           
           // Send email
-          const res = server.mailer.sendMail({
+          server.mailer.sendMail({
             to: plaintextEmail,
             subject: title,
             html: email.content
           }, (errors, info) => {
             if (errors) {
-              server.log.error(errors)
-        
-              throw Error('Sending email failed. See logs')
+              console.log(errors);
+
+              throw Error('Sending email failed. See logs');
             }
+
           })
 
           // Remove document from queue
@@ -80,8 +81,6 @@ const app = async (): Promise<{}> => {
 
             throw Error('Deleting email from queue failed. See logs')
           }
-
-          console.log(res)
         }
       }
     }
