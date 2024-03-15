@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>Your saved search is about to expire</title>
+</head>
+
+<body style="margin:0;padding:0;">
+  <p>Your saved search on the City of Helsinki website is about to expire on {{ removal_date }}, but
+    you can renew it, if you wish. Search criteria: {{ search_description }}.</p>
+  <p></p>
+  <a href="{{ link }}">Save a new search</a>
+  <p></p>
+  <p>Kind regards,</p>
+  <p>City of Helsinki</p>
+  <p><a href="{{ remove_link }}">Delete saved search</a></p>
+</body>
+
+</html>
