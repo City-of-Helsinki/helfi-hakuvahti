@@ -15,7 +15,7 @@
     "dev": "npm run copy:assets; npm run build:ts && concurrently -k -p \"[{name}]\" -n \"TypeScript,App\" -c \"yellow.bold,cyan.bold\" \"npm:watch:ts\" \"npm:dev:start\"",
     "dev:start": "npm run copy:assets; fastify start --ignore-watch=.ts$ -w -l info -P dist/app.js",
     "info": "fastify print-routes ./routes/root.ts",
-    "hav:initialize-mongo-collections": "node dist/bin/hav-init-mongo-collections.js",
+    "hav:init-mongodb": "node dist/bin/hav-init-mongodb.js",
     "hav:populate-email-queue": "node dist/bin/hav-populate-email-queue.js",
     "hav:send-emails-in-queue": "node dist/bin/hav-send-emails-in-queue.js"
   },
