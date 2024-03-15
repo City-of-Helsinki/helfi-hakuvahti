@@ -2,7 +2,7 @@ import fastify from 'fastify'
 import mongodb from '../plugins/mongodb';
 import elasticproxy from '../plugins/elasticproxy'
 import dotenv from 'dotenv'
-import { SubscriptionStatus } from '../types/subscription'
+import { SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription'
 import decode from '../plugins/base64'
 import encode from '../plugins/base64'
 import { 
@@ -36,7 +36,7 @@ void server.register(decode)
 const massDeleteSubscriptions = async (modifyStatus: SubscriptionStatus, olderThanDays: number): Promise<void> => {
   const collection = server.mongo.db?.collection('subscription')
   if (collection) {
-    const dateLimit: Date = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000)
+    const dateLimit: Date = new Date(Date.now() - (olderThanDays * 24 * 60 * 60 * 1000))
     try {
       await collection.deleteMany({ status: modifyStatus, created: { $lt: dateLimit } })
     } catch (error) {
@@ -45,6 +45,31 @@ const massDeleteSubscriptions = async (modifyStatus: SubscriptionStatus, olderTh
       throw new Error('Could not delete subscriptions. See logs for errors.')
     }
   }
+}
+
+/**
+ * Checks if an expiry notification should be sent for a given subscription.
+ *
+ * @param {Partial<SubscriptionCollectionType>} subscription - The subscription to check.
+ * @return {boolean} Returns true if an expiry notification should be sent, false otherwise.
+ */
+const checkShouldSendExpiryNotification = (subscription: Partial<SubscriptionCollectionType>): boolean => {
+  // Technically this is never missing but using Partial<> causes typing errors with created date otherwise...
+  if (!subscription.created) {
+    return false
+  }
+
+  // Notification already sent
+  if (subscription.expiry_notification_sent === 1) {
+    return false
+  }
+
+  const daysBeforeExpiry = process.env.SUBSCRIPTION_EXPIRY_NOTIFICATION_DAYS ? parseInt(process.env.SUBSCRIPTION_EXPIRY_NOTIFICATION_DAYS) : 3
+  const subscriptionValidForDays = process.env.SUBSCRIPTION_MAX_AGE ? parseInt(process.env.SUBSCRIPTION_MAX_AGE) : 0
+  const subscriptionExpiresAt = new Date(subscription.created).getTime() + (subscriptionValidForDays * 24 * 60 * 60 * 1000)
+  const subscriptionExpiryNotificationSentAt = new Date(subscriptionExpiresAt - (daysBeforeExpiry * 24 * 60 * 60 * 1000))
+
+  return Date.now() >= subscriptionExpiryNotificationSentAt.getTime()
 }
 
 /**
@@ -61,9 +86,17 @@ const app = async (): Promise<{}> => {
     const queueCollection = server.mongo.db!.collection('queue')
 
     // List of all enabled subscriptions
-    const result = await collection.find({ status: 1 }).toArray()
+    const result = await collection.find({ status: SubscriptionStatus.ACTIVE }).toArray()
 
     for (const subscription of result) {
+
+      // If subscription should expire soon, send an expiration email
+      if (checkShouldSendExpiryNotification(subscription as Partial<SubscriptionCollectionType>)) {
+        await collection.updateOne(
+          { _id: subscription._id },
+          { $set: { expiry_notification_sent: 1 } }
+        )
+      }
 
       // Query for new results from ElasticProxy
       const elasticQuery: string = server.b64decode(subscription.elastic_query)
@@ -116,6 +149,7 @@ const app = async (): Promise<{}> => {
 
   return {}
 };
+
 
 server.get('/', async function (request, reply) {
   // Maximum subscription age from configuration
