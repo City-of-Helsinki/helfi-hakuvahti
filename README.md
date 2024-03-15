@@ -4,8 +4,9 @@ Hakuvahti is a Fastify / Node.js application which monitors Hel.fi website searc
 
 Pre-requisities to use Hakuvahti are:
 - Drupal website uses ElasticSearch and ElasticProxy for search.
-- Field name in Drupal / ElasticSearch is for publication is `field_publication_starts`
+- Field name in Drupal / ElasticSearch is for publication is `field_publication_starts`.
 - Title uses default `title` field, together with default `url` field.
+- Site has Asiointitietovarasto account for storing subscribed email securely.
 
 ## Installing and running Hakuvahti
 
