@@ -1,3 +1,12 @@
+# Hakuvahti
+
+Hakuvahti is a Fastify / Node.js application which monitors Hel.fi website searches that use ElasticSearch with ElasticProxy and sends updates to the query results to subscribed emails.
+
+Pre-requisities to use Hakuvahti are:
+- Drupal website uses ElasticSearch and ElasticProxy for search.
+- Field name in Drupal / ElasticSearch is for publication is `field_publication_starts`
+- Title uses default `title` field, together with default `url` field.
+
 ## Installing and running Hakuvahti
 
 - `npm i` to install dependencies
@@ -13,6 +22,8 @@
 - For production environment, add following commands to cron:
   - `npm run hav:populate-email-queue`
   - `npm run hav:send-emails-from-queue`
+
+
 
 # REST Endpoints:
 
