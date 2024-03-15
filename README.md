@@ -2,9 +2,10 @@
 
 - `npm i` to install dependencies
 - Copy `.env.dist` as `.env` and configure:
-  - MongoDB
+  - MongoDB,
   - ElasticProxy, 
-  - Email sending
+  - SMTP settings for email sending,
+  - [ATV integration](https://github.com/City-of-Helsinki/atv)
   - Subscription days, etc settings
 - Create MongoDB collections: `npm run hav:init-mongodb`
 - `npm start` (or `npm run dev` for development)
@@ -13,7 +14,9 @@
   - `npm run hav:populate-email-queue`
   - `npm run hav:send-emails-from-queue`
 
-## REST Endpoints:
+# REST Endpoints:
+
+## Add Subscription
 
 `POST` `/subscription`
 
@@ -21,13 +24,15 @@ Adds new Hakuvahti subscription:
 
 ```
 {
-    "elastic_query": "<full elastic query>",
-    "search_description": "Some search with terms",
-    "query": "<url at webpage>",
-    "email": "test@hel.fi",
+    "elastic_query": "<full elastic query as base64 encoded string>",
+    "search_description": "<Some search with terms, used in email notifications>",
+    "query": "<url back to webpage for search results>",
+    "email": "<email to subscribe>",
     "lang": "fi"
 }
 ```
+
+## Confirm a subscription
 
 `GET` `/subscription/confirm/:id/:hash`
 
@@ -35,15 +40,21 @@ Confirms a subscription. To confirm a subscription, user must know both the id a
 
 Subscriptions that are not confirmed, will not be checked during `npm run hav:populate-email-queue ` command.
 
+## Delete a subscription
+
 `DELETE` `/subscription/delete/:id/:hash`
 
 Deletes a subscription. To delete a subscription, user must know both the id and hash (`hash` field in collection).
 
-### Command line actions
+## Command line / cron actions
+
+### Initialize MongoDB collections
 
 `npm run hav:init-mongodb`
 
 Initialize MongoDB collections. Required before running populate or send commands.
+
+### Query for new results for subscriptions
 
 `npm run hav:populate-email-queue`
 
@@ -55,6 +66,8 @@ Adds following emails to the email queue:
 
 - New results from ElasticQuery queries
 - Notifications if subscription is going to expire
+
+### Sends emails from queue
 
 `npm run hav:send-emails-from-queue`
 
