@@ -1,17 +1,17 @@
 ## Installing and running Hakuvahti
 
 - `npm i` to install dependencies
-- Copy .env.dist as .env and configure:
+- Copy `.env.dist` as `.env` and configure:
   - MongoDB
   - ElasticProxy, 
   - Email sending
   - Subscription days, etc settings
 - Create MongoDB collections: `npm run hav:init-mongodb`
 - `npm start` (or `npm run dev` for development)
-- Hakuvahti should now be running in port :3000 (by default)
+- Hakuvahti should now be running in port `:3000` (by default)
 - For production environment, add following commands to cron:
-  - npm run hav:populate-email-queue 
-  - npm run hav:send-emails-from-queue
+  - `npm run hav:populate-email-queue`
+  - `npm run hav:send-emails-from-queue`
 
 ## REST Endpoints:
 
