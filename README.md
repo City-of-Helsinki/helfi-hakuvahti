@@ -24,8 +24,6 @@ Pre-requisities to use Hakuvahti are:
   - `npm run hav:populate-email-queue`
   - `npm run hav:send-emails-from-queue`
 
-
-
 # REST Endpoints:
 
 ## Add Subscription
