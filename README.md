@@ -11,7 +11,7 @@
 - Hakuvahti should now be running in port :3000 (by default)
 - For production environment, add following commands to cron:
   - npm run hav:populate-email-queue 
-  - npm run npm run hav:send-emails-from-queue
+  - npm run hav:send-emails-from-queue
 
 ## REST Endpoints:
 
