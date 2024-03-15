@@ -31,8 +31,11 @@ Pre-requisities to use Hakuvahti are:
 
 ### Website
 `BASE_URL` Website that uses Hakuvahti
+
 `MAIL_TEMPLATE_PATH` Template path under `templates` folder (for example `rekry`)
+
 `MAIL_CONFIRMATION_LINK` (Website url for confirming subscription. /subscription/<id>/<hash> will be appended)
+
 `REMOVE_CONFIRMATION_LINK` (Website url for confirming subscription. /subscription/delete/<id>/<hash> will be appended)
 
 ### MongoDB
@@ -43,19 +46,27 @@ Pre-requisities to use Hakuvahti are:
 
 ### Asiointitietovarasto
 `ATV_API_KEY` Set API key here
+
 `ATV_API_URL` Set ATV url here
 
 ### Subscription settings
 `SUBSCRIPTION_MAX_AGE` Subscription max age in days (for example `90` days (3 months))
+
 `UNCONFIRMED_SUBSCRIPTION_MAX_AGE` Subscription max age when it doesn't get confirmed (for example `5` days)
+
 `SUBSCRIPTION_EXPIRY_NOTIFICATION_DAYS` How many days before expiration should we send notification (for example `3` days)
 
 ### SMTP Settings
 `MAIL_FROM` (For example `noreply@hel.fi`)
+
 `MAIL_HOST` (For example `smtp.hel.fi`)
+
 `MAIL_PORT` (For example `25`)
+
 `MAIL_SECURE` (Boolean, `true` or `false`)
+
 `MAIL_AUTH_USER` (Username to authenticate at SMTP server)
+
 `MAIL_AUTH_PASS` (Password to authenticate at SMTP server)
 
 # REST Endpoints:
