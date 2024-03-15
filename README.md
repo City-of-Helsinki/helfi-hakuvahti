@@ -15,7 +15,7 @@
 
 ## REST Endpoints:
 
-`/subscription (POST)`
+`POST` `/subscription`
 
 Adds new Hakuvahti subscription:
 
@@ -29,13 +29,13 @@ Adds new Hakuvahti subscription:
 }
 ```
 
-`/subscription/confirm/:id/:hash (GET)`
+`GET` `/subscription/confirm/:id/:hash`
 
 Confirms a subscription. To confirm a subscription, user must know both the id and hash (`hash` field in collection).
 
 Subscriptions that are not confirmed, will not be checked during `npm run hav:populate-email-queue ` command.
 
-`/subscription/delete/:id/:hash (DELETE)`
+`DELETE` `/subscription/delete/:id/:hash`
 
 Deletes a subscription. To delete a subscription, user must know both the id and hash (`hash` field in collection).
 
