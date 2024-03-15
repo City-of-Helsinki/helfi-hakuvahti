@@ -11,13 +11,7 @@ const baseUrl: string = process.env.BASE_URL || 'http://localhost:3000'
 // Link to the website to remove subscription
 const removeUrl: string = process.env.REMOVE_CONFIRMATION_LINK || 'http://localhost:3000/subcription/delete'
 
-/**
- * Sends a confirmation email in the specified language with the provided link.
- *
- * @param {SubscriptionCollectionLanguageType} lang - the language for the email
- * @param {{ link: string; }} data - an object containing the link for the email
- * @return {Promise<any>} a promise resolving to the result of sending the confirmation email
- */
+// Subscription confirmation email
 export const confirmationEmail = async (lang: SubscriptionCollectionLanguageType, data: { link: string; }) => {
   try {
     return sprightly('dist/templates/' + dir + '/confirmation_' + lang + '.html', {
@@ -29,13 +23,26 @@ export const confirmationEmail = async (lang: SubscriptionCollectionLanguageType
   }
 }
 
-/**
- * Generates a new hits email content based on the provided language and data.
- *
- * @param {SubscriptionCollectionLanguageType} lang - The language of the subscription collection
- * @param {Object} data - An object containing hits, search description, search link, remove link, created date, and number of hits
- * @return {Promise<any>} The generated new hits email content
- */
+// Notification before subscription expires
+export const expiryEmail = async (lang: SubscriptionCollectionLanguageType, data: { 
+  link: string, 
+  search_description: string,
+  removal_date: string,
+  remove_link: string }) => {
+  try {
+    return sprightly('dist/templates/' + dir + '/expiry_notification_' + lang + '.html', {
+      lang: lang,
+      link: baseUrl + data.link,
+      search_description: data.search_description,
+      remove_link: removeUrl + data.remove_link,
+      removal_date: data.removal_date
+    });
+  } catch (error) {
+    throw error
+  }
+}
+
+// Email with list of new search monitor hits
 export const newHitsEmail = async (lang: SubscriptionCollectionLanguageType, data: {
   hits: PartialDrupalNodeType[], 
   search_description: string,
