@@ -3,7 +3,7 @@ import axios, { AxiosResponse } from 'axios'
 import { 
   AtvDocumentBatchType,
   AtvDocumentType,
-  AtvResponse } from '../types/atv'
+  AtvResponseType } from '../types/atv'
 import { SubscriptionRequestType } from '../types/subscription'
 import { FastifyRequest } from 'fastify/types/request'
 
@@ -174,7 +174,7 @@ export default fp(async (fastify, opts) => {
 
 declare module 'fastify' {
   export interface FastifyRequest {
-    atvResponse?: AtvResponse;
+    atvResponse?: AtvResponseType;
   }
 
   export interface FastifyInstance {

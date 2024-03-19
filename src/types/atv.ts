@@ -1,8 +1,10 @@
 import { Static, Type } from '@sinclair/typebox'
 
-export interface AtvResponse {
-  atvDocumentId: string;
-}
+export const AtvResponse = Type.Object({
+  atvDocumentId: Type.String()
+})
+
+export type AtvResponseType = Static<typeof AtvResponse>
 
 export const AtvDocument = Type.Object({
   id: Type.Optional(Type.String()),
