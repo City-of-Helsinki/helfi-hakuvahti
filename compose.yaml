@@ -19,4 +19,3 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: localdev
     ports:
       - "27017:27017"
-  
