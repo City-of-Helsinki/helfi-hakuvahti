@@ -9,8 +9,8 @@ ENV APP_NAME rekry-hakuvahti
 COPY package*.json ./
 
 USER node
-RUN npm install && npm cache clean --force  
 COPY --chown=node:node . .
+RUN npm install && npm cache clean --force
 
 EXPOSE 3000
 
