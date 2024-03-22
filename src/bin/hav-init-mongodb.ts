@@ -65,7 +65,7 @@ const app = async (): Promise<{}> => {
             maximum: 2,
           },
           last_checked: {
-            bsonType: "date"
+            bsonType: "int"
           },
           modified: {
             bsonType: "date"
