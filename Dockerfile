@@ -1,17 +1,25 @@
 FROM node:20.11.1-alpine3.18
 
-RUN mkdir -p /home/node/app/node_modules && chown -R node:node /home/node/app
+RUN apk add --no-cache dcron
+COPY cronjob /etc/crontabs/root
+RUN chmod 0644 /etc/crontabs/root
 
-WORKDIR /home/node/app
-ENV npm_config_cache=/home/node/app/.npm
+RUN mkdir -p /app/node_modules && chown -R node:node /app
+
+WORKDIR /app
+ENV npm_config_cache=/app/.npm
 ENV APP_NAME rekry-hakuvahti
 
-COPY package*.json ./
+COPY package*.json .
 
 USER node
 COPY --chown=node:node . .
 RUN npm install && npm cache clean --force
+RUN npm run hav:init-mongodb
 
 EXPOSE 3000
+
+RUN mkdir -p /app/logs
+# RUN crond -f -L /app/logs/cron.log
 
 CMD ["npm", "run", "start"]
