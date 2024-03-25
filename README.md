@@ -24,6 +24,12 @@ Pre-requisities to use Hakuvahti are:
   - `npm run hav:populate-email-queue`
   - `npm run hav:send-emails-from-queue`
 
+## Local docker environment:
+
+- Run `docker-compose build && docker-compose up` 
+- Make sure .env connects MongoDB at address `mongodb://mongodb:27017/hakuvahti`
+- Hakuvahti server should work at `http://localhost:3000`
+
 ## Environment variables
 
 ### Core
