@@ -1,8 +1,8 @@
 #!/bin/sh
-set -e
 
-# crond -f -L /app/logs/cron.log
+# Start crond
+crond -f -L /app/logs/cron.log -c /etc/crontabs &
 
-cd /app
-exec npm run start
+# Start the main application process
+exec "$@"
 

@@ -1,5 +1,5 @@
 # Run "npm run hav:send-emails-from-queue" once per minute
-* * * * * cd /app && /usr/local/bin/npm run hav:send-emails-from-queue >> /app/logs/send-emails.log 2>&1
+* * * * * cd /app && echo "Running queue \n" >> /app/logs/send-emails.log && /usr/local/bin/npm run hav:send-emails-from-queue >> /app/logs/send-emails.log 2>&1
 
 # Run "npm run hav:populate-email-queue" once per hour
 0 * * * * cd /app && /usr/local/bin/npm run hav:populate-email-queue >> /app/logs/populate-email-queue.log 2>&1
