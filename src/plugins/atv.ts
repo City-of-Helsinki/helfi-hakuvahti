@@ -93,8 +93,6 @@ const atvGetDocumentBatch = async (emails: string[]): Promise<Partial<AtvDocumen
       document_ids: emails
     }
 
-    console.log(documentObject)
-
     const response: AxiosResponse<Partial<AtvDocumentType[]>> = await axios.post(
       `${process.env.ATV_API_URL}/v1/documents/batch-list/`,
       documentObject,
