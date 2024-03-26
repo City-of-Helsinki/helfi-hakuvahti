@@ -27,13 +27,12 @@ Pre-requisities to use Hakuvahti are:
 ## Local docker environment:
 
 - Run `docker-compose build && docker-compose up` 
-- Make sure .env connects MongoDB at address `mongodb://mongodb:27017/hakuvahti`
 - Hakuvahti server should work at `http://localhost:3000`
 
 ## Environment variables
 
 ### Core
-`FASTIFY_PORT` Port where Hakuvahti runs (for example `3000`)
+`FASTIFY_PORT` Port where Hakuvahti runs (for example `3000`). If you change the envvar, remember to update Dockerfile and compose.yaml.
 
 ### Website
 `BASE_URL` Website that uses Hakuvahti
