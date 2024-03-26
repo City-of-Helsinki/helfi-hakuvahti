@@ -18,7 +18,7 @@ Pre-requisities to use Hakuvahti are:
   Json schema objects that infer as TypeScript types. Naming is standardized as 
   `SomeThing` for Json schema which has corresponding `SomeThingType`.
 - Hakuvahti uses MongoDB collection as a queue for outbound emails. This way
-  performing API actions and collecting results from MongoDB does not 
+  performing API actions and collecting results from ElasticSearch does not 
   depend on possible ATV errors or network lag, or availability of 
   SMTP server.
 - Adding, confirming and deleting subscriptions happens through
