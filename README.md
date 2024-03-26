@@ -8,6 +8,23 @@ Pre-requisities to use Hakuvahti are:
 - Title uses default `title` field, together with default `url` field.
 - Site has Asiointitietovarasto account for storing subscribed email securely.
 
+## Architecture in a nutshell:
+
+- Hakuvahti is an Fastify application and follows recommended project structure
+  from `fastify-cli` tool. This means no manual routing, routes are autoloaded
+  from `src/routes` and plugins are autoloaded from `src/plugins`. Helper libraries
+  are under `src/lib` and type definitions with Typebox are under `src/types`.
+- Hakuvahti uses [Typebox](https://github.com/sinclairzx81/typebox), which creates 
+  Json schema objects that infer as TypeScript types. Naming is standardized as 
+  `SomeThing` for Json schema which has corresponding `SomeThingType`.
+- Hakuvahti uses MongoDB collection as a queue for outbound emails. This way
+  performing API actions and collecting results from MongoDB does not 
+  depend on possible ATV errors or network lag, or availability of 
+  SMTP server.
+- Adding, confirming and deleting subscriptions happens through
+  REST api, while ElasticProxy queries and sending emails
+  happen through cron scripts.
+
 ## Installing and running Hakuvahti
 
 - `npm i` to install dependencies
