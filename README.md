@@ -21,8 +21,8 @@ Pre-requisities to use Hakuvahti are:
 - `npm start` (or `npm run dev` for development)
 - Hakuvahti should now be running in port `:3000` (by default)
 - For production environment, add following commands to cron:
-  - `npm run hav:populate-email-queue`
-  - `npm run hav:send-emails-from-queue`
+  - `npm run hav:populate-email-queue` (this should be run once per hour or at least daily)
+  - `npm run hav:send-emails-from-queue` (this should be ran at least once per minute)
 
 ## Local docker environment:
 
