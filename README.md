@@ -25,6 +25,11 @@ Pre-requisities to use Hakuvahti are:
 - ElasticProxy queries and sending emails happen through cron scripts.
 - Subscriptions are also removed through cron script, based on expiration
   days in `.env` configuration.
+- Email templates are located under `src/templates/something/*.html`
+  - Templates are suffixed with lang code, which is set per subscription.
+  - Templates can be modified for different sites by copying them 
+    to a different folder, ieg. `src/templates/something2` and changing
+    `MAIL_TEMPLATE_PATH` envvar.
 
 ## Installing and running Hakuvahti
 
