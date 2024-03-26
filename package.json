@@ -8,11 +8,11 @@
   },
   "scripts": {
     "test": "npm run build:ts && tsc -p test/tsconfig.json && c8 node --test -r ts-node/register test/**/*.ts",
-    "start": "npm run build:ts && npm run copy:assets && fastify start -l info dist/app.js",
+    "start": "npm run build:ts && npm run copy:assets && npm run hav:init-mongodb && fastify start -l info dist/app.js",
     "build:ts": "npm run copy:assets; tsc",
     "watch:ts": "npm run copy:assets; tsc -w",
     "copy:assets": "cp -R src/templates dist/",
-    "dev": "npm run copy:assets; npm run build:ts && concurrently -k -p \"[{name}]\" -n \"TypeScript,App\" -c \"yellow.bold,cyan.bold\" \"npm:watch:ts\" \"npm:dev:start\"",
+    "dev": "npm run copy:assets; npm run build:ts && npm run hav:init-mongodb && concurrently -k -p \"[{name}]\" -n \"TypeScript,App\" -c \"yellow.bold,cyan.bold\" \"npm:watch:ts\" \"npm:dev:start\"",
     "dev:start": "npm run copy:assets; fastify start --ignore-watch=.ts$ -w -l info -P dist/app.js",
     "info": "fastify print-routes ./routes/root.ts",
     "hav:init-mongodb": "node dist/bin/hav-init-mongodb.js",

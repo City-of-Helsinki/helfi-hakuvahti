@@ -10,7 +10,6 @@ const server = fastify({})
 void server.register(mongodb)
 
 const app = async (): Promise<{}> => {
-
   const createQueue = await server.mongo.db?.createCollection("queue", {
     validator: {
       $jsonSchema: {
@@ -76,10 +75,10 @@ const app = async (): Promise<{}> => {
         }
       }
     }
-  })
+  })  
 
-  server.log.info(createQueue)
-  server.log.info(createSubscription)
+  server.log.debug(createQueue)
+  server.log.debug(createSubscription)
 
   return {}
 }
