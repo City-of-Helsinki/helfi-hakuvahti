@@ -39,56 +39,45 @@ const deleteSubscription: FastifyPluginAsync = async (
     const collection = mongodb.db?.collection('subscription');
     const { id, hash } = <{ id: string, hash: string }>request.params
 
-    try {
-      // Check that subscription exists and hash matches
-      const subscription = await collection?.findOne({
-        _id: new ObjectId(id), 
-        hash: hash
-      });
+    // Check that subscription exists and hash matches
+    const subscription = await collection?.findOne({
+      _id: new ObjectId(id), 
+      hash: hash
+    });
 
-      if (!subscription) {
-        return reply
-          .code(404)
-          .send({ 
-            statusCode: 404, 
-            statusMessage: 'Subscription not found.' 
-          })
-      }
-
-      // Delete subscription
-      const result = await collection?.deleteOne({ _id: new ObjectId(id) })
-
-      request.log.info({ 
-        level: 'info', 
-        message: 'Subscription deleted',
-        result: result
-      })
-
-      if (result?.deletedCount === 0) {
-        return reply
-          .code(404)
-          .send({ 
-            statusCode: 404, 
-            statusMessage: 'Subscription not found.' 
-          })
-      }
-
+    if (!subscription) {
       return reply
-        .code(200)
+        .code(404)
         .send({ 
-          statusCode: 200,
-          message: 'Subscription deleted'
-        })
-    } catch (error) {
-      console.log('Subscription deletion failed')
-      console.log(error)
-      return reply
-        .code(500)
-        .send({ 
-          statusCode: 500, 
-          statusMessage: 'Something went wrong' 
+          statusCode: 404, 
+          statusMessage: 'Subscription not found.' 
         })
     }
+
+    // Delete subscription
+    const result = await collection?.deleteOne({ _id: new ObjectId(id) })
+
+    fastify.log.info({ 
+      level: 'info', 
+      message: 'Subscription deleted',
+      result: result
+    })
+
+    if (result?.deletedCount === 0) {
+      return reply
+        .code(404)
+        .send({ 
+          statusCode: 404, 
+          statusMessage: 'Subscription not found.' 
+        })
+    }
+
+    return reply
+      .code(200)
+      .send({ 
+        statusCode: 200,
+        message: 'Subscription deleted'
+      })
   })
 }
 
