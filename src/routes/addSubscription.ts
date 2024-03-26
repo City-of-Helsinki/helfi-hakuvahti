@@ -48,16 +48,12 @@ const subscription: FastifyPluginAsync = async (
     const hash = fastify.getRandHash()
 
     // Replace email in request with ATV hashed email
-    if (request?.atvResponse?.atvDocumentId) {
-      request.body.email = request.atvResponse.atvDocumentId
-    } else {
-      // Bail out if we can't get hashed email from ATV
-
+    if (!(request?.atvResponse?.atvDocumentId))
       return reply
         .code(500)
         .header('Content-Type', 'application/json; charset=utf-8')
         .send({ error: 'Could not find hashed email. Subscription not added.' })
-    }
+    request.body.email = request.atvResponse.atvDocumentId;
 
     // Subscription data that goes to collection
     const subscription: Partial<SubscriptionCollectionType> = {
@@ -70,43 +66,32 @@ const subscription: FastifyPluginAsync = async (
       status: SubscriptionStatus.INACTIVE
     };
 
-    try {
-      const response = await collection?.insertOne(subscription)
-      
-      if (response) {
-        // Insert email in queue
-        const emailContent = await confirmationEmail(request.body.lang, {
-          link: process.env.MAIL_CONFIRMATION_LINK + '/' + request.body.lang + `/subscription/confirm/${response.insertedId}/${hash}`
-        })
-
-        // Email data to queue
-        const email:QueueInsertDocumentType = {
-          email: request.body.email,
-          content: emailContent
-        }
-
-        const q = mongodb.db?.collection('queue')
-        await q?.insertOne(email)
-
-        console.log(emailContent)
-
-        return reply
-          .code(200)
-          .header('Content-Type', 'application/json; charset=utf-8')
-          .send(response);
-      } else {
-        return reply
-          .code(500)
-          .header('Content-Type', 'application/json; charset=utf-8')
-          .send({ error: 'Could not add new subscription.' })
-      }
-    } catch (e: unknown) {
-      console.log('Unknown error!', e)
-      return reply
-        .code(500)
-        .header('Content-Type', 'application/json; charset=utf-8')
-        .send({ error: e })
+    const response = await collection?.insertOne(subscription)
+    if (!response) {
+      fastify.log.debug(response)
+      throw new Error('Adding new subscription failed. See logs.')
     }
+    
+    // Insert email in queue
+    const emailContent = await confirmationEmail(request.body.lang, {
+      link: process.env.MAIL_CONFIRMATION_LINK + '/' + request.body.lang + `/subscription/confirm/${response.insertedId}/${hash}`
+    })
+
+    // Email data to queue
+    const email:QueueInsertDocumentType = {
+      email: request.body.email,
+      content: emailContent
+    }
+
+    const q = mongodb.db?.collection('queue')
+    await q?.insertOne(email)
+
+    console.log(emailContent)
+
+    return reply
+      .code(200)
+      .header('Content-Type', 'application/json; charset=utf-8')
+      .send(response);
   })
 }
 
