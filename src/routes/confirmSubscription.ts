@@ -41,51 +41,29 @@ const confirmSubscription: FastifyPluginAsync = async (
     const collection = mongodb.db?.collection('subscription');
     const { id, hash } = <{ id: string, hash: string }>request.params
 
-    try {
-      const subscription = await collection?.findOne({ 
-        _id: new ObjectId(id), 
-        hash: hash, 
-        status: SubscriptionStatus.INACTIVE
-      });
+    const subscription = await collection?.findOne({ 
+      _id: new ObjectId(id), 
+      hash: hash, 
+      status: SubscriptionStatus.INACTIVE
+    });
 
-      if (!subscription) {
-        return reply
-          .code(404)
-          .send({ 
-            statusCode: 404, 
-            statusMessage: 'Subscription not found.' 
-          });
-      }
-
-      // Activate subscription
-      const updateResult = await collection?.updateOne({ 
-        _id: new ObjectId(id) 
-      }, { 
-        $set: { status: SubscriptionStatus.ACTIVE } 
-      });
-
-      request.log.info({ 
-        level: 'info', 
-        message: 'Subscription enabled',
-        result: updateResult
-      })
-
+    if (!subscription) {
       return reply
-        .code(200)
+        .code(404)
         .send({ 
-          statusCode: 200,
-          message: 'Subscription enabled'
-        })
-    } catch (error) {
-      console.log('Enabling subscription failed')
-      console.log(error)
-      return reply
-        .code(500)
-        .send({ 
-          statusCode: 500, 
-          statusMessage: 'Something went wrong' 
-        })
+          statusCode: 404, 
+          statusMessage: 'Subscription not found.' 
+        });
     }
+
+    await collection!.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status: SubscriptionStatus.ACTIVE } },
+    )
+
+    return reply
+      .code(200)
+      .send({ message: 'Subscription enabled' })
   })
 }
   
