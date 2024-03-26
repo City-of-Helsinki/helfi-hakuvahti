@@ -21,9 +21,10 @@ Pre-requisities to use Hakuvahti are:
   performing API actions and collecting results from ElasticSearch does not 
   depend on possible ATV errors or network lag, or availability of 
   SMTP server.
-- Adding, confirming and deleting subscriptions happens through
-  REST api, while ElasticProxy queries and sending emails
-  happen through cron scripts.
+- Adding, confirming and deleting subscriptions happens through REST api, while: 
+- ElasticProxy queries and sending emails happen through cron scripts.
+- Subscriptions are also removed through cron script, based on expiration
+  days in `.env` configuration.
 
 ## Installing and running Hakuvahti
 
