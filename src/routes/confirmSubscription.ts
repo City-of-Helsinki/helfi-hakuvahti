@@ -67,5 +67,4 @@ const confirmSubscription: FastifyPluginAsync = async (
   })
 }
   
-  export default confirmSubscription
-  
+export default confirmSubscription
