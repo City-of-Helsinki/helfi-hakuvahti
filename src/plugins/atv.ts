@@ -128,10 +128,10 @@ const requestEmailHook = async (request: FastifyRequest) => {
     // If the POST request has 'email' variable, automatically create ATV document
     // and store email there. Only the ATV document Id gets saved in HAV database.
     const body: Partial<SubscriptionRequestType> = request.body as Partial<SubscriptionRequestType>
-    const email: string = body.email as string
+    const email: string = (body.email as string)?.trim()
 
-    if (!email) {
-      return
+    if (!isValidEmail(email)) {
+      throw new Error('Invalid email format')
     }
 
     const atvDocument: Partial<AtvDocumentType> = await atvCreateDocumentWithEmail(email)
@@ -147,6 +147,12 @@ const requestEmailHook = async (request: FastifyRequest) => {
     throw new Error('Could not create document to ATV. Cannot subscribe.')
   }
 }
+
+const isValidEmail = (email: string): boolean => {
+  const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+  return re.test(String(email).toLowerCase())
+}
+
 
 export default fp(async (fastify, opts) => {
   // Hook handler automatically creates ATV document for the email
