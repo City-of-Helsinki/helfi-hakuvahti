@@ -63,7 +63,11 @@ const confirmSubscription: FastifyPluginAsync = async (
 
     return reply
       .code(200)
-      .send({ message: 'Subscription enabled' })
+      .header('Content-Type', 'application/json; charset=utf-8')
+      .send({
+        statusCode: 200,
+        statusMessage: 'Subscription enabled.'
+      })
   })
 }
   
