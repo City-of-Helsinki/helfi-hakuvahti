@@ -153,7 +153,6 @@ const isValidEmail = (email: string): boolean => {
   return re.test(String(email).toLowerCase())
 }
 
-
 export default fp(async (fastify, opts) => {
   // Hook handler automatically creates ATV document for the email
   // and sets the returned documentId to atvResponse.email variable
