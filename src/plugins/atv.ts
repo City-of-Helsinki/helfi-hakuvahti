@@ -46,7 +46,7 @@ const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDoc
   try {
     const timestamp = Math.floor(Date.now() / 1000).toString()
 
-    // ATV automatically deleted the document after deleteAfter date has passed
+    // ATV automatically deletes the document after deleteAfter date has passed
     const deleteAfter = new Date()
     const maxAge: number = +process.env.SUBSCRIPTION_MAX_AGE!
     deleteAfter.setDate(deleteAfter.getDate() + maxAge)
