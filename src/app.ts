@@ -13,6 +13,15 @@ const app: FastifyPluginAsync<AppOptions> = async (
     fastify,
     opts
 ): Promise<void> => {
+  const release = new Date()
+
+  fastify.register(require('@immobiliarelabs/fastify-sentry'), {
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.ENVIRONMENT,
+    release: release.toISOString().substring(0, 10),
+    setErrorHandler: true
+  })
+
   // This loads all plugins defined in plugins
   // those should be support plugins that are reused
   // through your application

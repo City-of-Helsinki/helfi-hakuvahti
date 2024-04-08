@@ -27,6 +27,7 @@
     "@fastify/mongodb": "^8.0.0",
     "@fastify/sensible": "^5.0.0",
     "@fastify/type-provider-typebox": "^4.0.0",
+    "@immobiliarelabs/fastify-sentry": "^8.0.1",
     "@sinclair/typebox": "^0.32.9",
     "axios": "^1.6.7",
     "c8": "^9.1.0",

@@ -3,6 +3,8 @@ declare global {
     interface ProcessEnv {
       [key: string]: string | undefined | number;
 
+      ENVIRONMENT: string;
+
       // Elastic Proxy url
       ELASTIC_PROXY_URL: string;
 
@@ -11,6 +13,9 @@ declare global {
 
       // MongoDB connection
       MONGODB: string;
+
+      // Sentry
+      SENTRY_DSN: string;
 
       // Fastify port and address
       FASTIFY_PORT: number;
@@ -25,6 +30,7 @@ declare global {
       UNCONFIRMED_SUBSCRIPTION_MAX_AGE: number;
       SUBSCRIPTION_EXPIRY_NOTIFICATION_DAYS: number;
 
+      // SMTP
       MAIL_FROM: string;
       MAIL_HOST: string;
       MAIL_PORT: string;
@@ -32,9 +38,11 @@ declare global {
       MAIL_AUTH_USER: string;
       MAIL_AUTH_PASS: string;
 
+      // Email templates
       MAIL_TEMPLATE_PATH: string;
-      MAIL_CONFIRMATION_LINK: string;
 
+      // Subscribe / Unsubscribe links to the website
+      MAIL_CONFIRMATION_LINK: string;
       REMOVE_CONFIRMATION_LINK: string;
 
       // add more environment variables and their types here

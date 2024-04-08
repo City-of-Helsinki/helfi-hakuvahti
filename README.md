@@ -55,6 +55,8 @@ Pre-requisities to use Hakuvahti are:
 ## Environment variables
 
 ### Core
+`ENVIRONMENT` Either `production`, `staging` or `dev`. This is used by Sentry and/or other services that need environment info.
+
 `FASTIFY_PORT` Port where Hakuvahti runs (for example `3000`). If you change the envvar, remember to update Dockerfile and compose.yaml.
 
 ### Website
@@ -68,6 +70,9 @@ Pre-requisities to use Hakuvahti are:
 
 ### MongoDB
 `MONGODB` Set MongoDB connection url
+
+### Sentry
+`SENTRY_DSN` Set Sentry URL for logging and errors
 
 ### ElasticProxy
 `ELASTIC_PROXY_UR` Set url for ElasticProxy

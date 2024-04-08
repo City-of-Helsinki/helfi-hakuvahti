@@ -10,6 +10,15 @@ dotenv.config()
 
 const server = fastify({})
 
+const release = new Date()
+
+server.register(require('@immobiliarelabs/fastify-sentry'), {
+  dsn: process.env.SENTRY_DSN,
+  environment: process.env.ENVIRONMENT,
+  release: release.toISOString().substring(0, 10),
+  setErrorHandler: true
+})
+
 // Register only needed plugins
 void server.register(mailer)
 void server.register(mongodb)
