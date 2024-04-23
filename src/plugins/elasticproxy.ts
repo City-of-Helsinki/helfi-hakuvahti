@@ -1,6 +1,7 @@
 import axios from 'axios';
 import fp from 'fastify-plugin'
 import { ElasticProxyJsonResponseType } from '../types/elasticproxy';
+import https from 'https'
 
 // Query Elastic Proxy
 
@@ -22,11 +23,20 @@ const queryElasticProxy = async (elasticQueryJson: string): Promise<ElasticProxy
   const contentType: string = elasticQueryJson.startsWith("{}\n") ? 'application/x-ndjson' : 'application/json';
 
   try {
+    let rejectUnauthorized = true
+    if (process.env.ENVIRONMENT === 'dev') {
+      // On dev/local, ignore errors with docker certs
+      rejectUnauthorized = false
+    }
+
     const response = await axios.post<ElasticProxyJsonResponseType>(
       elasticProxyUrl,
       // ElasticProxy requests must terminate to newline or server returns Bad request
       elasticQueryJson + (elasticQueryJson.endsWith("\n") ? '' : '\n'),
       {
+        httpsAgent: new https.Agent({
+          rejectUnauthorized: rejectUnauthorized
+        }),
         headers: {
           'Content-Type': contentType
         }
