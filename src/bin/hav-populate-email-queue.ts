@@ -98,7 +98,6 @@ const app = async (): Promise<{}> => {
     const result = await collection.find({ status: SubscriptionStatus.ACTIVE }).toArray()
 
     for (const subscription of result) {
-
       // If subscription should expire soon, send an expiration email
       if (checkShouldSendExpiryNotification(subscription as Partial<SubscriptionCollectionType>)) {
         await collection.updateOne(
@@ -147,9 +146,10 @@ const app = async (): Promise<{}> => {
       await queueCollection.insertOne(email)
 
       // Set last checked timestamp to this moment
+      const dateUnixtime: number = Math.floor(new Date().getTime() / 1000)
       await collection.updateOne(
         { _id: subscription._id },
-        { $set: { last_checked: new Date() } }
+        { $set: { last_checked: dateUnixtime } }
       )
     }
   } catch (error) {
