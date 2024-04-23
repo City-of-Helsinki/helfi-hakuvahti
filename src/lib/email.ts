@@ -1,9 +1,13 @@
 import { sprightly } from "sprightly";
 import { SubscriptionCollectionLanguageType } from "../types/subscription"
 import { PartialDrupalNodeType } from "../types/elasticproxy"
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 // Base dir for email templates
 const dir = process.env.MAIL_TEMPLATE_PATH || 'dist/templates'
+console.log(dir)
 
 // Base url for the website (not HAV)
 const baseUrl: string = process.env.BASE_URL || 'http://localhost:3000'
