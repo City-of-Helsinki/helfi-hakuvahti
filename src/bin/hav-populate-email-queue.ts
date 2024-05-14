@@ -117,7 +117,7 @@ const app = async (): Promise<{}> => {
 
       // Filter out new hits:
       const createdDate: string = new Date(subscription.created).toISOString().substring(0, 10)
-      const lastChecked: number = subscription.last_checked ? Math.floor(new Date(subscription.last_checked).getTime() / 1000) : Math.floor(new Date().getTime() / 1000)
+      const lastChecked: number = subscription.last_checked ? subscription.last_checked : Math.floor(new Date().getTime() / 1000)
       const newHits: PartialDrupalNodeType[] = elasticResponse.hits.hits
         .filter((hit: { _source: { field_publication_starts: number[]; }; }) => hit._source.field_publication_starts[0] >= lastChecked)
         .map((hit: { _source: PartialDrupalNodeType; }) => hit._source)
@@ -147,6 +147,7 @@ const app = async (): Promise<{}> => {
 
       // Set last checked timestamp to this moment
       const dateUnixtime: number = Math.floor(new Date().getTime() / 1000)
+
       await collection.updateOne(
         { _id: subscription._id },
         { $set: { last_checked: dateUnixtime } }
