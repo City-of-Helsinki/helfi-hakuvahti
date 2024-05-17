@@ -66,13 +66,23 @@ const subscription: FastifyPluginAsync = async (
       status: SubscriptionStatus.INACTIVE
     };
 
-    const response = await collection?.insertOne(subscription)
+    const response = await collection?.insertOne(subscription);
     if (!response) {
-      fastify.log.debug(response)
-      console.log(response)
-      throw new Error('Adding new subscription failed. See logs.')
+      fastify.log.error('Failed to insert subscription document into the collection.');
+      throw new Error('Adding new subscription failed. See logs.');
     }
     
+    if (response.result.ok !== 1) {
+      fastify.log.error('Insertion operation failed:', response.result);
+      throw new Error('Adding new subscription failed. See logs.');
+    }
+    
+    const insertedId = response.insertedId;
+    if (!insertedId) {
+      fastify.log.error('Failed to get inserted ID.');
+      throw new Error('Failed to get inserted ID.');
+    }
+
     // Insert email in queue
     const emailContent = await confirmationEmail(request.body.lang, {
       link: process.env.MAIL_CONFIRMATION_LINK + '/' + request.body.lang + `/hakuvahti/confirm?subscription=${response.insertedId}&hash=${hash}`
