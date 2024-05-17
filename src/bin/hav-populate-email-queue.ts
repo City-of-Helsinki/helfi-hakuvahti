@@ -129,7 +129,7 @@ const app = async (): Promise<{}> => {
 
       // Email content object
       const emailContent = await newHitsEmail(subscription.lang, {
-        created_date: createdDate,
+        created_date: createdDate.replace(/-/g, '.'),
         search_description: subscription.search_description,
         search_link: subscription.query,
         remove_link: '?subscription=' + subscription._id + '&hash=' + subscription.hash,
