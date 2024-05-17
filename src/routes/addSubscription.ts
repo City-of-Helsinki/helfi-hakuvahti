@@ -69,6 +69,7 @@ const subscription: FastifyPluginAsync = async (
     const response = await collection?.insertOne(subscription)
     if (!response) {
       fastify.log.debug(response)
+      console.log(response)
       throw new Error('Adding new subscription failed. See logs.')
     }
     
