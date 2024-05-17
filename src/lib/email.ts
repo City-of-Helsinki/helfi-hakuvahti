@@ -15,6 +15,13 @@ const baseUrl: string = process.env.BASE_URL || 'http://localhost:3000'
 // Link to the website to remove subscription
 const removeUrl: string = process.env.REMOVE_CONFIRMATION_LINK || 'http://localhost:3000/subcription/delete'
 
+// Helper function to insert language code into url
+const insertLanguageCode = (url: string, langCode: string): string => {
+  const parsedUrl = new URL(url);
+  parsedUrl.pathname = `/${langCode}${parsedUrl.pathname}`;
+  return parsedUrl.toString();
+}
+
 // Subscription confirmation email
 export const confirmationEmail = async (lang: SubscriptionCollectionLanguageType, data: { link: string; }) => {
   try {
@@ -38,7 +45,7 @@ export const expiryEmail = async (lang: SubscriptionCollectionLanguageType, data
       lang: lang,
       link: baseUrl + data.link,
       search_description: data.search_description,
-      remove_link: removeUrl + data.remove_link,
+      remove_link: insertLanguageCode(removeUrl, lang) + data.remove_link,
       removal_date: data.removal_date
     });
   } catch (error) {
