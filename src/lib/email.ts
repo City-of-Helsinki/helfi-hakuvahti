@@ -71,7 +71,7 @@ export const newHitsEmail = async (lang: SubscriptionCollectionLanguageType, dat
       lang: lang,
       hits: hitsContent,
       search_link: baseUrl + data.search_link,
-      remove_link: removeUrl + data.remove_link,
+      remove_link: insertLanguageCode(removeUrl, lang) + data.remove_link,
       search_description: data.search_description,
       created_date: data.created_date
     })
