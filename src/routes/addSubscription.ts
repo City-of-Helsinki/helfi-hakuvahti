@@ -68,12 +68,17 @@ const subscription: FastifyPluginAsync = async (
       status: SubscriptionStatus.INACTIVE
     };
 
-    const response = await collection?.insertOne(subscription)
+   try {
+    const response = await collection?.insertOne(subscription);
     if (!response) {
-      fastify.log.debug(response)
-      console.log(response)
-      throw new Error('Adding new subscription failed. See logs.')
+      fastify.log.debug(response);
+      console.log(response);
+      throw new Error('Adding new subscription failed. See logs.');
     }
+  } catch (error) {
+    fastify.log.error('Error inserting document:', error);
+    throw new Error('Adding new subscription failed. See logs.');
+  }
     
     // Insert email in queue
     const emailContent = await confirmationEmail(request.body.lang, {
