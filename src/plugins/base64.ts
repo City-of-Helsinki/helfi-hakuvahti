@@ -7,8 +7,8 @@ import { Buffer } from 'buffer'
 export interface Base64PluginOptions {
 }
 
-export const decode = (str: string):string => Buffer.from(str, 'base64').toString('binary');
-export const encode = (str: string):string => Buffer.from(str, 'binary').toString('base64');
+export const decode = (str: string):string => Buffer.from(str, 'base64').toString('utf-8');
+export const encode = (str: string):string => Buffer.from(str, 'utf-8').toString('base64');
 
 export default fp<Base64PluginOptions>(async (fastify, opts) => {
   fastify.decorate('b64decode', decode)
