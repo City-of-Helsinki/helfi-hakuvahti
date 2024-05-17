@@ -72,7 +72,7 @@ const subscription: FastifyPluginAsync = async (
       throw new Error('Adding new subscription failed. See logs.');
     }
     
-    if (response.result.ok !== 1) {
+    if (response.result?.ok !== 1) {
       fastify.log.error('Insertion operation failed:', response.result);
       throw new Error('Adding new subscription failed. See logs.');
     }
@@ -81,7 +81,7 @@ const subscription: FastifyPluginAsync = async (
     if (!insertedId) {
       fastify.log.error('Failed to get inserted ID.');
       throw new Error('Failed to get inserted ID.');
-    }
+}
 
     // Insert email in queue
     const emailContent = await confirmationEmail(request.body.lang, {
