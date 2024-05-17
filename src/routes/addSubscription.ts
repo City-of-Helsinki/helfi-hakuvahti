@@ -44,9 +44,7 @@ const subscription: FastifyPluginAsync = async (
     reply: FastifyReply
   ) => {
     const mongodb = fastify.mongo
-    console.log(mongodb)
     const collection = mongodb.db?.collection('subscription')
-    console.log(collection)
     const hash = fastify.getRandHash()
 
     // Replace email in request with ATV hashed email
