@@ -17,4 +17,6 @@ RUN npm cache clean --force
 
 EXPOSE 3000
 
+USER nobody:0
+
 CMD [ "npm", "run", "start" ]
