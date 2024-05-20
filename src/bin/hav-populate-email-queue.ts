@@ -128,8 +128,14 @@ const app = async (): Promise<{}> => {
       }
 
       // Email content object
+
+      // Format Mongo DateTime to EU format for email.
+      const date = new Date(createdDate);
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      const formattedCreatedDate = `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}`;
+
       const emailContent = await newHitsEmail(subscription.lang, {
-        created_date: createdDate.replace(/-/g, '.'),
+        created_date: formattedCreatedDate,
         search_description: subscription.search_description,
         search_link: subscription.query,
         remove_link: '?subscription=' + subscription._id + '&hash=' + subscription.hash,
