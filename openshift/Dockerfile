@@ -5,7 +5,7 @@ ENV APP_NAME rekry-hakuvahti
 
 RUN mkdir -p /app/node_modules
 RUN mkdir -p /app/logs
-RUN chown -R :0 /app && chmod -R g+w /app
+RUN chown -R :0 /app && chmod -R g+wx /app
 
 WORKDIR /app
 COPY package.json .
