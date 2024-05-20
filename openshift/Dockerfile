@@ -5,7 +5,6 @@ ENV APP_NAME rekry-hakuvahti
 
 RUN mkdir -p /app/node_modules
 RUN mkdir -p /app/logs
-RUN chown -R :0 /app && chmod -R g+wx /app
 
 WORKDIR /app
 COPY package.json .
@@ -16,7 +15,7 @@ RUN npm install
 RUN npm cache clean --force
 
 EXPOSE 3000
-
+RUN chown -R :0 /app && chmod -R g+wx /app
 USER nobody:0
 
 CMD [ "npm", "run", "start" ]
