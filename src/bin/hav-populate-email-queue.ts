@@ -139,7 +139,6 @@ const app = async (): Promise<{}> => {
         search_description: subscription.search_description,
         search_link: subscription.query,
         remove_link: '?subscription=' + subscription._id + '&hash=' + subscription.hash,
-        num_hits: newHits.length,
         hits: newHits
       })
 
