@@ -59,8 +59,7 @@ export const newHitsEmail = async (lang: SubscriptionCollectionLanguageType, dat
   search_description: string,
   search_link: string,
   remove_link: string,
-  created_date: string,
-  num_hits: number }) => {
+  created_date: string }) => {
   try {
     const hitsContent = data.hits.map(item => sprightly('dist/templates/link_text.html', {
       link: baseUrl + item.url,
