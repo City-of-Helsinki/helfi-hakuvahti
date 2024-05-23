@@ -7,6 +7,9 @@ services:
       MONGO_INITDB_DATABASE: hakuvahti
     ports:
       - "27017:27017"
+    networks:
+      - hav-internal
+
 
   nodejs:
     build:
@@ -16,4 +19,12 @@ services:
       - "3000:3000"
     depends_on:
       - mongodb
- 
+    networks:
+      - hav-internal
+      - hav-network
+
+networks:
+  hav-internal:
+    internal: true
+  hav-network:
+    driver: bridge
