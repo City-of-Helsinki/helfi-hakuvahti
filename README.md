@@ -136,6 +136,14 @@ Subscriptions that are not confirmed, will not be checked during `npm run hav:po
 
 Deletes a subscription. To delete a subscription, user must know both the id and hash (`hash` field in collection).
 
+## Health checks
+
+Hakuvahti includes OpenShift compatible endpoints for health check:
+
+`/healthz` Returns 200 OK and confirms Hakuvahti server is running.
+
+`/readiness` Returns 200 OK and confirms Hakuvahti server is running and MongoDB connection is working.
+
 ## Command line / cron actions
 
 ### Initialize MongoDB collections
