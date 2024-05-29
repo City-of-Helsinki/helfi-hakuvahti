@@ -9,8 +9,6 @@ const healthzAndReadiness: FastifyPluginAsync = async (
   fastify: FastifyInstance,
   opts: object
 ): Promise<void> => {
-
-  // /healthz route
   fastify.get('/healthz', {
     schema: {
       response: {
@@ -33,10 +31,9 @@ const healthzAndReadiness: FastifyPluginAsync = async (
       .send({
         statusCode: 200,
         message: 'OK'
-      });
-  });
+      })
+  })
 
-  // /readiness route
   fastify.get('/readiness', {
     schema: {
       response: {
@@ -73,16 +70,16 @@ const healthzAndReadiness: FastifyPluginAsync = async (
         .send({
           statusCode: 200,
           message: 'OK'
-        });
+        })
     } catch (error) {
       return reply
         .code(500)
         .send({
           statusCode: 500,
           message: 'MongoDB connection failed'
-        });
+        })
     }
-  });
-};
+  })
+}
 
 export default healthzAndReadiness;
