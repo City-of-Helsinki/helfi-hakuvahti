@@ -9,7 +9,7 @@ services:
       - "27017:27017"
     networks:
       - hav-internal
-      - helfi-hav_hav-network
+      - helfi-hakuvahti-network
 
   nodejs:
     build:
@@ -21,7 +21,7 @@ services:
       - mongodb
     networks:
       - hav-internal
-      - helfi-hav_hav-network
+      - helfi-hakuvahti-network
     extra_hosts:
       - "helfi-rekry.docker.so:host-gateway"
       - "elastic-helfi-rekry.docker.so:host-gateway"
@@ -30,5 +30,5 @@ services:
 networks:
   hav-internal:
     internal: true
-  helfi-hav_hav-network:
+  helfi-hakuvahti-network:
     driver: bridge
