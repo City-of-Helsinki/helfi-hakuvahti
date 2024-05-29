@@ -50,6 +50,7 @@ Pre-requisities to use Hakuvahti are:
 ## Local docker environment:
 
 - Run `docker-compose build && docker-compose up` 
+- Note that local docker environment with corresponding Drupal site expects that Hakuvahti is checked out to the default folder `helfi-hakuvahti`
 - Hakuvahti server should work at `http://localhost:3000`
 
 ## Environment variables
