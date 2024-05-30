@@ -21,7 +21,7 @@ trigger:
 pr: none
 
 # By default, use self-hosted agents
-#pool: Default
+# pool: Default
 
 # Image tag name for Fuse projects
 #parameters:
