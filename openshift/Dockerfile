@@ -14,7 +14,7 @@ COPY . .
 RUN npm install 
 RUN npm cache clean --force
 
-EXPOSE 3000
+EXPOSE 8080
 RUN chown -R :0 /app && chmod -R g+wx /app
 USER nobody:0
 
