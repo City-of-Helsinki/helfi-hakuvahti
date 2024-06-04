@@ -119,7 +119,7 @@ const app = async (): Promise<{}> => {
 
         const expiryEmailContent = await expiryEmail(subscription.lang, {
           search_description: subscription.search_description,
-          link: localizedBaseUrl + subscription.query,
+          link: process.env.BASE_URL + subscription.query,
           removal_date: formattedExpiryDate,
           remove_link: localizedBaseUrl + '/hakuvahti/unsubscribe?subscription=' + subscription._id + '&hash=' + subscription.hash,
         })

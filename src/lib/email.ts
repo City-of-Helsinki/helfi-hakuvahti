@@ -8,6 +8,9 @@ dotenv.config()
 // Base dir for email templates
 const dir = process.env.MAIL_TEMPLATE_PATH || 'dist/templates'
 
+// Base url for the website (not HAV)
+const baseUrl: string = process.env.BASE_URL || 'http://localhost:3000'
+
 // Subscription confirmation email
 export const confirmationEmail = async (lang: SubscriptionCollectionLanguageType, data: { link: string; }) => {
   try {
@@ -49,7 +52,7 @@ export const newHitsEmail = async (lang: SubscriptionCollectionLanguageType, dat
   created_date: string }) => {
   try {
     const hitsContent = data.hits.map(item => sprightly('dist/templates/link_text.html', {
-      link: data.localized_base_url + item.url,
+      link: baseUrl + item.url,
       content: item.title,
     })).join('')
 

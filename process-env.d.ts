@@ -9,6 +9,7 @@ declare global {
       ELASTIC_PROXY_URL: string;
 
       // Base url for the website
+      BASE_URL: string;
       BASE_URL_FI: string;
       BASE_URL_EN: string;
       BASE_URL_SV: string;
