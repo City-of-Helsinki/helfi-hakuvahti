@@ -9,7 +9,9 @@ declare global {
       ELASTIC_PROXY_URL: string;
 
       // Base url for the website
-      BASE_URL: string;
+      BASE_URL_FI: string;
+      BASE_URL_EN: string;
+      BASE_URL_SV: string;
 
       // MongoDB connection
       MONGODB: string;
@@ -40,10 +42,6 @@ declare global {
 
       // Email templates
       MAIL_TEMPLATE_PATH: string;
-
-      // Subscribe / Unsubscribe links to the website
-      MAIL_CONFIRMATION_LINK: string;
-      REMOVE_CONFIRMATION_LINK: string;
 
       // add more environment variables and their types here
     }
