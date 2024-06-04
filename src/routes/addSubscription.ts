@@ -74,8 +74,10 @@ const subscription: FastifyPluginAsync = async (
     }
     
     // Insert email in queue
+
+    const subscribeLinkBase = fastify.localizedEnvVar('BASE_URL', request.body.lang)
     const emailContent = await confirmationEmail(request.body.lang, {
-      link: process.env.MAIL_CONFIRMATION_LINK + '/' + request.body.lang + `/hakuvahti/confirm?subscription=${response.insertedId}&hash=${hash}`
+      link: subscribeLinkBase + `/hakuvahti/confirm?subscription=${response.insertedId}&hash=${hash}`
     })
 
     // Email data to queue

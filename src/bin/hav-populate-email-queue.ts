@@ -9,8 +9,9 @@ import {
   ElasticProxyJsonResponseType,
   PartialDrupalNodeType 
 } from '../types/elasticproxy'
-import { newHitsEmail } from '../lib/email'
+import { expiryEmail, newHitsEmail } from '../lib/email'
 import { QueueInsertDocumentType } from '../types/mailer';
+import localizedenvvar from '../plugins/localizedenvvar';
 
 dotenv.config()
 
@@ -30,6 +31,7 @@ void server.register(mongodb)
 void server.register(elasticproxy)
 void server.register(encode)
 void server.register(decode)
+void server.register(localizedenvvar)
 
 // Command line/cron application
 // to query for new results for subscriptiots from
@@ -98,12 +100,37 @@ const app = async (): Promise<{}> => {
     const result = await collection.find({ status: SubscriptionStatus.ACTIVE }).toArray()
 
     for (const subscription of result) {
+      const localizedBaseUrl = server.localizedEnvVar('BASE_URL', subscription.lang)
+
       // If subscription should expire soon, send an expiration email
       if (checkShouldSendExpiryNotification(subscription as Partial<SubscriptionCollectionType>)) {
         await collection.updateOne(
           { _id: subscription._id },
           { $set: { expiry_notification_sent: 1 } }
         )
+
+        const subscriptionValidForDays = process.env.SUBSCRIPTION_MAX_AGE ? parseInt(process.env.SUBSCRIPTION_MAX_AGE) : 0
+        const subscriptionExpiresAt = new Date(subscription.created).getTime() + (subscriptionValidForDays * 24 * 60 * 60 * 1000)
+        const subscriptionExpiresAtDate = new Date(subscriptionExpiresAt)
+        const day = String(subscriptionExpiresAtDate.getDate()).padStart(2, '0')
+        const month = String(subscriptionExpiresAtDate.getMonth() + 1).padStart(2, '0') // Months are 0-based
+        const year = subscriptionExpiresAtDate.getFullYear()
+        const formattedExpiryDate = `${day}.${month}.${year}`
+
+        const expiryEmailContent = await expiryEmail(subscription.lang, {
+          search_description: subscription.search_description,
+          link: localizedBaseUrl + subscription.query,
+          removal_date: formattedExpiryDate,
+          remove_link: localizedBaseUrl + '/hakuvahti/unsubscribe?subscription=' + subscription._id + '&hash=' + subscription.hash,
+        })
+
+        const expiryEmailToQueue:QueueInsertDocumentType = {
+          email: subscription.email,
+          content: expiryEmailContent
+        }
+  
+        // Add email to queue
+        await queueCollection.insertOne(expiryEmailToQueue)        
       }
 
       // Query for new results from ElasticProxy
@@ -138,8 +165,9 @@ const app = async (): Promise<{}> => {
         created_date: formattedCreatedDate,
         search_description: subscription.search_description,
         search_link: subscription.query,
-        remove_link: '?subscription=' + subscription._id + '&hash=' + subscription.hash,
-        hits: newHits
+        remove_link: localizedBaseUrl + '/hakuvahti/unsubscribe?subscription=' + subscription._id + '&hash=' + subscription.hash,
+        hits: newHits,
+        localized_base_url: localizedBaseUrl ? localizedBaseUrl : ''
       })
 
       const email:QueueInsertDocumentType = {
@@ -164,7 +192,6 @@ const app = async (): Promise<{}> => {
 
   return {}
 };
-
 
 server.get('/', async function (request, reply) {
   // Maximum subscription age from configuration

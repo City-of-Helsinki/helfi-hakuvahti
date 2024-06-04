@@ -7,20 +7,6 @@ dotenv.config()
 
 // Base dir for email templates
 const dir = process.env.MAIL_TEMPLATE_PATH || 'dist/templates'
-console.log(dir)
-
-// Base url for the website (not HAV)
-const baseUrl: string = process.env.BASE_URL || 'http://localhost:3000'
-
-// Link to the website to remove subscription
-const removeUrl: string = process.env.REMOVE_CONFIRMATION_LINK || 'http://localhost:3000/subcription/delete'
-
-// Helper function to insert language code into url
-const insertLanguageCode = (url: string, langCode: string): string => {
-  const parsedUrl = new URL(url);
-  parsedUrl.pathname = `/${langCode}${parsedUrl.pathname}`;
-  return parsedUrl.toString();
-}
 
 // Subscription confirmation email
 export const confirmationEmail = async (lang: SubscriptionCollectionLanguageType, data: { link: string; }) => {
@@ -43,9 +29,9 @@ export const expiryEmail = async (lang: SubscriptionCollectionLanguageType, data
   try {
     return sprightly('dist/templates/' + dir + '/expiry_notification_' + lang + '.html', {
       lang: lang,
-      link: baseUrl + data.link,
+      link: data.link,
       search_description: data.search_description,
-      remove_link: insertLanguageCode(removeUrl, lang) + data.remove_link,
+      remove_link: data.remove_link,
       removal_date: data.removal_date
     });
   } catch (error) {
@@ -59,18 +45,19 @@ export const newHitsEmail = async (lang: SubscriptionCollectionLanguageType, dat
   search_description: string,
   search_link: string,
   remove_link: string,
+  localized_base_url: string,
   created_date: string }) => {
   try {
     const hitsContent = data.hits.map(item => sprightly('dist/templates/link_text.html', {
-      link: baseUrl + item.url,
+      link: data.localized_base_url + item.url,
       content: item.title,
     })).join('')
 
     return sprightly(`dist/templates/${dir}/newhits_${lang}.html`, {
       lang: lang,
       hits: hitsContent,
-      search_link: baseUrl + data.search_link,
-      remove_link: insertLanguageCode(removeUrl, lang) + data.remove_link,
+      search_link: data.localized_base_url + data.search_link,
+      remove_link: data.remove_link,
       search_description: data.search_description,
       created_date: data.created_date
     })
