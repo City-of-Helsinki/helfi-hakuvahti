@@ -48,7 +48,6 @@ export const newHitsEmail = async (lang: SubscriptionCollectionLanguageType, dat
   search_description: string,
   search_link: string,
   remove_link: string,
-  localized_base_url: string,
   created_date: string }) => {
   try {
     const hitsContent = data.hits.map(item => sprightly('dist/templates/link_text.html', {
@@ -59,7 +58,7 @@ export const newHitsEmail = async (lang: SubscriptionCollectionLanguageType, dat
     return sprightly(`dist/templates/${dir}/newhits_${lang}.html`, {
       lang: lang,
       hits: hitsContent,
-      search_link: data.localized_base_url + data.search_link,
+      search_link: baseUrl + data.search_link,
       remove_link: data.remove_link,
       search_description: data.search_description,
       created_date: data.created_date
