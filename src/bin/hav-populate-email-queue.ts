@@ -2,7 +2,7 @@ import fastify from 'fastify'
 import mongodb from '../plugins/mongodb';
 import elasticproxy from '../plugins/elasticproxy'
 import dotenv from 'dotenv'
-import { SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription'
+import { SubscriptionCollectionLanguageType, SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription'
 import decode from '../plugins/base64'
 import encode from '../plugins/base64'
 import { 
@@ -11,7 +11,6 @@ import {
 } from '../types/elasticproxy'
 import { expiryEmail, newHitsEmail } from '../lib/email'
 import { QueueInsertDocumentType } from '../types/mailer';
-import localizedenvvar from '../plugins/localizedenvvar';
 
 dotenv.config()
 
@@ -31,7 +30,10 @@ void server.register(mongodb)
 void server.register(elasticproxy)
 void server.register(encode)
 void server.register(decode)
-void server.register(localizedenvvar)
+
+export const localizedEnvVar = (envVarBase: string, langCode: SubscriptionCollectionLanguageType): string | undefined => {
+  return process.env[`${envVarBase}_${langCode.toUpperCase()}`]
+}
 
 // Command line/cron application
 // to query for new results for subscriptiots from
@@ -100,7 +102,7 @@ const app = async (): Promise<{}> => {
     const result = await collection.find({ status: SubscriptionStatus.ACTIVE }).toArray()
 
     for (const subscription of result) {
-      const localizedBaseUrl = server.localizedEnvVar('BASE_URL', subscription.lang)
+      const localizedBaseUrl = localizedEnvVar('BASE_URL', subscription.lang)
 
       // If subscription should expire soon, send an expiration email
       if (checkShouldSendExpiryNotification(subscription as Partial<SubscriptionCollectionType>)) {
