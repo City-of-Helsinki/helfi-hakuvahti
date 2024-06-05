@@ -62,7 +62,9 @@ Pre-requisities to use Hakuvahti are:
 `FASTIFY_PORT` Port where Hakuvahti runs (for example `3000`). If you change the envvar, remember to update Dockerfile and compose.yaml.
 
 ### Website
-`BASE_URL` Website that uses Hakuvahti
+`BASE_URL` Website that uses Hakuvahti (for example https://www.hel.fi)
+
+`BASE_URL_FI` `BASE_URL_SV` `BASE_URL_EN` Localized url for Drupal base url (for example https://www.hel.fi/fi/avoimet-tyopaikat/etsi-avoimia-tyopaikkoja)
 
 `MAIL_TEMPLATE_PATH` Template path under `templates` folder (for example `rekry`)
 
