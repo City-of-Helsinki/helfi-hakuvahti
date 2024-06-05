@@ -168,8 +168,7 @@ const app = async (): Promise<{}> => {
         search_description: subscription.search_description,
         search_link: subscription.query,
         remove_link: localizedBaseUrl + '/hakuvahti/unsubscribe?subscription=' + subscription._id + '&hash=' + subscription.hash,
-        hits: newHits,
-        localized_base_url: localizedBaseUrl ? localizedBaseUrl : ''
+        hits: newHits
       })
 
       const email:QueueInsertDocumentType = {
