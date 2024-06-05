@@ -68,10 +68,6 @@ Pre-requisities to use Hakuvahti are:
 
 `MAIL_TEMPLATE_PATH` Template path under `templates` folder (for example `rekry`)
 
-`MAIL_CONFIRMATION_LINK` (Website url for confirming subscription. /subscription/id/hash will be appended)
-
-`REMOVE_CONFIRMATION_LINK` (Website url for confirming subscription. /subscription/delete/id/hash will be appended)
-
 ### MongoDB
 `MONGODB` Set MongoDB connection url
 
