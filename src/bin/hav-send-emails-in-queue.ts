@@ -81,7 +81,7 @@ const app = async (): Promise<{}> => {
             html: email.content
           }, (errors, info) => {
             if (errors) {
-              console.log(errors);
+              console.error(errors);
 
               throw Error('Sending email failed. See logs');
             }
