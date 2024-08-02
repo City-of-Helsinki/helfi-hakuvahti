@@ -30,7 +30,7 @@ const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDo
       throw new Error('Empty content returned from API')
     }
   } catch (error: unknown) {
-    console.log(error);
+    console.error(error);
 
     throw new Error('Error fetching Document by id')
   }
@@ -75,7 +75,7 @@ const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDoc
 
     return response.data;
   } catch (error: unknown) {
-    console.log(error)
+    console.error(error)
 
     throw new Error('Failed to create document. See error log.')
   }
@@ -106,7 +106,7 @@ const atvGetDocumentBatch = async (emails: string[]): Promise<Partial<AtvDocumen
 
     return response.data
   } catch (error: any) {
-    console.log(error)
+    console.error(error)
 
     throw new Error('Failed to fetch document. See error log.')
   }
