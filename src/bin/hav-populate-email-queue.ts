@@ -53,7 +53,7 @@ const massDeleteSubscriptions = async (modifyStatus: SubscriptionStatus, olderTh
     try {
       await collection.deleteMany({ status: modifyStatus, created: { $lt: dateLimit } })
     } catch (error) {
-      console.log(error)
+      console.error(error)
 
       throw new Error('Could not delete subscriptions. See logs for errors.')
     }
