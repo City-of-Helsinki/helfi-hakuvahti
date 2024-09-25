@@ -31,6 +31,19 @@ Pre-requisities to use Hakuvahti are:
     to a different folder, ieg. `src/templates/something2` and changing
     `MAIL_TEMPLATE_PATH` envvar.
 
+## Installing and running Hakuvahti with Docker (Druid Tools)
+
+- Copy `.env.dist` as `.env` and configure:
+  - MongoDB (defaults in .env.dist should work with docker),
+  - ElasticProxy (defaults in .env.dist should work with docker),
+  - SMTP settings for email sending (https://mailpit.docker.so/ should work with docker),
+  - [ATV integration](https://github.com/City-of-Helsinki/atv)
+    - Make sure the `ATV_API_KEY` is set, otherwise the local Hakuvahti cannot connect to ATV and will trigger an error.
+  - Subscription days, etc settings
+- `make up` to build and start the docker
+  - hakuvahti should be available to Docker containers through Rekry docker network (easier to run with drupal dockers) but running locally recommended for development.
+- `make down`to tear down the environment
+
 ## Installing and running Hakuvahti locally
 
 - `npm i` to install dependencies
@@ -39,6 +52,7 @@ Pre-requisities to use Hakuvahti are:
   - ElasticProxy, 
   - SMTP settings for email sending,
   - [ATV integration](https://github.com/City-of-Helsinki/atv)
+     - Make sure the `ATV_API_KEY` is set, otherwise the local Hakuvahti cannot connect to ATV and will trigger an error.
   - Subscription days, etc settings
 - Create MongoDB collections: `npm run hav:init-mongodb`
 - `npm start` (or `npm run dev` for development)
@@ -46,18 +60,6 @@ Pre-requisities to use Hakuvahti are:
 - For production environment, add following commands to cron:
   - `npm run hav:populate-email-queue` (this should be run once per hour or at least daily)
   - `npm run hav:send-emails-from-queue` (this should be ran at least once per minute)
-
-## Installing and running Hakuvahti with Docker (Druid Tools)
-
-- Copy `.env.dist` as `.env` and configure:
-  - MongoDB (defaults in .env.dist should work with docker),
-  - ElasticProxy (defaults in .env.dist should work with docker), 
-  - SMTP settings for email sending,
-  - [ATV integration](https://github.com/City-of-Helsinki/atv)
-  - Subscription days, etc settings
-- `make up` to start the docker
-  - hakuvahti should be available to Docker containers through Rekry docker network (easier to run with drupal dockers) but running locally recommended for development.
-- `make down`to tear down the environment
 
 ## Local docker environment:
 
