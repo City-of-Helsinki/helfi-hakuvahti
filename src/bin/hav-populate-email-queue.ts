@@ -1,16 +1,17 @@
 import fastify from 'fastify'
-import mongodb from '../plugins/mongodb';
+import mongodb from '../plugins/mongodb'
 import elasticproxy from '../plugins/elasticproxy'
 import dotenv from 'dotenv'
 import { SubscriptionCollectionLanguageType, SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription'
 import decode from '../plugins/base64'
 import encode from '../plugins/base64'
+import '../plugins/sentry'
 import { 
   ElasticProxyJsonResponseType,
   PartialDrupalNodeType 
 } from '../types/elasticproxy'
 import { expiryEmail, newHitsEmail } from '../lib/email'
-import { QueueInsertDocumentType } from '../types/mailer';
+import { QueueInsertDocumentType } from '../types/mailer'
 
 dotenv.config()
 
@@ -100,6 +101,7 @@ const getNewHitsFromElasticsearch = async (subscription: any): Promise<PartialDr
 
   } catch (err) {
     console.error(`Query ${elasticQuery} for ${subscription._id} failed`)
+    server.Sentry?.captureException(err)
   }
 
   return []
@@ -196,6 +198,7 @@ const app = async (): Promise<{}> => {
     }
   } catch (error) {
     console.error(error)
+    server.Sentry?.captureException(error)
   }
 
   return {}
