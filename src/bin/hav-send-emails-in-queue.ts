@@ -2,6 +2,7 @@ import fastify from 'fastify'
 import mongodb from '../plugins/mongodb';
 import atv from '../plugins/atv';
 import mailer from '../plugins/mailer';
+import '../plugins/sentry';
 import dotenv from 'dotenv'
 import { AtvDocumentType } from '../types/atv';
 import { ObjectId } from '@fastify/mongodb';
@@ -101,6 +102,7 @@ const app = async (): Promise<{}> => {
 
   } catch (error) {
     console.error(error)
+    server.Sentry?.captureException(error)
   }
 
   return {}
