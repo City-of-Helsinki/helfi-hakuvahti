@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM registry.redhat.io/ubi9/nodejs-20
 
 ENV npm_config_cache=/app/.npm
 ENV APP_NAME rekry-hakuvahti
