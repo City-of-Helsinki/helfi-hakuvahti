@@ -69,7 +69,7 @@ const subscription: FastifyPluginAsync = async (
     const response = await collection?.insertOne(subscription)
     if (!response) {
       fastify.log.debug(response)
-      console.log(response)
+
       throw new Error('Adding new subscription failed. See logs.')
     }
     
@@ -89,7 +89,7 @@ const subscription: FastifyPluginAsync = async (
     const q = mongodb.db?.collection('queue')
     await q?.insertOne(email)
 
-    console.log(emailContent)
+    fastify.log.debug(emailContent)
 
     return reply
       .code(200)

@@ -1,16 +1,17 @@
 import fastify from 'fastify'
-import mongodb from '../plugins/mongodb';
+import mongodb from '../plugins/mongodb'
 import elasticproxy from '../plugins/elasticproxy'
 import dotenv from 'dotenv'
 import { SubscriptionCollectionLanguageType, SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription'
 import decode from '../plugins/base64'
 import encode from '../plugins/base64'
+import '../plugins/sentry'
 import { 
   ElasticProxyJsonResponseType,
   PartialDrupalNodeType 
 } from '../types/elasticproxy'
 import { expiryEmail, newHitsEmail } from '../lib/email'
-import { QueueInsertDocumentType } from '../types/mailer';
+import { QueueInsertDocumentType } from '../types/mailer'
 
 dotenv.config()
 
@@ -53,7 +54,7 @@ const massDeleteSubscriptions = async (modifyStatus: SubscriptionStatus, olderTh
     try {
       await collection.deleteMany({ status: modifyStatus, created: { $lt: dateLimit } })
     } catch (error) {
-      console.log(error)
+      console.error(error)
 
       throw new Error('Could not delete subscriptions. See logs for errors.')
     }
@@ -83,6 +84,27 @@ const checkShouldSendExpiryNotification = (subscription: Partial<SubscriptionCol
   const subscriptionExpiryNotificationSentAt = new Date(subscriptionExpiresAt - (daysBeforeExpiry * 24 * 60 * 60 * 1000))
 
   return Date.now() >= subscriptionExpiryNotificationSentAt.getTime()
+}
+
+const getNewHitsFromElasticsearch = async (subscription: any): Promise<PartialDrupalNodeType[]> => {
+  const elasticQuery: string = server.b64decode(subscription.elastic_query)
+  const lastChecked: number = subscription.last_checked ? subscription.last_checked : Math.floor(new Date().getTime() / 1000)
+
+  try {
+    // Query for new results from ElasticProxy
+    const elasticResponse: ElasticProxyJsonResponseType = await server.queryElasticProxy(elasticQuery)
+
+    // Filter out new hits:
+    return (elasticResponse?.hits?.hits ?? [])
+        .filter((hit: { _source: { field_publication_starts: number[]; }; }) => hit._source.field_publication_starts[0] >= lastChecked)
+        .map((hit: { _source: PartialDrupalNodeType; }) => hit._source)
+
+  } catch (err) {
+    console.error(`Query ${elasticQuery} for ${subscription._id} failed`)
+    server.Sentry?.captureException(err)
+  }
+
+  return []
 }
 
 /**
@@ -135,21 +157,7 @@ const app = async (): Promise<{}> => {
         await queueCollection.insertOne(expiryEmailToQueue)        
       }
 
-      // Query for new results from ElasticProxy
-      const elasticQuery: string = server.b64decode(subscription.elastic_query)
-      const elasticResponse: ElasticProxyJsonResponseType = await server.queryElasticProxy(elasticQuery)
-
-      // Skip subscription if there's no hits for the query
-      if (!elasticResponse.hits.hits) {
-        continue;
-      }
-
-      // Filter out new hits:
-      const createdDate: string = new Date(subscription.created).toISOString().substring(0, 10)
-      const lastChecked: number = subscription.last_checked ? subscription.last_checked : Math.floor(new Date().getTime() / 1000)
-      const newHits: PartialDrupalNodeType[] = elasticResponse.hits.hits
-        .filter((hit: { _source: { field_publication_starts: number[]; }; }) => hit._source.field_publication_starts[0] >= lastChecked)
-        .map((hit: { _source: PartialDrupalNodeType; }) => hit._source)
+      const newHits = await getNewHitsFromElasticsearch(subscription)
 
       // No new hits
       if (newHits.length === 0) {
@@ -159,6 +167,7 @@ const app = async (): Promise<{}> => {
       // Email content object
 
       // Format Mongo DateTime to EU format for email.
+      const createdDate: string = new Date(subscription.created).toISOString().substring(0, 10)
       const date = new Date(createdDate);
       const pad = (n: number) => n.toString().padStart(2, '0');
       const formattedCreatedDate = `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}`;
@@ -189,6 +198,7 @@ const app = async (): Promise<{}> => {
     }
   } catch (error) {
     console.error(error)
+    server.Sentry?.captureException(error)
   }
 
   return {}
