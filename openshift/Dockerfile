@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM registry.access.redhat.com/ubi8/nodejs-20
 
 ENV npm_config_cache=/app/.npm
 ENV APP_NAME rekry-hakuvahti
@@ -11,7 +11,7 @@ COPY package.json .
 COPY package-lock.json .
 COPY . .
 
-RUN npm install 
+RUN npm install
 RUN npm cache clean --force
 
 EXPOSE 3000
