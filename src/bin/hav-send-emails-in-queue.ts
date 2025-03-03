@@ -76,26 +76,33 @@ const app = async (): Promise<{}> => {
         const title = dom.window.document.querySelector('title')?.textContent || 'Untitled'
 
         // email.email is the ATV document id.
-        console.info('Sending email to subscription', atvId)
+        console.info('Sending email to', atvId)
 
         // Check that plaintextEmail was found. No sure how this can happen,
         // maybe the ATV document was deleted before the email queue was empty?
         // Anyway, if email document was not found, sending email will fail.
         if (plaintextEmail) {
-          server.mailer.sendMail({
-            to: plaintextEmail,
-            subject: title,
-            html: email.content
-          }, (errors, info) => {
-            if (errors) {
-              console.error(errors);
+          try {
+            await new Promise((resolve, reject) => server.mailer.sendMail({
+              to: plaintextEmail,
+              subject: title,
+              html: email.content
+            }, (errors, info) => {
+              if (errors) {
+                return reject(new Error(`Sending email to ${atvId} failed.`, { cause: errors }))
+              }
 
-              throw Error(`Sending email to ${atvId} failed.`);
-            }
-          })
+              return resolve(info);
+            }))
+          }
+          // Continue even if sending email failed.
+          catch (error) {
+            console.error(error);
+          }
         }
 
-        // Remove document from queue
+        // Remove document from queue. The document is removed
+        // event if the email sending does not succeed.
         const deleteResult = await queueCollection.deleteOne({_id: new ObjectId(email._id) })
         if (deleteResult.deletedCount === 0) {
           console.error(`Could not delete email document with id ${email._id} from queue`)
