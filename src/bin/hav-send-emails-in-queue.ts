@@ -97,6 +97,8 @@ const app = async (): Promise<{}> => {
           }
           // Continue even if sending email failed.
           catch (error) {
+            server.Sentry?.captureException(error)
+
             console.error(error);
           }
         }
