@@ -30,12 +30,12 @@ void server.register(atv)
 const BATCH_SIZE = 100
 
 const app = async (): Promise<{}> => {
-  try {
-    if (typeof server.mongo.db === 'undefined') {
-      console.error('MongoDB connection not working')
-      throw new Error('MongoDB connection not working')
-    }
+  if (typeof server.mongo?.db === 'undefined') {
+    console.error('MongoDB connection not working')
+    throw new Error('MongoDB connection not working')
+  }
 
+  try {
     // Email queue
     const queueCollection = server.mongo.db!.collection('queue')
     const jsdom = require('jsdom')
