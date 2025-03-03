@@ -35,47 +35,53 @@ const app = async (): Promise<{}> => {
     throw new Error('MongoDB connection not working')
   }
 
-  try {
-    // Email queue
-    const queueCollection = server.mongo.db!.collection('queue')
-    const jsdom = require('jsdom')
-    const { JSDOM } = jsdom
+  // Email queue
+  const queueCollection = server.mongo.db!.collection('queue')
+  const jsdom = require('jsdom')
+  const { JSDOM } = jsdom
 
-    let hasMoreResults = true
+  let hasMoreResults = true
 
-    while (hasMoreResults) {
-      const result = await queueCollection.find({}).limit(BATCH_SIZE).toArray()
+  while (hasMoreResults) {
+    const result = await queueCollection.find({}).limit(BATCH_SIZE).toArray()
 
-      if (result.length === 0) {
-        hasMoreResults = false
-      } else {
-        // Collect email ids as map
-        const emailIdsMap = new Map<string, string>()
+    if (result.length === 0) {
+      hasMoreResults = false
+    } else {
+      // Collect email ids as map
+      const emailIdsMap = new Map<string, string|null>()
 
-        for (const email of result) {
-          emailIdsMap.set(email.email, email.email)
-        }
+      for (const email of result) {
+        emailIdsMap.set(email.email, null)
+      }
 
-        // Get batch of email documents from ATV
-        const emailIds = [...emailIdsMap.keys()]
-        const emailDocuments:Partial<AtvDocumentType[]> = await server.atvGetDocumentBatch(emailIds)
+      // Get batch of email documents from ATV
+      const emailIds = [...emailIdsMap.keys()]
+      const emailDocuments:Partial<AtvDocumentType[]> = await server.atvGetDocumentBatch(emailIds)
 
-        // Update the email map with unencrypted email list
-        if (emailDocuments.length > 0) {
-          for (const emailDocument of emailDocuments) {
-            if (emailDocument?.id) {
-              emailIdsMap.set(emailDocument.id, emailDocument.content.email)
-            }
+      // Update the email map with unencrypted email list
+      if (emailDocuments.length > 0) {
+        for (const emailDocument of emailDocuments) {
+          if (emailDocument?.id) {
+            emailIdsMap.set(emailDocument.id, emailDocument.content.email)
           }
         }
+      }
 
-        // Send emails
-        for (const email of result) {
-          const plaintextEmail = emailIdsMap.get(email.email)
-          const dom = new JSDOM(email.content)
-          const title = dom.window.document.querySelector('title')?.textContent || 'Untitled'
-          
-          // Send email
+      // Send emails
+      for (const email of result) {
+        const atvId = email.email
+        const plaintextEmail = emailIdsMap.get(email.email)
+        const dom = new JSDOM(email.content)
+        const title = dom.window.document.querySelector('title')?.textContent || 'Untitled'
+
+        // email.email is the ATV document id.
+        console.info('Sending email to subscription', atvId)
+
+        // Check that plaintextEmail was found. No sure how this can happen,
+        // maybe the ATV document was deleted before the email queue was empty?
+        // Anyway, if email document was not found, sending email will fail.
+        if (plaintextEmail) {
           server.mailer.sendMail({
             to: plaintextEmail,
             subject: title,
@@ -84,25 +90,20 @@ const app = async (): Promise<{}> => {
             if (errors) {
               console.error(errors);
 
-              throw Error('Sending email failed. See logs');
+              throw Error(`Sending email to ${atvId} failed.`);
             }
-
           })
+        }
 
-          // Remove document from queue
-          const deleteResult = await queueCollection.deleteOne({_id: new ObjectId(email._id) })
-          if (deleteResult.deletedCount === 0) {
-            console.error(`Could not delete email document with id ${email._id} from queue`)
+        // Remove document from queue
+        const deleteResult = await queueCollection.deleteOne({_id: new ObjectId(email._id) })
+        if (deleteResult.deletedCount === 0) {
+          console.error(`Could not delete email document with id ${email._id} from queue`)
 
-            throw Error('Deleting email from queue failed. See logs')
-          }
+          throw Error('Deleting email from queue failed.')
         }
       }
     }
-
-  } catch (error) {
-    console.error(error)
-    server.Sentry?.captureException(error)
   }
 
   return {}
