@@ -37,7 +37,7 @@ export const localizedEnvVar = (envVarBase: string, langCode: SubscriptionCollec
 }
 
 // Command line/cron application
-// to query for new results for subscriptiots from
+// to query for new results for subscriptions from
 // ElasticProxy and add them to email queue
 
 /**
@@ -225,7 +225,9 @@ server.ready((err) => {
     method: 'GET',
     url: '/'
   }, (err, response) => {
-    console.log(JSON.parse(response.payload))
+    if (response) {
+      console.log(JSON.parse(response.payload))
+    }
 
     server.close()
   })
