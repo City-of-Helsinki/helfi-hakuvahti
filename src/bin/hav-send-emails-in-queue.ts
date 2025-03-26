@@ -15,7 +15,7 @@ const release = process.env.SENTRY_RELEASE ?? '';
 server.register(require('@immobiliarelabs/fastify-sentry'), {
   dsn: process.env.SENTRY_DSN,
   environment: process.env.ENVIRONMENT,
-  release: release, // release.toISOString().substring(0, 10),
+  release: release,
   setErrorHandler: true
 })
 
