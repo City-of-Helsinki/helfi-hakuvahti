@@ -16,13 +16,12 @@ import { QueueInsertDocumentType } from '../types/mailer'
 dotenv.config()
 
 const server = fastify({})
-
-const release = new Date()
+const release = process.env.SENTRY_RELEASE ?? '';
 
 server.register(require('@immobiliarelabs/fastify-sentry'), {
   dsn: process.env.SENTRY_DSN,
   environment: process.env.ENVIRONMENT,
-  release: release.toISOString().substring(0, 10),
+  release: release,
   setErrorHandler: true
 })
 
@@ -201,6 +200,7 @@ const app = async (): Promise<{}> => {
     server.Sentry?.captureException(error)
   }
 
+  server.Sentry.captureCheckIn({monitorSlug: 'hav-populate-email-queue', status: 'ok'})
   return {}
 };
 
