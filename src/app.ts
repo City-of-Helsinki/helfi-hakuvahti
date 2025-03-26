@@ -14,8 +14,6 @@ const app: FastifyPluginAsync<AppOptions> = async (
     fastify,
     opts
 ): Promise<void> => {
-  const release = new Date()
-
   if (process.env.ENVIRONMENT === undefined) {
     throw new Error('ENVIRONMENT environment variable is not set')
   }
@@ -26,10 +24,11 @@ const app: FastifyPluginAsync<AppOptions> = async (
     throw new Error('ENVIRONMENT environment variable is not valid')
   }
 
+  const release = process.env.SENTRY_RELEASE ?? '';
   fastify.register(require('@immobiliarelabs/fastify-sentry'), {
     dsn: process.env.SENTRY_DSN,
     environment: env,
-    release: release.toISOString().substring(0, 10),
+    release: release,
     setErrorHandler: true
   })
 
