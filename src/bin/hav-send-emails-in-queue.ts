@@ -10,13 +10,12 @@ import { ObjectId } from '@fastify/mongodb';
 dotenv.config()
 
 const server = fastify({})
-
-const release = new Date()
+const release = process.env.SENTRY_RELEASE ?? '';
 
 server.register(require('@immobiliarelabs/fastify-sentry'), {
   dsn: process.env.SENTRY_DSN,
   environment: process.env.ENVIRONMENT,
-  release: release.toISOString().substring(0, 10),
+  release: release,
   setErrorHandler: true
 })
 
@@ -26,7 +25,6 @@ void server.register(mongodb)
 void server.register(atv)
 
 // Command line/cron application to send all emails from queue collection
-
 const BATCH_SIZE = 100
 
 const app = async (): Promise<{}> => {
@@ -115,6 +113,7 @@ const app = async (): Promise<{}> => {
     }
   }
 
+  server.Sentry.captureCheckIn({monitorSlug: 'hav-send-emails-in-queue', status: 'ok'})
   return {}
 }
 
