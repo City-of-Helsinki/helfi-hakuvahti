@@ -10,9 +10,12 @@ services:
       - helfi-hakuvahti-network
 
   nodejs:
+    user: root
     build:
       context: .
       dockerfile: Dockerfile
+    volumes:
+      - .:/opt/app-root/src:delegated
     ports:
       - "3000:3000"
     depends_on:

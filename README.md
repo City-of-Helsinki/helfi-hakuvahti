@@ -43,6 +43,8 @@ Pre-requisities to use Hakuvahti are:
 - `make up` to build and start the docker
   - hakuvahti should be available to Docker containers through Rekry docker network (easier to run with drupal dockers) but running locally recommended for development.
 - `make down`to tear down the environment
+- Hakuvahti server should work at `http://localhost:3000`
+- Local environment does not run cron scripts automatically. Start a shell into docker image and run the commands manually when testing them.
 
 ## Installing and running Hakuvahti locally
 
@@ -59,14 +61,7 @@ Pre-requisities to use Hakuvahti are:
 - Hakuvahti should now be running in port `:3000` (by default)
 - For production environment, add following commands to cron:
   - `npm run hav:populate-email-queue` (this should be run once per hour or at least daily)
-  - `npm run hav:send-emails-in-queue` (this should be ran at least once per minute)
-
-## Local docker environment:
-
-- Run `docker-compose build && docker-compose up` 
-- Note that local docker environment with corresponding Drupal site expects that Hakuvahti is checked out to the default folder `helfi-hakuvahti`. Otherwise you might run into `network <network name> declared as external, but could not be found`.
-- Hakuvahti server should work at `http://localhost:3000`
-- Subscription email is printed out to logs for easier testing. To receive results from new hits, you can use Mailhog locally.
+  - `npm run hav:send-emails-in-queue` (this should be run at least once per minute)
 
 ## Environment variables
 

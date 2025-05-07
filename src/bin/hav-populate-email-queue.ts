@@ -16,13 +16,12 @@ import { QueueInsertDocumentType } from '../types/mailer'
 dotenv.config()
 
 const server = fastify({})
-
-const release = new Date()
+const release = process.env.SENTRY_RELEASE ?? '';
 
 server.register(require('@immobiliarelabs/fastify-sentry'), {
   dsn: process.env.SENTRY_DSN,
   environment: process.env.ENVIRONMENT,
-  release: release.toISOString().substring(0, 10),
+  release: release,
   setErrorHandler: true
 })
 
@@ -37,7 +36,7 @@ export const localizedEnvVar = (envVarBase: string, langCode: SubscriptionCollec
 }
 
 // Command line/cron application
-// to query for new results for subscriptiots from
+// to query for new results for subscriptions from
 // ElasticProxy and add them to email queue
 
 /**
@@ -201,6 +200,7 @@ const app = async (): Promise<{}> => {
     server.Sentry?.captureException(error)
   }
 
+  server.Sentry.captureCheckIn({monitorSlug: 'hav-populate-email-queue', status: 'ok'})
   return {}
 };
 
@@ -225,7 +225,9 @@ server.ready((err) => {
     method: 'GET',
     url: '/'
   }, (err, response) => {
-    console.log(JSON.parse(response.payload))
+    if (response) {
+      console.log(JSON.parse(response.payload))
+    }
 
     server.close()
   })

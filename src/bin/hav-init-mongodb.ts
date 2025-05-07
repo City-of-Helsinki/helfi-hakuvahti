@@ -93,7 +93,9 @@ server.ready((err) => {
     method: 'GET',
     url: '/'
   }, (err, response) => {
-    console.log(JSON.parse(response.payload))
+    if (response) {
+      console.log(JSON.parse(response.payload))
+    }
 
     server.close()
   })
