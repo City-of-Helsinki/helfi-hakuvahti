@@ -28,6 +28,8 @@ void server.register(atv)
 const BATCH_SIZE = 100
 
 const app = async (): Promise<{}> => {
+  server.Sentry.captureCheckIn({monitorSlug: 'hav-send-emails-in-queue', status: 'in_progress'})
+
   if (typeof server.mongo?.db === 'undefined') {
     console.error('MongoDB connection not working')
     throw new Error('MongoDB connection not working')

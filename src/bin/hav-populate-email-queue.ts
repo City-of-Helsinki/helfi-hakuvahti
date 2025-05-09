@@ -112,6 +112,8 @@ const getNewHitsFromElasticsearch = async (subscription: any): Promise<PartialDr
  * @return {Promise<{}>} A Promise that resolves to an empty object.
  */
 const app = async (): Promise<{}> => {
+  server.Sentry.captureCheckIn({monitorSlug: 'hav-populate-email-queue', status: 'in_progress'})
+
   try {
     // Subscriptions
     const collection = server.mongo.db!.collection('subscription')
