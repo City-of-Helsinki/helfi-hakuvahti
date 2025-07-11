@@ -112,7 +112,12 @@ const getNewHitsFromElasticsearch = async (subscription: any): Promise<PartialDr
  * @return {Promise<{}>} A Promise that resolves to an empty object.
  */
 const app = async (): Promise<{}> => {
-  server.Sentry.captureCheckIn({monitorSlug: 'hav-populate-email-queue', status: 'in_progress'})
+  const checkInId = server.Sentry?.captureCheckIn(
+      {
+          monitorSlug: 'hav-populate-email-queue',
+          status: 'in_progress'
+      }
+  );
 
   try {
     // Subscriptions
@@ -199,10 +204,12 @@ const app = async (): Promise<{}> => {
     }
   } catch (error) {
     console.error(error)
+    server.Sentry?.captureCheckIn({checkInId, monitorSlug: 'hav-populate-email-queue', status: 'error'})
     server.Sentry?.captureException(error)
+    return {};
   }
 
-  server.Sentry.captureCheckIn({monitorSlug: 'hav-populate-email-queue', status: 'ok'})
+  server.Sentry?.captureCheckIn({checkInId, monitorSlug: 'hav-populate-email-queue', status: 'ok'})
   return {}
 };
 
