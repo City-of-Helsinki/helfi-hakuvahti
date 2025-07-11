@@ -28,7 +28,7 @@ void server.register(atv)
 const BATCH_SIZE = 100
 
 const app = async (): Promise<{}> => {
-  server.Sentry.captureCheckIn({monitorSlug: 'hav-send-emails-in-queue', status: 'in_progress'})
+  const checkInId = server.Sentry?.captureCheckIn({monitorSlug: 'hav-send-emails-in-queue', status: 'in_progress'})
 
   if (typeof server.mongo?.db === 'undefined') {
     console.error('MongoDB connection not working')
@@ -115,7 +115,7 @@ const app = async (): Promise<{}> => {
     }
   }
 
-  server.Sentry.captureCheckIn({monitorSlug: 'hav-send-emails-in-queue', status: 'ok'})
+  server.Sentry?.captureCheckIn({checkInId, monitorSlug: 'hav-send-emails-in-queue', status: 'ok'})
   return {}
 }
 
