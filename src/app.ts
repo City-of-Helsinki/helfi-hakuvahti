@@ -27,6 +27,22 @@ const app: FastifyPluginAsync<AppOptions> = async (
   const release = process.env.SENTRY_RELEASE ?? '';
   fastify.register(require('@immobiliarelabs/fastify-sentry'), {
     dsn: process.env.SENTRY_DSN,
+    beforeSend: (event: any) => {
+      if (!event?.request?.data) {
+        return event;
+      }
+      
+      const data = JSON.parse(event.request.data);
+
+      if (!data.email) {
+        return event;
+      }
+
+      delete data.email;
+      event.request.data = JSON.stringify(data);
+
+      return event;
+    },
     environment: env,
     release: release,
     setErrorHandler: true
