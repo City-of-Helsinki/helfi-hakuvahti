@@ -1,0 +1,35 @@
+{
+  "name": "rekry",
+  "dev": {
+    "urls": {
+      "base": "https://helfi-rekry.docker.so",
+      "en": "https://helfi-rekry.docker.so/en",
+      "fi": "https://helfi-rekry.docker.so/fi",
+      "sv": "https://helfi-rekry.docker.so/sv"
+    },
+    "subscription": {
+      "maxAge": 90,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 3
+    },
+    "mail": {
+      "templatePath": "rekry"
+    }
+  },
+  "prod": {
+    "urls": {
+      "base": "https://hel.fi",
+      "en": "https://hel.fi/en",
+      "fi": "https://hel.fi/fi",
+      "sv": "https://hel.fi/sv"
+    },
+    "subscription": {
+      "maxAge": 90,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 3
+    },
+    "mail": {
+      "templatePath": "rekry"
+    }
+  }
+}
