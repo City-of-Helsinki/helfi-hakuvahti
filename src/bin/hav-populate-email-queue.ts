@@ -3,6 +3,7 @@ import mongodb from '../plugins/mongodb'
 import elasticproxy from '../plugins/elasticproxy'
 import dotenv from 'dotenv'
 import { SubscriptionCollectionLanguageType, SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription'
+import { SiteConfigurationType } from '../types/siteConfig'
 import decode from '../plugins/base64'
 import encode from '../plugins/base64'
 import '../plugins/sentry'
@@ -12,6 +13,7 @@ import {
 } from '../types/elasticproxy'
 import { expiryEmail, newHitsEmail } from '../lib/email'
 import { QueueInsertDocumentType } from '../types/mailer'
+import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader'
 
 dotenv.config()
 
@@ -31,8 +33,12 @@ void server.register(elasticproxy)
 void server.register(encode)
 void server.register(decode)
 
-export const localizedEnvVar = (envVarBase: string, langCode: SubscriptionCollectionLanguageType): string | undefined => {
-  return process.env[`${envVarBase}_${langCode.toUpperCase()}`]
+export const getLocalizedUrl = (siteConfig: SiteConfigurationType, langCode: SubscriptionCollectionLanguageType): string => {
+  const langKey = langCode.toLowerCase() as keyof typeof siteConfig.urls
+  if (langKey in siteConfig.urls) {
+    return siteConfig.urls[langKey]
+  }
+  return siteConfig.urls.base
 }
 
 // Command line/cron application
@@ -40,18 +46,23 @@ export const localizedEnvVar = (envVarBase: string, langCode: SubscriptionCollec
 // ElasticProxy and add them to email queue
 
 /**
- * Deletes subscriptions older than a specified number of days with a certain status.
+ * Deletes subscriptions older than a specified number of days with a certain status for a specific site.
  *
  * @param {SubscriptionStatus} modifyStatus - the status to modify subscriptions
  * @param {number} olderThanDays - the number of days to consider for deletion
+ * @param {string} siteId - the site ID to filter subscriptions
  * @return {Promise<void>} Promise that resolves when the subscriptions are deleted
  */
-const massDeleteSubscriptions = async (modifyStatus: SubscriptionStatus, olderThanDays: number): Promise<void> => {
+const massDeleteSubscriptions = async (modifyStatus: SubscriptionStatus, olderThanDays: number, siteId: string): Promise<void> => {
   const collection = server.mongo.db?.collection('subscription')
   if (collection) {
     const dateLimit: Date = new Date(Date.now() - (olderThanDays * 24 * 60 * 60 * 1000))
     try {
-      await collection.deleteMany({ status: modifyStatus, created: { $lt: dateLimit } })
+      await collection.deleteMany({ 
+        status: modifyStatus, 
+        site_id: siteId,
+        created: { $lt: dateLimit } 
+      })
     } catch (error) {
       console.error(error)
 
@@ -64,9 +75,10 @@ const massDeleteSubscriptions = async (modifyStatus: SubscriptionStatus, olderTh
  * Checks if an expiry notification should be sent for a given subscription.
  *
  * @param {Partial<SubscriptionCollectionType>} subscription - The subscription to check.
+ * @param {SiteConfiguration} siteConfig - The site configuration for the subscription.
  * @return {boolean} Returns true if an expiry notification should be sent, false otherwise.
  */
-const checkShouldSendExpiryNotification = (subscription: Partial<SubscriptionCollectionType>): boolean => {
+const checkShouldSendExpiryNotification = (subscription: Partial<SubscriptionCollectionType>, siteConfig: SiteConfigurationType): boolean => {
   // Technically this is never missing but using Partial<> causes typing errors with created date otherwise...
   if (!subscription.created) {
     return false
@@ -77,8 +89,8 @@ const checkShouldSendExpiryNotification = (subscription: Partial<SubscriptionCol
     return false
   }
 
-  const daysBeforeExpiry = process.env.SUBSCRIPTION_EXPIRY_NOTIFICATION_DAYS ? parseInt(process.env.SUBSCRIPTION_EXPIRY_NOTIFICATION_DAYS) : 3
-  const subscriptionValidForDays = process.env.SUBSCRIPTION_MAX_AGE ? parseInt(process.env.SUBSCRIPTION_MAX_AGE) : 0
+  const daysBeforeExpiry = siteConfig.subscription.expiryNotificationDays
+  const subscriptionValidForDays = siteConfig.subscription.maxAge
   const subscriptionExpiresAt = new Date(subscription.created).getTime() + (subscriptionValidForDays * 24 * 60 * 60 * 1000)
   const subscriptionExpiryNotificationSentAt = new Date(subscriptionExpiresAt - (daysBeforeExpiry * 24 * 60 * 60 * 1000))
 
@@ -107,103 +119,124 @@ const getNewHitsFromElasticsearch = async (subscription: any): Promise<PartialDr
 }
 
 /**
- * Performs checking for new results for subscriptions and sends out emails based on the query results.
+ * Processes subscriptions for a specific site configuration.
+ *
+ * @param {SiteConfiguration} siteConfig - The site configuration to process
+ * @return {Promise<void>} A Promise that resolves when processing is complete
+ */
+const processSiteSubscriptions = async (siteConfig: SiteConfigurationType): Promise<void> => {
+  const collection = server.mongo.db!.collection('subscription')
+  const queueCollection = server.mongo.db!.collection('queue')
+
+  // List of all enabled subscriptions for this site
+  const result = await collection.find({ 
+    status: SubscriptionStatus.ACTIVE,
+    site_id: siteConfig.id 
+  }).toArray()
+
+  for (const subscription of result) {
+    const localizedBaseUrl = getLocalizedUrl(siteConfig, subscription.lang)
+
+    // If subscription should expire soon, send an expiration email
+    if (checkShouldSendExpiryNotification(subscription as Partial<SubscriptionCollectionType>, siteConfig)) {
+      await collection.updateOne(
+        { _id: subscription._id },
+        { $set: { expiry_notification_sent: 1 } }
+      )
+
+      const subscriptionValidForDays = siteConfig.subscription.maxAge
+      const subscriptionExpiresAt = new Date(subscription.created).getTime() + (subscriptionValidForDays * 24 * 60 * 60 * 1000)
+      const subscriptionExpiresAtDate = new Date(subscriptionExpiresAt)
+      const day = String(subscriptionExpiresAtDate.getDate()).padStart(2, '0')
+      const month = String(subscriptionExpiresAtDate.getMonth() + 1).padStart(2, '0') // Months are 0-based
+      const year = subscriptionExpiresAtDate.getFullYear()
+      const formattedExpiryDate = `${day}.${month}.${year}`
+
+      const expiryEmailContent = await expiryEmail(subscription.lang, {
+        search_description: subscription.search_description,
+        link: siteConfig.urls.base + subscription.query,
+        removal_date: formattedExpiryDate,
+        remove_link: localizedBaseUrl + '/hakuvahti/unsubscribe?subscription=' + subscription._id + '&hash=' + subscription.hash,
+      }, siteConfig)
+
+      const expiryEmailToQueue: QueueInsertDocumentType = {
+        email: subscription.email,
+        content: expiryEmailContent
+      }
+
+      // Add email to queue
+      await queueCollection.insertOne(expiryEmailToQueue)
+    }
+
+    const newHits = await getNewHitsFromElasticsearch(subscription)
+
+    // No new hits
+    if (newHits.length === 0) {
+      continue
+    }
+
+    // Format Mongo DateTime to EU format for email.
+    const createdDate: string = new Date(subscription.created).toISOString().substring(0, 10)
+    const date = new Date(createdDate);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const formattedCreatedDate = `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}`;
+
+    const emailContent = await newHitsEmail(subscription.lang, {
+      created_date: formattedCreatedDate,
+      search_description: subscription.search_description,
+      search_link: subscription.query,
+      remove_link: localizedBaseUrl + '/hakuvahti/unsubscribe?subscription=' + subscription._id + '&hash=' + subscription.hash,
+      hits: newHits
+    }, siteConfig)
+
+    const email: QueueInsertDocumentType = {
+      email: subscription.email,
+      content: emailContent
+    }
+
+    // Add email to queue
+    await queueCollection.insertOne(email)
+
+    // Set last checked timestamp to this moment
+    const dateUnixtime: number = Math.floor(new Date().getTime() / 1000)
+
+    await collection.updateOne(
+      { _id: subscription._id },
+      { $set: { last_checked: dateUnixtime } }
+    )
+  }
+}
+
+/**
+ * Main application function that processes all site configurations.
  *
  * @return {Promise<{}>} A Promise that resolves to an empty object.
  */
 const app = async (): Promise<{}> => {
-  const checkInId = server.Sentry?.captureCheckIn(
-      {
-          monitorSlug: 'hav-populate-email-queue',
-          status: 'in_progress'
-      }
-  );
+  const checkInId = server.Sentry?.captureCheckIn({
+    monitorSlug: 'hav-populate-email-queue',
+    status: 'in_progress'
+  });
 
   try {
-    // Subscriptions
-    const collection = server.mongo.db!.collection('subscription')
+    console.log('Environment:', process.env.ENVIRONMENT || 'dev')
+    console.log('Loading site configurations...')
+    
+    // Load site configurations
+    const configLoader = SiteConfigurationLoader.getInstance()
+    await configLoader.loadConfigurations()
+    const siteConfigs = configLoader.getConfigurations()
+    
+    console.log('Loaded configurations for sites:', Object.keys(siteConfigs))
 
-    // Email queue
-    const queueCollection = server.mongo.db!.collection('queue')
-
-    // List of all enabled subscriptions
-    const result = await collection.find({ status: SubscriptionStatus.ACTIVE }).toArray()
-
-    for (const subscription of result) {
-      const localizedBaseUrl = localizedEnvVar('BASE_URL', subscription.lang)
-
-      // If subscription should expire soon, send an expiration email
-      if (checkShouldSendExpiryNotification(subscription as Partial<SubscriptionCollectionType>)) {
-        await collection.updateOne(
-          { _id: subscription._id },
-          { $set: { expiry_notification_sent: 1 } }
-        )
-
-        const subscriptionValidForDays = process.env.SUBSCRIPTION_MAX_AGE ? parseInt(process.env.SUBSCRIPTION_MAX_AGE) : 0
-        const subscriptionExpiresAt = new Date(subscription.created).getTime() + (subscriptionValidForDays * 24 * 60 * 60 * 1000)
-        const subscriptionExpiresAtDate = new Date(subscriptionExpiresAt)
-        const day = String(subscriptionExpiresAtDate.getDate()).padStart(2, '0')
-        const month = String(subscriptionExpiresAtDate.getMonth() + 1).padStart(2, '0') // Months are 0-based
-        const year = subscriptionExpiresAtDate.getFullYear()
-        const formattedExpiryDate = `${day}.${month}.${year}`
-
-        const expiryEmailContent = await expiryEmail(subscription.lang, {
-          search_description: subscription.search_description,
-          link: process.env.BASE_URL + subscription.query,
-          removal_date: formattedExpiryDate,
-          remove_link: localizedBaseUrl + '/hakuvahti/unsubscribe?subscription=' + subscription._id + '&hash=' + subscription.hash,
-        })
-
-        const expiryEmailToQueue:QueueInsertDocumentType = {
-          email: subscription.email,
-          content: expiryEmailContent
-        }
-  
-        // Add email to queue
-        await queueCollection.insertOne(expiryEmailToQueue)        
-      }
-
-      const newHits = await getNewHitsFromElasticsearch(subscription)
-
-      // No new hits
-      if (newHits.length === 0) {
-        continue
-      }
-
-      // Email content object
-
-      // Format Mongo DateTime to EU format for email.
-      const createdDate: string = new Date(subscription.created).toISOString().substring(0, 10)
-      const date = new Date(createdDate);
-      const pad = (n: number) => n.toString().padStart(2, '0');
-      const formattedCreatedDate = `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}`;
-
-      const emailContent = await newHitsEmail(subscription.lang, {
-        created_date: formattedCreatedDate,
-        search_description: subscription.search_description,
-        search_link: subscription.query,
-        remove_link: localizedBaseUrl + '/hakuvahti/unsubscribe?subscription=' + subscription._id + '&hash=' + subscription.hash,
-        hits: newHits
-      })
-
-      const email:QueueInsertDocumentType = {
-        email: subscription.email,
-        content: emailContent
-      }
-
-      // Add email to queue
-      await queueCollection.insertOne(email)
-
-      // Set last checked timestamp to this moment
-      const dateUnixtime: number = Math.floor(new Date().getTime() / 1000)
-
-      await collection.updateOne(
-        { _id: subscription._id },
-        { $set: { last_checked: dateUnixtime } }
-      )
+    // Process each site configuration
+    for (const [siteId, siteConfig] of Object.entries(siteConfigs)) {
+      console.log(`Processing subscriptions for site: ${siteId}`)
+      await processSiteSubscriptions(siteConfig)
     }
+
   } catch (error) {
-    console.error(error)
+    console.error('Configuration loading error:', error)
     server.Sentry?.captureCheckIn({checkInId, monitorSlug: 'hav-populate-email-queue', status: 'error'})
     server.Sentry?.captureException(error)
     return {};
@@ -214,15 +247,19 @@ const app = async (): Promise<{}> => {
 };
 
 server.get('/', async function (request, reply) {
-  // Maximum subscription age from configuration
-  const unconfirmedSubscriptionMaxAge: number = process.env.UNCONFIRMED_SUBSCRIPTION_MAX_AGE ? parseInt(process.env.UNCONFIRMED_SUBSCRIPTION_MAX_AGE) : 30
-  const confirmedSubscriptionMaxAge: number = process.env.SUBSCRIPTION_MAX_AGE ? parseInt(process.env.SUBSCRIPTION_MAX_AGE) : 90
+  // Load site configurations
+  const configLoader = SiteConfigurationLoader.getInstance()
+  await configLoader.loadConfigurations()
+  const siteConfigs = configLoader.getConfigurations()
 
-  // Remove expired subscriptions that haven't been confirmed
-  await massDeleteSubscriptions(SubscriptionStatus.INACTIVE, unconfirmedSubscriptionMaxAge)
+  // Clean up expired subscriptions for each site
+  for (const [siteId, siteConfig] of Object.entries(siteConfigs)) {
+    // Remove expired subscriptions that haven't been confirmed
+    await massDeleteSubscriptions(SubscriptionStatus.INACTIVE, siteConfig.subscription.unconfirmedMaxAge, siteId)
 
-  // Remove expired subscriptions
-  await massDeleteSubscriptions(SubscriptionStatus.ACTIVE, confirmedSubscriptionMaxAge)
+    // Remove expired subscriptions
+    await massDeleteSubscriptions(SubscriptionStatus.ACTIVE, siteConfig.subscription.maxAge, siteId)
+  }
 
   // Loop through subscriptions and add new results to email queue
   return await app()
