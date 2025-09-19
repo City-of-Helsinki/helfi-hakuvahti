@@ -8,5 +8,6 @@ token: test
     "query": "/fi/avoimet-tyopaikat/etsi-avoimia-tyopaikkoja?area_filter=eastern&employment=90&employment=91&language=fi&task_areas=258&page=1",
     "email": "testi@mailhog.local",
     "search_description": "Esimerkkihaku",
+    "site_id": "rekry",
     "lang": "fi"
 }
