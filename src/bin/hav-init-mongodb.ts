@@ -20,77 +20,98 @@ void server.register(mongodb)
 
 const initMongoDB = async (): Promise<{ success: boolean; error?: unknown }> => {
   try {
+    const db = server.mongo.db!
+    
+    // Check if collections exist
+    const collections = await db.listCollections().toArray()
+    const existingCollections = collections.map(c => c.name)
+
+    let queueResult = null
+    let subscriptionResult = null
+
     // Email queue collection: stores pending notification emails
-    const createQueue = await server.mongo.db?.createCollection("queue", {
-      validator: {
-        $jsonSchema: {
-          bsonType: "object",
-          title: "Hakuvahti email queue",
-          required: ["email", "content"],
-          properties: {
-            _id: {
-              "bsonType": "objectId"
-            },
-            email: {
-              bsonType: "string",
-            },
-            content: {
-              bsonType: "string",
+    if (!existingCollections.includes('queue')) {
+      queueResult = await db.createCollection("queue", {
+        validator: {
+          $jsonSchema: {
+            bsonType: "object",
+            title: "Hakuvahti email queue",
+            required: ["email", "content"],
+            properties: {
+              _id: {
+                "bsonType": "objectId"
+              },
+              email: {
+                bsonType: "string",
+              },
+              content: {
+                bsonType: "string",
+              }
             }
           }
         }
-      }
-    })
+      })
+      console.log('Queue collection created:', queueResult?.collectionName)
+    } else {
+      console.log('Queue collection already exists')
+    }
 
     // Subscription collection: stores user search criteria and metadata
-    const createSubscription = await server.mongo.db?.createCollection("subscription", {
-      validator: {
-        $jsonSchema: {
-          bsonType: "object",
-          title: "Hakuvahti entries",
-          required: ["email", "elastic_query", "query"],
-          properties: {
-            _id: {
-              "bsonType": "objectId"
-            },
-            email: {
-              bsonType: "string",
-            },
-            elastic_query: {
-              bsonType: "string",
-            },
-            query: {
-              bsonType: "string",
-            },
-            hash: {
-              bsonType: "string",
-            },
-            expiry_notification_sent: {
-              bsonType: "int",
-              minimum: 0,
-              maximum: 1,
-            },
-            status: {
-              bsonType: "int",
-              minimum: 0,  // 0: unconfirmed, 1: active, 2: expired
-              maximum: 2,
-            },
-            last_checked: {
-              bsonType: "int"
-            },
-            modified: {
-              bsonType: "date"
-            },
-            created: {
-              bsonType: "date"
+    if (!existingCollections.includes('subscription')) {
+      subscriptionResult = await db.createCollection("subscription", {
+        validator: {
+          $jsonSchema: {
+            bsonType: "object",
+            title: "Hakuvahti entries",
+            required: ["email", "elastic_query", "query", "site_id"],
+            properties: {
+              _id: {
+                "bsonType": "objectId"
+              },
+              email: {
+                bsonType: "string",
+              },
+              elastic_query: {
+                bsonType: "string",
+              },
+              query: {
+                bsonType: "string",
+              },
+              site_id: {
+                bsonType: "string",
+              },
+              hash: {
+                bsonType: "string",
+              },
+              expiry_notification_sent: {
+                bsonType: "int",
+                minimum: 0,
+                maximum: 1,
+              },
+              status: {
+                bsonType: "int",
+                minimum: 0,  // 0: unconfirmed, 1: active, 2: expired
+                maximum: 2,
+              },
+              last_checked: {
+                bsonType: "int"
+              },
+              modified: {
+                bsonType: "date"
+              },
+              created: {
+                bsonType: "date"
+              }
             }
           }
         }
-      }
-    })  
-
-    console.log('Queue collection created:', createQueue?.collectionName)
-    console.log('Subscription collection created:', createSubscription?.collectionName)
+      })
+      console.log('Subscription collection created:', subscriptionResult?.collectionName)
+    } else {
+      console.log('Subscription collection already exists')
+      console.log('NOTE: Existing subscription documents may lack site_id field')
+      console.log('Consider running a migration to add site_id to existing documents')
+    }
 
     return { success: true }
   } catch (error) {
