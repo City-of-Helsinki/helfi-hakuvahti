@@ -24,12 +24,12 @@ Pre-requisities to use Hakuvahti are:
 - Adding, confirming and deleting subscriptions happens through REST api, while: 
 - ElasticProxy queries and sending emails happen through cron scripts.
 - Subscriptions are also removed through cron script, based on expiration
-  days in `.env` configuration.
+  days in site configuration.
 - Email templates are located under `src/templates/something/*.html`
   - Templates are suffixed with lang code, which is set per subscription.
   - Templates can be modified for different sites by copying them 
-    to a different folder, ieg. `src/templates/something2` and changing
-    `MAIL_TEMPLATE_PATH` envvar.
+    to a different folder, i.e. `src/templates/something2` and updating
+    the `mail.templatePath` in the site configuration.
 
 ## Installing and running Hakuvahti with Docker (Druid Tools)
 
@@ -39,7 +39,7 @@ Pre-requisities to use Hakuvahti are:
   - SMTP settings for email sending (https://mailpit.docker.so/ should work with docker),
   - [ATV integration](https://github.com/City-of-Helsinki/atv)
     - Make sure the `ATV_API_KEY` is set, otherwise the local Hakuvahti cannot connect to ATV and will trigger an error.
-  - Subscription days, etc settings
+- Configure site-specific settings in `conf/` directory (see Configuration section below)
 - `make up` to build and start the docker
   - hakuvahti should be available to Docker containers through Rekry docker network (easier to run with drupal dockers) but running locally recommended for development.
 - `make down`to tear down the environment
@@ -55,13 +55,79 @@ Pre-requisities to use Hakuvahti are:
   - SMTP settings for email sending,
   - [ATV integration](https://github.com/City-of-Helsinki/atv)
      - Make sure the `ATV_API_KEY` is set, otherwise the local Hakuvahti cannot connect to ATV and will trigger an error.
-  - Subscription days, etc settings
+- Configure site-specific settings in `conf/` directory (see Configuration section below)
 - Create MongoDB collections: `npm run hav:init-mongodb`
 - `npm start` (or `npm run dev` for development)
 - Hakuvahti should now be running in port `:3000` (by default)
 - For production environment, add following commands to cron:
   - `npm run hav:populate-email-queue` (this should be run once per hour or at least daily)
   - `npm run hav:send-emails-in-queue` (this should be run at least once per minute)
+
+## Configuration
+
+### Site Configuration Files
+
+Create JSON configuration files in the `conf/` directory. Each file represents a site and should be named `{site-id}.json` (e.g., `rekry.json`).
+
+Example configuration structure:
+
+```json
+{
+  "name": "rekry",
+  "dev": {
+    "urls": {
+      "base": "https://helfi-rekry.docker.so",
+      "en": "https://helfi-rekry.docker.so/en",
+      "fi": "https://helfi-rekry.docker.so/fi",
+      "sv": "https://helfi-rekry.docker.so/sv"
+    },
+    "subscription": {
+      "maxAge": 90,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 3
+    },
+    "mail": {
+      "templatePath": "rekry"
+    }
+  },
+  "prod": {
+    "urls": {
+      "base": "https://hel.fi",
+      "en": "https://hel.fi/en",
+      "fi": "https://hel.fi/fi",
+      "sv": "https://hel.fi/sv"
+    },
+    "subscription": {
+      "maxAge": 90,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 3
+    },
+    "mail": {
+      "templatePath": "rekry"
+    }
+  }
+}
+```
+
+### Environment Selection
+
+The system automatically selects the correct environment configuration based on the `ENVIRONMENT` variable:
+- Defaults to `dev` if `ENVIRONMENT` is not set
+- Use `ENVIRONMENT=prod` for production deployment
+- Any environment name can be used (e.g., `staging`, `test`)
+
+### Configuration Properties
+
+- **`name`**: Human-readable site name
+- **`urls`**: Localized URLs for the site
+  - `base`: Main site URL
+  - `en`, `fi`, `sv`: Language-specific URLs
+- **`subscription`**: Subscription lifecycle settings
+  - `maxAge`: Maximum subscription age in days
+  - `unconfirmedMaxAge`: Days before unconfirmed subscriptions are removed
+  - `expiryNotificationDays`: Days before expiry to send notification
+- **`mail`**: Email template configuration
+  - `templatePath`: Template directory under `src/templates/`
 
 ## Environment variables
 
