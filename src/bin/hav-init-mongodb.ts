@@ -107,10 +107,6 @@ const initMongoDB = async (): Promise<{ success: boolean; error?: unknown }> => 
         }
       })
       console.log('Subscription collection created:', subscriptionResult?.collectionName)
-    } else {
-      console.log('Subscription collection already exists')
-      console.log('NOTE: Existing subscription documents may lack site_id field')
-      console.log('Consider running a migration to add site_id to existing documents')
     }
 
     return { success: true }
