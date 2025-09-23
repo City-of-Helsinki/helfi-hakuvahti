@@ -1,8 +1,5 @@
 /**
  * Migration Script: Add site_id to existing subscription documents
- * 
- * This script safely adds site_id field to existing subscription documents
- * that don't have this field. Uses configurable default site_id.
  */
 
 import fastify from 'fastify'
