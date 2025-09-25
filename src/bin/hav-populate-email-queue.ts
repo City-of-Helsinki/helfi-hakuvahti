@@ -107,7 +107,13 @@ const getNewHitsFromElasticsearch = async (subscription: SubscriptionCollectionT
 
     // Filter out new hits:
     return (elasticResponse?.hits?.hits ?? [])
-        .filter((hit: { _source: { field_publication_starts: number[]; }; }) => hit._source.field_publication_starts[0] >= lastChecked)
+        .filter((hit: any) => {
+          const publicationStarts = hit?._source?.field_publication_starts
+          if (!Array.isArray(publicationStarts) || publicationStarts.length === 0) {
+            return false
+          }
+          return publicationStarts[0] >= lastChecked
+        })
         .map((hit: { _source: PartialDrupalNodeType; }) => hit._source)
 
   } catch (err) {
