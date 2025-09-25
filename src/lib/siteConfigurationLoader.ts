@@ -65,7 +65,8 @@ export class SiteConfigurationLoader {
           name: rawConfig.name,
           urls: envConfig.urls,
           subscription: envConfig.subscription,
-          mail: envConfig.mail
+          mail: envConfig.mail,
+          elasticProxyUrl: envConfig.elasticProxyUrl
         }
       } catch (error) {
         throw new Error(`Failed to load configuration from ${filePath}: ${error}`)
@@ -129,7 +130,7 @@ export class SiteConfigurationLoader {
     if (typeof config !== 'object' || config === null) {
       return false
     }
-    const required = ['urls', 'subscription', 'mail']
+    const required = ['urls', 'subscription', 'mail', 'elasticProxyUrl']
     return required.every(prop => prop in config)
   }
 }

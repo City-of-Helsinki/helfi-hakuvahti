@@ -24,6 +24,7 @@ export const SiteEnvironmentConfig = Type.Object({
   urls: SiteLanguageUrls,
   subscription: SiteSubscriptionSettings,
   mail: SiteMailSettings,
+  elasticProxyUrl: Type.String(),
 })
 export type SiteEnvironmentConfigType = Static<typeof SiteEnvironmentConfig>
 
@@ -38,6 +39,7 @@ export const SiteConfiguration = Type.Object({
   urls: SiteLanguageUrls,
   subscription: SiteSubscriptionSettings,
   mail: SiteMailSettings,
+  elasticProxyUrl: Type.String(),
 })
 export type SiteConfigurationType = Static<typeof SiteConfiguration>
 export const SiteConfigurationMap = Type.Record(Type.String(), SiteConfiguration)

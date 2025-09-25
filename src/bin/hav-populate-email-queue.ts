@@ -97,13 +97,13 @@ const checkShouldSendExpiryNotification = (subscription: Partial<SubscriptionCol
   return Date.now() >= subscriptionExpiryNotificationSentAt.getTime()
 }
 
-const getNewHitsFromElasticsearch = async (subscription: any): Promise<PartialDrupalNodeType[]> => {
+const getNewHitsFromElasticsearch = async (subscription: SubscriptionCollectionType & { _id: any }, siteConfig: SiteConfigurationType): Promise<PartialDrupalNodeType[]> => {
   const elasticQuery: string = server.b64decode(subscription.elastic_query)
   const lastChecked: number = subscription.last_checked ? subscription.last_checked : Math.floor(new Date().getTime() / 1000)
 
   try {
     // Query for new results from ElasticProxy
-    const elasticResponse: ElasticProxyJsonResponseType = await server.queryElasticProxy(elasticQuery)
+    const elasticResponse: ElasticProxyJsonResponseType = await server.queryElasticProxy(siteConfig.elasticProxyUrl, elasticQuery)
 
     // Filter out new hits:
     return (elasticResponse?.hits?.hits ?? [])
@@ -168,7 +168,7 @@ const processSiteSubscriptions = async (siteConfig: SiteConfigurationType): Prom
       await queueCollection.insertOne(expiryEmailToQueue)
     }
 
-    const newHits = await getNewHitsFromElasticsearch(subscription)
+    const newHits = await getNewHitsFromElasticsearch(subscription as SubscriptionCollectionType & { _id: any }, siteConfig)
 
     // No new hits
     if (newHits.length === 0) {

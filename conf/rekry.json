@@ -14,7 +14,8 @@
     },
     "mail": {
       "templatePath": "rekry"
-    }
+    },
+    "elasticProxyUrl": "https://elastic-helfi-rekry.docker.so"
   },
   "prod": {
     "urls": {
@@ -30,6 +31,7 @@
     },
     "mail": {
       "templatePath": "rekry"
-    }
+    },
+    "elasticProxyUrl": ""
   }
 }

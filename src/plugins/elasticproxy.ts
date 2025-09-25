@@ -10,16 +10,17 @@ export interface ElasticProxyPluginOptions {
 
 /**
  * Sends a query to the ElasticSearch proxy.
+ * @param elasticProxyBaseUrl - The base URL of the ElasticSearch proxy.
  * @param elasticQueryJson - The JSON string representing the ElasticSearch query.
  * @returns The response data from the ElasticSearch proxy.
  */
-const queryElasticProxy = async (elasticQueryJson: string): Promise<ElasticProxyJsonResponseType> => {
-  if (!process.env.ELASTIC_PROXY_URL) {
-    throw new Error('ELASTIC_PROXY_URL is not set')
+const queryElasticProxy = async (elasticProxyBaseUrl: string, elasticQueryJson: string): Promise<ElasticProxyJsonResponseType> => {
+  if (!elasticProxyBaseUrl) {
+    throw new Error('elasticProxyBaseUrl is required')
   }
 
   // Elastic proxy supports ndjson (multipart json requests) or single json searches
-  const elasticProxyUrl: string = process.env.ELASTIC_PROXY_URL + (elasticQueryJson.startsWith("{}\n") ? '/_msearch' : '/_search');
+  const elasticProxyUrl: string = elasticProxyBaseUrl + (elasticQueryJson.startsWith("{}\n") ? '/_msearch' : '/_search');
   const contentType: string = elasticQueryJson.startsWith("{}\n") ? 'application/x-ndjson' : 'application/json';
 
   try {
@@ -57,6 +58,6 @@ export default fp<ElasticProxyPluginOptions>(async (fastify, opts) => {
 
 declare module 'fastify' {
   export interface FastifyInstance {
-    queryElasticProxy(elasticQueryJson: string): Promise<ElasticProxyJsonResponseType>
+    queryElasticProxy(elasticProxyBaseUrl: string, elasticQueryJson: string): Promise<ElasticProxyJsonResponseType>
   }
 }
