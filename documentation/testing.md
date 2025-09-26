@@ -12,7 +12,7 @@ This guide provides step-by-step instructions for installing, configuring, and t
 
 ### Step 1: Install Rekry with Helbit Integration
 
-**Goal:** Install the Rekry by following the official instructions provided in the GitHub repository.
+**Goal:** Install the Rekry by following the official instructions provided in the [GitHub repository](https://github.com/City-of-Helsinki/drupal-helfi-rekry).
 
 **Action:** Clone the repository and set up the application as per the provided guidelines.
 
