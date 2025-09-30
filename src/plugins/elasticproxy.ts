@@ -25,7 +25,7 @@ const queryElasticProxy = async (elasticProxyBaseUrl: string, elasticQueryJson: 
 
   try {
     let rejectUnauthorized = true
-    if (process.env.ENVIRONMENT === 'dev') {
+    if (process.env.ENVIRONMENT === 'local') {
       // On dev/local, ignore errors with docker certs
       rejectUnauthorized = false
     }
