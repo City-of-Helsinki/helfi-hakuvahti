@@ -21,6 +21,7 @@ import {
 
 import { confirmationEmail } from '../lib/email'
 import { QueueInsertDocumentType } from '../types/mailer'
+import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader'
 
 // Add subscription to given query parameters
 
@@ -55,6 +56,18 @@ const subscription: FastifyPluginAsync = async (
         .send({ error: 'Could not find hashed email. Subscription not added.' })
     request.body.email = request.atvResponse.atvDocumentId;
 
+    // Load site configuration
+    const configLoader = SiteConfigurationLoader.getInstance()
+    await configLoader.loadConfigurations()
+    const siteConfig = configLoader.getConfiguration(request.body.site_id)
+    
+    if (!siteConfig) {
+      return reply
+        .code(400)
+        .header('Content-Type', 'application/json; charset=utf-8')
+        .send({ error: 'Invalid site_id provided.' })
+    }
+
     // Subscription data that goes to collection
     const subscription: Partial<SubscriptionCollectionType> = {
       ...request.body,
@@ -74,11 +87,11 @@ const subscription: FastifyPluginAsync = async (
     }
     
     // Insert email in queue
-
-    const subscribeLinkBase = fastify.localizedEnvVar('BASE_URL', request.body.lang)
+    const langKey = request.body.lang.toLowerCase() as keyof typeof siteConfig.urls
+    const subscribeLinkBase = (langKey in siteConfig.urls) ? siteConfig.urls[langKey] : siteConfig.urls.base
     const emailContent = await confirmationEmail(request.body.lang, {
       link: subscribeLinkBase + `/hakuvahti/confirm?subscription=${response.insertedId}&hash=${hash}`
-    })
+    }, siteConfig)
 
     // Email data to queue
     const email:QueueInsertDocumentType = {

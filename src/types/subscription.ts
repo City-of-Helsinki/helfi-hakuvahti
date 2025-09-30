@@ -20,6 +20,7 @@ export const SubscriptionCollection = Type.Object({
   search_description: Type.Optional(Type.String()),
   hash: Type.Optional(Type.String()),
   query: Type.String(),
+  site_id: Type.String(),
   created: Type.Date(),
   modified: Type.Date(),
   lang: SubscriptionCollectionLanguage,
@@ -44,6 +45,7 @@ export const SubscriptionRequest = Type.Object({
   elastic_query: Type.String(),
   query: Type.String(),
   search_description: Type.Optional(Type.String()),
+  site_id: Type.String(),
   lang: SubscriptionCollectionLanguage
 })
 export type SubscriptionRequestType = Static<typeof SubscriptionRequest>

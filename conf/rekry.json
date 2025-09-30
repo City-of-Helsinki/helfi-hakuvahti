@@ -1,0 +1,71 @@
+{
+  "name": "rekry",
+  "local": {
+    "urls": {
+      "base": "https://helfi-rekry.docker.so",
+      "en": "https://helfi-rekry.docker.so/en",
+      "fi": "https://helfi-rekry.docker.so/fi",
+      "sv": "https://helfi-rekry.docker.so/sv"
+    },
+    "subscription": {
+      "maxAge": 90,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 3
+    },
+    "mail": {
+      "templatePath": "rekry"
+    },
+    "elasticProxyUrl": "https://elastic-helfi-rekry.docker.so/job_listings"
+  },
+  "dev": {
+    "urls": {
+      "base": "https://www.test.hel.ninja",
+      "en": "https://www.test.hel.ninja/en/open-jobs",
+      "fi": "https://www.test.hel.ninja/fi/avoimet-tyopaikat",
+      "sv": "https://www.test.hel.ninja/sv/lediga-jobb"
+    },
+    "subscription": {
+      "maxAge": 90,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 3
+    },
+    "mail": {
+      "templatePath": "rekry"
+    },
+    "elasticProxyUrl": "https://rekry-elastic-proxy-test.agw.arodevtest.hel.fi/job_listings"
+  },  
+  "staging": {
+    "urls": {
+      "base": "https://www.stage.hel.ninja",
+      "en": "https://www.stage.hel.ninja/en/open-jobs",
+      "fi": "https://www.stage.hel.ninja/fi/avoimet-tyopaikat",
+      "sv": "https://www.stage.hel.ninja/sv/lediga-jobb"
+    },
+    "subscription": {
+      "maxAge": 90,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 3
+    },
+    "mail": {
+      "templatePath": "rekry"
+    },
+    "elasticProxyUrl": "https://rekry-elastic-proxy-staging.api.hel.ninja/job_listings"
+  },
+  "production": {
+    "urls": {
+      "base": "https://www.hel.fi",
+      "en": "https://www.hel.fi/en/open-jobs",
+      "fi": "https://www.hel.fi/fi/avoimet-tyopaikat",
+      "sv": "https://www.hel.fi/sv/lediga-jobb"
+    },
+    "subscription": {
+      "maxAge": 90,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 3
+    },
+    "mail": {
+      "templatePath": "rekry"
+    },
+    "elasticProxyUrl": "https://rekry-elastic-proxy.api.hel.ninja/job_listings"
+  }  
+}
