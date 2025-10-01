@@ -1,11 +1,11 @@
-import fp from 'fastify-plugin'
-import axios, { AxiosResponse } from 'axios'
+import fp from 'fastify-plugin';
+import axios, { AxiosResponse } from 'axios';
+import type { FastifyRequest as FastifyRequestType } from 'fastify';
 import { 
   AtvDocumentBatchType,
   AtvDocumentType,
-  AtvResponseType } from '../types/atv'
-import { SubscriptionRequestType } from '../types/subscription'
-import { FastifyRequest } from 'fastify/types/request'
+  AtvResponseType } from '../types/atv';
+import { SubscriptionRequestType } from '../types/subscription';
 
 export interface AtvPluginOptions {
 }
@@ -22,19 +22,19 @@ const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDo
       headers: {
         'x-api-key': process.env.ATV_API_KEY
       }
-    })
+    });
 
     if (response.data && response.data.content) {
-      return response.data.content
-    } else {
-      throw new Error('Empty content returned from API')
-    }
+      return response.data.content;
+    } 
+      throw new Error('Empty content returned from API');
+    
   } catch (error: unknown) {
     console.error(error);
 
-    throw new Error('Error fetching Document by id')
+    throw new Error('Error fetching Document by id');
   }
-}
+};
 
 /**
  * Create a document with the given email and return a partial AtvDocumentType.
@@ -44,12 +44,12 @@ const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDo
  */
 const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDocumentType>> => {
   try {
-    const timestamp = Math.floor(Date.now() / 1000).toString()
+    const timestamp = Math.floor(Date.now() / 1000).toString();
 
     // ATV automatically deletes the document after deleteAfter date has passed
-    const deleteAfter = new Date()
-    const maxAge: number = +process.env.SUBSCRIPTION_MAX_AGE!
-    deleteAfter.setDate(deleteAfter.getDate() + maxAge)
+    const deleteAfter = new Date();
+    const maxAge: number = +process.env.SUBSCRIPTION_MAX_AGE!;
+    deleteAfter.setDate(deleteAfter.getDate() + maxAge);
 
     // Minimal document required by ATV
     const documentObject: Partial<AtvDocumentType> = {
@@ -60,7 +60,7 @@ const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDoc
       'content': JSON.stringify({
         'email': email
       })
-    }
+    };
 
     const response: AxiosResponse<Partial<AtvDocumentType>> = await axios.post(
       `${process.env.ATV_API_URL}/v1/documents/`,
@@ -71,15 +71,15 @@ const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDoc
           'X-Api-Key': process.env.ATV_API_KEY
         }
       }
-    )
+    );
 
     return response.data;
   } catch (error: unknown) {
-    console.error(error)
+    console.error(error);
 
-    throw new Error('Failed to create document. See error log.')
+    throw new Error('Failed to create document. See error log.');
   }
-}
+};
 
 /**
  * Retrieves a batch of documents for the given emails.
@@ -91,7 +91,7 @@ const atvGetDocumentBatch = async (emails: string[]): Promise<Partial<AtvDocumen
   try {
     const documentObject: AtvDocumentBatchType = {
       document_ids: emails
-    }
+    };
 
     const response: AxiosResponse<Partial<AtvDocumentType[]>> = await axios.post(
       `${process.env.ATV_API_URL}/v1/documents/batch-list/`,
@@ -102,15 +102,15 @@ const atvGetDocumentBatch = async (emails: string[]): Promise<Partial<AtvDocumen
           'X-Api-Key': process.env.ATV_API_KEY
         }
       }
-    )
+    );
 
-    return response.data
+    return response.data;
   } catch (error: any) {
-    console.error(error)
+    console.error(error);
 
-    throw new Error('Failed to fetch document. See error log.')
+    throw new Error('Failed to fetch document. See error log.');
   }
-}
+};
 
 /**
  * Request email hook function.
@@ -118,62 +118,62 @@ const atvGetDocumentBatch = async (emails: string[]): Promise<Partial<AtvDocumen
  * @param {FastifyRequest} request - the request object
  * @return {void} no return value
  */
-const requestEmailHook = async (request: FastifyRequest) => {
+const requestEmailHook = async (request: FastifyRequestType) => {
   try {
     // Hook only runs on POST requests
     if (request.method !== 'POST') {
-      return
+      return;
     }
 
     // If the POST request has 'email' variable, automatically create ATV document
     // and store email there. Only the ATV document Id gets saved in HAV database.
-    const body: Partial<SubscriptionRequestType> = request.body as Partial<SubscriptionRequestType>
-    const email: string = (body.email as string)?.trim()
+    const body: Partial<SubscriptionRequestType> = request.body as Partial<SubscriptionRequestType>;
+    const email: string = (body.email as string)?.trim();
 
     if (!isValidEmail(email)) {
-      throw new Error('Invalid email format')
+      throw new Error('Invalid email format');
     }
 
-    const atvDocument: Partial<AtvDocumentType> = await atvCreateDocumentWithEmail(email)
-    const atvDocumentId: string | undefined = atvDocument.id
+    const atvDocument: Partial<AtvDocumentType> = await atvCreateDocumentWithEmail(email);
+    const atvDocumentId: string | undefined = atvDocument.id;
 
     if (atvDocumentId) {
       request.atvResponse = {
-        atvDocumentId: atvDocumentId,
-      }
+        atvDocumentId,
+      };
     }
   } catch (error) {
-    console.error('An error occurred:', error)
-    throw new Error('Could not create document to ATV. Cannot subscribe.')
+    console.error('An error occurred:', error);
+    throw new Error('Could not create document to ATV. Cannot subscribe.');
   }
-}
+};
 
 const isValidEmail = (email: string): boolean => {
-  const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-  return re.test(String(email).toLowerCase())
-}
+  const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  return re.test(String(email).toLowerCase());
+};
 
 export default fp(async (fastify, opts) => {
   // Hook handler automatically creates ATV document for the email
   // and sets the returned documentId to atvResponse.email variable
-  fastify.addHook('preHandler', requestEmailHook)
+  fastify.addHook('preHandler', requestEmailHook);
 
   // Expose atvQueryEmail function to global scope
-  fastify.decorate('atvQueryEmail', async function (atvDocumentId: string) {
-    return atvFetchContentById(atvDocumentId)
-  })
+  fastify.decorate('atvQueryEmail', async function atvQueryEmail(atvDocumentId: string) {
+    return atvFetchContentById(atvDocumentId);
+  });
 
   // Expose atvCreateDocumentWithEmail function to global scope
-  fastify.decorate('atvCreateDocumentWithEmail', async function (email: string) {
-    return atvCreateDocumentWithEmail(email)
-  })
+  fastify.decorate('atvCreateDocumentWithEmail', async function atvCreateDocumentWithEmailHandler(email: string) {
+    return atvCreateDocumentWithEmail(email);
+  });
 
   // Expose atvGetDocumentBatch function to global scope
-  fastify.decorate('atvGetDocumentBatch', async function (emails: string[]) {
-    return atvGetDocumentBatch(emails)
-  })
+  fastify.decorate('atvGetDocumentBatch', async function atvGetDocumentBatchHandler(emails: string[]) {
+    return atvGetDocumentBatch(emails);
+  });
 
-})
+});
 
 declare module 'fastify' {
   export interface FastifyRequest {

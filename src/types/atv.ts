@@ -1,8 +1,8 @@
-import { Static, Type } from '@sinclair/typebox'
+import { Static, Type } from '@sinclair/typebox';
 
 export const AtvResponse = Type.Object({
   atvDocumentId: Type.String()
-})
+});
 
 export type AtvResponseType = Static<typeof AtvResponse>
 
@@ -64,12 +64,12 @@ export const AtvDocument = Type.Object({
 
   // Attachments
   attachments: Type.Optional(Type.Array(Type.Any()))
-})
+});
 
 export type AtvDocumentType = Static<typeof AtvDocument>
 
 export const AtvDocumentBatch = Type.Object({
   document_ids: Type.Array(Type.String())
-})
+});
 
 export type AtvDocumentBatchType = Static<typeof AtvDocumentBatch>

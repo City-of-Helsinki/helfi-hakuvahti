@@ -3,7 +3,7 @@ import {
   FastifyRequest, 
   FastifyReply, 
   FastifyInstance 
-} from 'fastify'
+} from 'fastify';
 
 import { 
   SubscriptionResponse,
@@ -12,16 +12,16 @@ import {
   SubscriptionRequest, 
   SubscriptionRequestType, 
   SubscriptionStatus
-} from '../types/subscription'
+} from '../types/subscription';
 
 import { 
   Generic500Error, 
   Generic500ErrorType
-} from '../types/error'
+} from '../types/error';
 
-import { confirmationEmail } from '../lib/email'
-import { QueueInsertDocumentType } from '../types/mailer'
-import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader'
+import { confirmationEmail } from '../lib/email';
+import { QueueInsertDocumentType } from '../types/mailer';
+import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
 
 // Add subscription to given query parameters
 
@@ -44,34 +44,34 @@ const subscription: FastifyPluginAsync = async (
     request: FastifyRequest<{ Body: SubscriptionRequestType }>,
     reply: FastifyReply
   ) => {
-    const mongodb = fastify.mongo
-    const collection = mongodb.db?.collection('subscription')
-    const hash = fastify.getRandHash()
+    const mongodb = fastify.mongo;
+    const collection = mongodb.db?.collection('subscription');
+    const hash = fastify.getRandHash();
 
     // Replace email in request with ATV hashed email
     if (!(request?.atvResponse?.atvDocumentId))
       return reply
         .code(500)
         .header('Content-Type', 'application/json; charset=utf-8')
-        .send({ error: 'Could not find hashed email. Subscription not added.' })
+        .send({ error: 'Could not find hashed email. Subscription not added.' });
     request.body.email = request.atvResponse.atvDocumentId;
 
     // Load site configuration
-    const configLoader = SiteConfigurationLoader.getInstance()
-    await configLoader.loadConfigurations()
-    const siteConfig = configLoader.getConfiguration(request.body.site_id)
+    const configLoader = SiteConfigurationLoader.getInstance();
+    await configLoader.loadConfigurations();
+    const siteConfig = configLoader.getConfiguration(request.body.site_id);
     
     if (!siteConfig) {
       return reply
         .code(400)
         .header('Content-Type', 'application/json; charset=utf-8')
-        .send({ error: 'Invalid site_id provided.' })
+        .send({ error: 'Invalid site_id provided.' });
     }
 
     // Subscription data that goes to collection
-    const subscription: Partial<SubscriptionCollectionType> = {
+    const subscriptionData: Partial<SubscriptionCollectionType> = {
       ...request.body,
-      hash: hash,
+      hash,
       created: new Date(),
       modified: new Date(),
       last_checked: Math.floor(Date.now() / 1000),
@@ -79,36 +79,36 @@ const subscription: FastifyPluginAsync = async (
       status: SubscriptionStatus.INACTIVE
     };
 
-    const response = await collection?.insertOne(subscription)
+    const response = await collection?.insertOne(subscriptionData);
     if (!response) {
-      fastify.log.debug(response)
+      fastify.log.debug(response);
 
-      throw new Error('Adding new subscription failed. See logs.')
+      throw new Error('Adding new subscription failed. See logs.');
     }
     
     // Insert email in queue
-    const langKey = request.body.lang.toLowerCase() as keyof typeof siteConfig.urls
-    const subscribeLinkBase = (langKey in siteConfig.urls) ? siteConfig.urls[langKey] : siteConfig.urls.base
+    const langKey = request.body.lang.toLowerCase() as keyof typeof siteConfig.urls;
+    const subscribeLinkBase = (langKey in siteConfig.urls) ? siteConfig.urls[langKey] : siteConfig.urls.base;
     const emailContent = await confirmationEmail(request.body.lang, {
-      link: subscribeLinkBase + `/hakuvahti/confirm?subscription=${response.insertedId}&hash=${hash}`
-    }, siteConfig)
+      link: `${subscribeLinkBase  }/hakuvahti/confirm?subscription=${response.insertedId}&hash=${hash}`
+    }, siteConfig);
 
     // Email data to queue
     const email:QueueInsertDocumentType = {
       email: request.body.email,
       content: emailContent
-    }
+    };
 
-    const q = mongodb.db?.collection('queue')
-    await q?.insertOne(email)
+    const q = mongodb.db?.collection('queue');
+    await q?.insertOne(email);
 
-    fastify.log.debug(emailContent)
+    fastify.log.debug(emailContent);
 
     return reply
       .code(200)
       .header('Content-Type', 'application/json; charset=utf-8')
       .send(response);
-  })
-}
+  });
+};
 
-export default subscription
+export default subscription;

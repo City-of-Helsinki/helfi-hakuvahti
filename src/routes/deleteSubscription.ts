@@ -3,18 +3,18 @@ import {
   FastifyReply, 
   FastifyInstance, 
   FastifyRequest
-} from 'fastify'
+} from 'fastify';
 
+import { ObjectId } from '@fastify/mongodb';
 import { 
   Generic500Error, 
   Generic500ErrorType 
-} from '../types/error'
+} from '../types/error';
 
 import { 
   SubscriptionGenericPostResponse, 
   SubscriptionGenericPostResponseType 
-} from '../types/subscription'
-import { ObjectId } from '@fastify/mongodb'
+} from '../types/subscription';
 
 // Deletes subscription
 
@@ -35,14 +35,14 @@ const deleteSubscription: FastifyPluginAsync = async (
     request: FastifyRequest,
     reply: FastifyReply
   ) => {
-    const mongodb = fastify.mongo
+    const mongodb = fastify.mongo;
     const collection = mongodb.db?.collection('subscription');
-    const { id, hash } = <{ id: string, hash: string }>request.params
+    const { id, hash } = request.params as { id: string, hash: string };
 
     // Check that subscription exists and hash matches
     const subscription = await collection?.findOne({
       _id: new ObjectId(id), 
-      hash: hash
+      hash
     });
 
     if (!subscription) {
@@ -51,17 +51,17 @@ const deleteSubscription: FastifyPluginAsync = async (
         .send({ 
           statusCode: 404, 
           statusMessage: 'Subscription not found.' 
-        })
+        });
     }
 
     // Delete subscription
-    const result = await collection?.deleteOne({ _id: new ObjectId(id) })
+    const result = await collection?.deleteOne({ _id: new ObjectId(id) });
 
     fastify.log.info({ 
       level: 'info', 
       message: 'Subscription deleted',
-      result: result
-    })
+      result
+    });
 
     if (result?.deletedCount === 0) {
       return reply
@@ -69,7 +69,7 @@ const deleteSubscription: FastifyPluginAsync = async (
         .send({ 
           statusCode: 404, 
           statusMessage: 'Subscription not found.' 
-        })
+        });
     }
 
     return reply
@@ -77,8 +77,8 @@ const deleteSubscription: FastifyPluginAsync = async (
       .send({ 
         statusCode: 200,
         message: 'Subscription deleted'
-      })
-  })
-}
+      });
+  });
+};
 
-export default deleteSubscription
+export default deleteSubscription;

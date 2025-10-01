@@ -1,6 +1,7 @@
 import { join } from 'path';
 import AutoLoad, { AutoloadPluginOptions } from '@fastify/autoload';
 import { FastifyPluginAsync, FastifyServerOptions } from 'fastify';
+import fastifySentry from '@immobiliarelabs/fastify-sentry';
 import { Environment } from './types/environment';
 
 export interface AppOptions extends FastifyServerOptions, Partial<AutoloadPluginOptions> {
@@ -8,24 +9,24 @@ export interface AppOptions extends FastifyServerOptions, Partial<AutoloadPlugin
 }
 // Pass --options via CLI arguments in command to enable these options.
 const options: AppOptions = {
-}
+};
 
 const app: FastifyPluginAsync<AppOptions> = async (
     fastify,
     opts
 ): Promise<void> => {
   if (process.env.ENVIRONMENT === undefined) {
-    throw new Error('ENVIRONMENT environment variable is not set')
+    throw new Error('ENVIRONMENT environment variable is not set');
   }
 
-  const env = process.env.ENVIRONMENT as Environment
+  const env = process.env.ENVIRONMENT as Environment;
 
   if (!Object.values(Environment).includes(env)) {
-    throw new Error('ENVIRONMENT environment variable is not valid')
+    throw new Error('ENVIRONMENT environment variable is not valid');
   }
 
   const release = process.env.SENTRY_RELEASE ?? '';
-  fastify.register(require('@immobiliarelabs/fastify-sentry'), {
+  fastify.register(fastifySentry, {
     dsn: process.env.SENTRY_DSN,
     beforeSend: (event: any) => {
       if (!event?.request?.data) {
@@ -44,9 +45,9 @@ const app: FastifyPluginAsync<AppOptions> = async (
       return event;
     },
     environment: env,
-    release: release,
+    release,
     setErrorHandler: true
-  })
+  });
 
   await Promise.all([
     fastify.register(AutoLoad, {
@@ -59,8 +60,8 @@ const app: FastifyPluginAsync<AppOptions> = async (
       options: opts,
       ignorePattern: /(^|\/|\\)(index|.d).*\.ts$/
     })
-  ])
-}
+  ]);
+};
 
 export default app;
-export { app, options }
+export { app, options };

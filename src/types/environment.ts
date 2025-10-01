@@ -1,4 +1,4 @@
-import { Type } from '@sinclair/typebox'
+import { Type } from '@sinclair/typebox';
 
 export enum Environment {
   PRODUCTION = 'production',
@@ -7,4 +7,4 @@ export enum Environment {
   LOCAL = 'local',
 }
 
-export const EnvironmentType = Type.Enum(Environment)
+export const EnvironmentType = Type.Enum(Environment);

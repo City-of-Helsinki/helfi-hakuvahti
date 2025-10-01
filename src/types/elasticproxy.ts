@@ -1,4 +1,4 @@
-import { Static, Type } from '@sinclair/typebox'
+import { Static, Type } from '@sinclair/typebox';
 
 export const ElasticProxyResponseItem = Type.Object({
     took: Type.Number(),
@@ -7,21 +7,21 @@ export const ElasticProxyResponseItem = Type.Object({
     hits: Type.Object(Type.Unknown()),
     aggregations: Type.Object(Type.Unknown()),
     status: Type.Number()
-})
+});
 export type ElasticProxyResponseItemType = Static<typeof ElasticProxyResponseItem>
 
 export const ElasticProxyResponseHits = Type.Object({
     total: Type.Unknown(),
     max_score: Type.Unknown(),
     hits: Type.Array(ElasticProxyResponseItem),
-})
+});
 export type ElasticProxyResponseHitsType = Static<typeof ElasticProxyResponseHits>
 
 export const ElasticProxyJsonResponse = Type.Object({
     took: Type.Number(),
     hits: Type.Object(Type.Unknown()),
     responses: Type.Array(ElasticProxyResponseItem),
-})
+});
 export type ElasticProxyJsonResponseType = Static<typeof ElasticProxyJsonResponse>
 
 export const PartialDrupalNode = Type.Object({
@@ -31,5 +31,5 @@ export const PartialDrupalNode = Type.Object({
     langcode: Type.Array(Type.String()),
     title: Type.String(),
     field_publication_starts: Type.Array(Type.Number())
-})
+});
 export type PartialDrupalNodeType = Static<typeof PartialDrupalNode>

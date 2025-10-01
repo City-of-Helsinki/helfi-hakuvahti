@@ -3,20 +3,20 @@ import {
   FastifyReply, 
   FastifyInstance, 
   FastifyRequest
-} from 'fastify'
+} from 'fastify';
 
+import { ObjectId } from '@fastify/mongodb';
 import { 
   Generic500Error, 
   Generic500ErrorType 
-} from '../types/error'
+} from '../types/error';
 
 import { 
   SubscriptionGenericPostResponse, 
   SubscriptionGenericPostResponseType, 
   SubscriptionStatus
-} from '../types/subscription'
+} from '../types/subscription';
 
-import { ObjectId } from '@fastify/mongodb'
   
 // Confirms subscription
   
@@ -37,13 +37,13 @@ const confirmSubscription: FastifyPluginAsync = async (
     request: FastifyRequest,
     reply: FastifyReply
   ) => {
-    const mongodb = fastify.mongo
+    const mongodb = fastify.mongo;
     const collection = mongodb.db?.collection('subscription');
-    const { id, hash } = <{ id: string, hash: string }>request.params
+    const { id, hash } = request.params as { id: string, hash: string };
 
     const subscription = await collection?.findOne({ 
       _id: new ObjectId(id), 
-      hash: hash, 
+      hash, 
       status: SubscriptionStatus.INACTIVE
     });
 
@@ -59,7 +59,7 @@ const confirmSubscription: FastifyPluginAsync = async (
     await collection!.updateOne(
       { _id: new ObjectId(id) },
       { $set: { status: SubscriptionStatus.ACTIVE } },
-    )
+    );
 
     return reply
       .code(200)
@@ -67,8 +67,8 @@ const confirmSubscription: FastifyPluginAsync = async (
       .send({
         statusCode: 200,
         statusMessage: 'Subscription enabled.'
-      })
-  })
-}
+      });
+  });
+};
   
-export default confirmSubscription
+export default confirmSubscription;

@@ -5,89 +5,93 @@
  * Run this AFTER migrating existing documents to have site_id.
  */
 
-import fastify from 'fastify'
-import mongodb from '../plugins/mongodb'
-import dotenv from 'dotenv'
+import fastify from 'fastify';
+import dotenv from 'dotenv';
+import mongodb from '../plugins/mongodb';
 
-dotenv.config()
+dotenv.config();
 
-const server = fastify({})
-void server.register(mongodb)
+const server = fastify({});
+// eslint-disable-next-line no-void
+void server.register(mongodb);
 
 const updateSchema = async (): Promise<{ success: boolean; error?: unknown }> => {
   try {
-    const db = server.mongo.db!
+    const db = server.mongo.db!;
     
     const result = await db.command({
       collMod: 'subscription',
       validator: {
         $jsonSchema: {
-          bsonType: "object",
-          title: "Hakuvahti entries",
-          required: ["email", "elastic_query", "query", "site_id"],
+          bsonType: 'object',
+          title: 'Hakuvahti entries',
+          required: ['email', 'elastic_query', 'query', 'site_id'],
           properties: {
             _id: {
-              "bsonType": "objectId"
+              'bsonType': 'objectId'
             },
             email: {
-              bsonType: "string",
+              bsonType: 'string',
             },
             elastic_query: {
-              bsonType: "string",
+              bsonType: 'string',
             },
             query: {
-              bsonType: "string",
+              bsonType: 'string',
             },
             site_id: {
-              bsonType: "string",
+              bsonType: 'string',
             },
             hash: {
-              bsonType: "string",
+              bsonType: 'string',
             },
             expiry_notification_sent: {
-              bsonType: "int",
+              bsonType: 'int',
               minimum: 0,
               maximum: 1,
             },
             status: {
-              bsonType: "int",
+              bsonType: 'int',
               minimum: 0,  // 0: unconfirmed, 1: active, 2: expired
               maximum: 2,
             },
             last_checked: {
-              bsonType: "int"
+              bsonType: 'int'
             },
             modified: {
-              bsonType: "date"
+              bsonType: 'date'
             },
             created: {
-              bsonType: "date"
+              bsonType: 'date'
             }
           }
         }
       }
-    })
+    });
     
-    console.log('Schema updated successfully:', result)
-    return { success: true }
+    // eslint-disable-next-line no-console
+    console.log('Schema updated successfully:', result);
+    return { success: true };
     
   } catch (error) {
-    console.error('Error updating schema:', error)
-    return { success: false, error }
+    console.error('Error updating schema:', error);
+    return { success: false, error };
   }
-}
+};
 
 server.ready(async (err) => {
   if (err) {
-    console.error('Server failed to start:', err)
-    process.exit(1)
+    console.error('Server failed to start:', err);
+    process.exit(1);
   }
   
-  console.log('Updating subscription collection schema to require site_id...')
+  // eslint-disable-next-line no-console
+  console.log('Updating subscription collection schema to require site_id...');
 
-  const result = await updateSchema()
-  console.log('Schema update result:', result)
+  const result = await updateSchema();
+  // eslint-disable-next-line no-console
+  console.log('Schema update result:', result);
   
-  await server.close()
-  process.exit(result.success ? 0 : 1)
-})
+  await server.close();
+  process.exit(result.success ? 0 : 1);
+});
