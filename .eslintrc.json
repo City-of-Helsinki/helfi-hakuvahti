@@ -1,0 +1,113 @@
+{
+  "root": true,
+  "env": {
+    "node": true,
+    "es6": true
+  },
+  "extends": [
+    "airbnb-base",
+    "prettier"
+  ],
+  "parserOptions": {
+    "ecmaVersion": 2022
+  },
+  "rules": {
+    "prefer-arrow-callback": ["off"],
+    "quotes": ["warn", "single"],
+    "semi": ["error", "always"],
+    "consistent-return": ["off"],
+    "no-underscore-dangle": ["off"],
+    "import/no-extraneous-dependencies": ["error", {"devDependencies": true}],
+    "max-nested-callbacks": ["warn", 5],
+    "no-plusplus": [
+      "warn",
+      {
+        "allowForLoopAfterthoughts": true
+      }
+    ],
+    "no-param-reassign": ["off"],
+    "no-prototype-builtins": ["off"],
+    "valid-jsdoc": [
+      "warn",
+      {
+        "prefer": {
+          "returns": "return",
+          "property": "prop"
+        },
+        "requireReturn": false
+      }
+    ],
+    "no-unused-vars": ["warn"],
+    "operator-linebreak": [
+      "error",
+      "after",
+      { "overrides": { "?": "ignore", ":": "ignore" } }
+    ],
+    "no-console": ["warn", { "allow": ["info", "debug", "warn", "error"] }]
+  },
+  "settings": {
+    "import/resolver": {
+      "node": {
+        "extensions": [".js", ".mjs", ".ts"],
+        "moduleDirectory": ["node_modules"]
+      }
+    }
+  },
+  "overrides": [
+    {
+      "files": ["*.ts"],
+      "parser": "@typescript-eslint/parser",
+      "parserOptions": {
+        "ecmaVersion": 2022,
+        "sourceType": "module",
+        "project": "./tsconfig.json",
+        "warnOnUnsupportedTypeScriptVersion": true
+      },
+      "plugins": ["@typescript-eslint"],
+      "rules": {
+        "default-case": "off",
+        "no-dupe-class-members": "off",
+        "no-undef": "off",
+        "no-array-constructor": "off",
+        "no-redeclare": "off",
+        "no-use-before-define": "off",
+        "@typescript-eslint/consistent-type-assertions": "warn",
+        "@typescript-eslint/no-array-constructor": "warn",
+        "@typescript-eslint/no-redeclare": "warn",
+        "@typescript-eslint/no-use-before-define": [
+          "warn",
+          {
+            "functions": false,
+            "classes": false,
+            "variables": false,
+            "typedefs": false
+          }
+        ],
+        "no-unused-expressions": "off",
+        "@typescript-eslint/no-unused-expressions": [
+          "error",
+          {
+            "allowShortCircuit": true,
+            "allowTernary": true,
+            "allowTaggedTemplates": true
+          }
+        ],
+        "no-unused-vars": "off",
+        "@typescript-eslint/no-unused-vars": [
+          "warn",
+          {
+            "args": "none",
+            "ignoreRestSiblings": true
+          }
+        ],
+        "no-useless-constructor": "off",
+        "no-console": ["warn", { "allow": ["warn", "error", "info", "debug"] }],
+        "camelcase": "off",
+        "@typescript-eslint/no-useless-constructor": "warn",
+        "import/extensions": 0,
+        "import/no-unresolved": 0,
+        "import/prefer-default-export": 0
+      }
+    }
+  ]
+}
