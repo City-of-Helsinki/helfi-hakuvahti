@@ -134,7 +134,8 @@ const app = async (): Promise<void> => {
 
 server.get('/', async function handleRootRequest(_request, _reply) {
   // Send all emails from queue
-  return app();
+  await app();
+  return { success: true };
 });
 
 server.ready((_err) => {

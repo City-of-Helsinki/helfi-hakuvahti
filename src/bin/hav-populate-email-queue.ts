@@ -154,6 +154,10 @@ const processSiteSubscriptions = async (siteConfig: SiteConfigurationType): Prom
   const collection = server.mongo.db?.collection('subscription');
   const queueCollection = server.mongo.db?.collection('queue');
 
+  if (!collection || !queueCollection) {
+    throw new Error('MongoDB collections not available');
+  }
+
   // List of all enabled subscriptions for this site
   const result = await collection
     .find({
@@ -309,7 +313,8 @@ server.get('/', async function handleRootRequest(_request, _reply) {
   }, Promise.resolve());
 
   // Loop through subscriptions and add new results to email queue
-  return app();
+  await app();
+  return { success: true };
 });
 
 server.ready((_err) => {
