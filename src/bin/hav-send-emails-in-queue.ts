@@ -32,7 +32,7 @@ void server.register(atv);
 // Command line/cron application to send all emails from queue collection
 const BATCH_SIZE = 100;
 
-const app = async (): Promise<{}> => {
+const app = async (): Promise<void> => {
   const checkInId = server.Sentry?.captureCheckIn({ monitorSlug: 'hav-send-emails-in-queue', status: 'in_progress' });
 
   if (typeof server.mongo?.db === 'undefined') {
@@ -41,7 +41,7 @@ const app = async (): Promise<{}> => {
   }
 
   // Email queue
-  const queueCollection = server.mongo.db!.collection('queue');
+  const queueCollection = server.mongo.db?.collection('queue');
 
   let hasMoreResults = true;
 
@@ -130,15 +130,14 @@ const app = async (): Promise<{}> => {
   }
 
   server.Sentry?.captureCheckIn({ checkInId, monitorSlug: 'hav-send-emails-in-queue', status: 'ok' });
-  return {};
 };
 
-server.get('/', async function handleRootRequest(request, reply) {
+server.get('/', async function handleRootRequest(_request, _reply) {
   // Send all emails from queue
   return app();
 });
 
-server.ready((err) => {
+server.ready((_err) => {
   // eslint-disable-next-line no-console
   console.log('fastify server ready');
   server.inject(
@@ -146,7 +145,7 @@ server.ready((err) => {
       method: 'GET',
       url: '/',
     },
-    function handleInjectResponse(injectErr, response) {
+    function handleInjectResponse(_injectErr, response) {
       if (response) {
         // eslint-disable-next-line no-console
         console.log(JSON.parse(response.payload));

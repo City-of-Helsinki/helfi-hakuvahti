@@ -4,7 +4,7 @@ import fp from 'fastify-plugin';
 import type { AtvDocumentBatchType, AtvDocumentType, AtvResponseType } from '../types/atv';
 import type { SubscriptionRequestType } from '../types/subscription';
 
-export type AtvPluginOptions = {};
+export type AtvPluginOptions = Record<string, never>;
 
 /**
  * Fetches content by document id from the ATV API.
@@ -23,7 +23,7 @@ const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDo
       },
     );
 
-    if (response.data && response.data.content) {
+    if (response.data?.content) {
       return response.data.content;
     }
     throw new Error('Empty content returned from API');
@@ -152,7 +152,7 @@ const isValidEmail = (email: string): boolean => {
   return re.test(String(email).toLowerCase());
 };
 
-export default fp(async (fastify, opts) => {
+export default fp(async (fastify, _opts) => {
   // Hook handler automatically creates ATV document for the email
   // and sets the returned documentId to atvResponse.email variable
   fastify.addHook('preHandler', requestEmailHook);

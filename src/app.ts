@@ -1,7 +1,7 @@
+import { join } from 'node:path';
 import AutoLoad, { type AutoloadPluginOptions } from '@fastify/autoload';
 import fastifySentry from '@immobiliarelabs/fastify-sentry';
 import type { FastifyPluginAsync, FastifyServerOptions } from 'fastify';
-import { join } from 'path';
 import { Environment } from './types/environment';
 
 export interface AppOptions extends FastifyServerOptions, Partial<AutoloadPluginOptions> {}

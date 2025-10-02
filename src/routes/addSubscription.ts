@@ -14,7 +14,7 @@ import {
 
 // Add subscription to given query parameters
 
-const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, opts: object): Promise<void> => {
+const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts: object): Promise<void> => {
   fastify.post<{
     Body: SubscriptionRequestType;
     Reply: SubscriptionResponseType | Generic500ErrorType;

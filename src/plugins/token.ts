@@ -2,7 +2,7 @@ import fp from 'fastify-plugin';
 
 // Validate token in request headers
 
-export default fp(async (fastify, opts) => {
+export default fp(async (fastify, _opts) => {
   fastify.addHook('preHandler', async (request, reply) => {
     // Skip token check for health check routes
     if (request.url === '/healthz' || request.url === '/readiness') {

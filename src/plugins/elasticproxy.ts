@@ -1,11 +1,11 @@
+import https from 'node:https';
 import axios from 'axios';
 import fp from 'fastify-plugin';
-import https from 'https';
 import type { ElasticProxyJsonResponseType } from '../types/elasticproxy';
 
 // Query Elastic Proxy
 
-export type ElasticProxyPluginOptions = {};
+export type ElasticProxyPluginOptions = Record<string, never>;
 
 /**
  * Sends a query to the ElasticSearch proxy.
@@ -55,7 +55,7 @@ const queryElasticProxy = async (
   }
 };
 
-export default fp<ElasticProxyPluginOptions>(async (fastify, opts) => {
+export default fp<ElasticProxyPluginOptions>(async (fastify, _opts) => {
   fastify.decorate('queryElasticProxy', queryElasticProxy);
 });
 

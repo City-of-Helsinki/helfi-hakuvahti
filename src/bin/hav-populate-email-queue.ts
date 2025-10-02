@@ -117,9 +117,7 @@ const getNewHitsFromElasticsearch = async (
   siteConfig: SiteConfigurationType,
 ): Promise<PartialDrupalNodeType[]> => {
   const elasticQuery: string = server.b64decode(subscription.elastic_query);
-  const lastChecked: number = subscription.last_checked
-    ? subscription.last_checked
-    : Math.floor(new Date().getTime() / 1000);
+  const lastChecked: number = subscription.last_checked ? subscription.last_checked : Math.floor(Date.now() / 1000);
 
   try {
     // Query for new results from ElasticProxy
@@ -153,8 +151,8 @@ const getNewHitsFromElasticsearch = async (
  * @return {Promise<void>} A Promise that resolves when processing is complete
  */
 const processSiteSubscriptions = async (siteConfig: SiteConfigurationType): Promise<void> => {
-  const collection = server.mongo.db!.collection('subscription');
-  const queueCollection = server.mongo.db!.collection('queue');
+  const collection = server.mongo.db?.collection('subscription');
+  const queueCollection = server.mongo.db?.collection('queue');
 
   // List of all enabled subscriptions for this site
   const result = await collection
@@ -240,7 +238,7 @@ const processSiteSubscriptions = async (siteConfig: SiteConfigurationType): Prom
     await queueCollection.insertOne(email);
 
     // Set last checked timestamp to this moment
-    const dateUnixtime: number = Math.floor(new Date().getTime() / 1000);
+    const dateUnixtime: number = Math.floor(Date.now() / 1000);
 
     await collection.updateOne({ _id: subscription._id }, { $set: { last_checked: dateUnixtime } });
 
@@ -251,9 +249,9 @@ const processSiteSubscriptions = async (siteConfig: SiteConfigurationType): Prom
 /**
  * Main application function that processes all site configurations.
  *
- * @return {Promise<{}>} A Promise that resolves to an empty object.
+ * @return {Promise<void>} A Promise that resolves when complete.
  */
-const app = async (): Promise<{}> => {
+const app = async (): Promise<void> => {
   const checkInId = server.Sentry?.captureCheckIn({
     monitorSlug: 'hav-populate-email-queue',
     status: 'in_progress',
@@ -285,14 +283,13 @@ const app = async (): Promise<{}> => {
     console.error('Configuration loading error:', error);
     server.Sentry?.captureCheckIn({ checkInId, monitorSlug: 'hav-populate-email-queue', status: 'error' });
     server.Sentry?.captureException(error);
-    return {};
+    return;
   }
 
   server.Sentry?.captureCheckIn({ checkInId, monitorSlug: 'hav-populate-email-queue', status: 'ok' });
-  return {};
 };
 
-server.get('/', async function handleRootRequest(request, reply) {
+server.get('/', async function handleRootRequest(_request, _reply) {
   // Load site configurations
   const configLoader = SiteConfigurationLoader.getInstance();
   await configLoader.loadConfigurations();
@@ -315,7 +312,7 @@ server.get('/', async function handleRootRequest(request, reply) {
   return app();
 });
 
-server.ready((err) => {
+server.ready((_err) => {
   // eslint-disable-next-line no-console
   console.log('fastify server ready');
   server.inject(
@@ -323,7 +320,7 @@ server.ready((err) => {
       method: 'GET',
       url: '/',
     },
-    function handleInjectResponse(injectErr, response) {
+    function handleInjectResponse(_injectErr, response) {
       if (response) {
         // eslint-disable-next-line no-console
         console.log(JSON.parse(response.payload));

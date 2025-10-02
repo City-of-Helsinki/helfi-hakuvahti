@@ -6,7 +6,7 @@ import { SubscriptionGenericPostResponse, type SubscriptionGenericPostResponseTy
 
 // Deletes subscription
 
-const deleteSubscription: FastifyPluginAsync = async (fastify: FastifyInstance, opts: object): Promise<void> => {
+const deleteSubscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts: object): Promise<void> => {
   fastify.delete<{
     Reply: SubscriptionGenericPostResponseType | Generic500ErrorType;
   }>(

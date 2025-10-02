@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 
-const healthzAndReadiness: FastifyPluginAsync = async (fastify: FastifyInstance, opts: object): Promise<void> => {
+const healthzAndReadiness: FastifyPluginAsync = async (fastify: FastifyInstance, _opts: object): Promise<void> => {
   fastify.get(
     '/healthz',
     {
@@ -17,7 +17,7 @@ const healthzAndReadiness: FastifyPluginAsync = async (fastify: FastifyInstance,
         },
       },
     },
-    async (request: FastifyRequest, reply: FastifyReply) =>
+    async (_request: FastifyRequest, reply: FastifyReply) =>
       reply.code(200).send({
         statusCode: 200,
         message: 'OK',
@@ -48,7 +48,7 @@ const healthzAndReadiness: FastifyPluginAsync = async (fastify: FastifyInstance,
         },
       },
     },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       const mongodb = fastify.mongo;
 
       try {

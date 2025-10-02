@@ -1,7 +1,7 @@
 import fp from 'fastify-plugin';
 import type { SubscriptionCollectionLanguageType } from '../types/subscription';
 
-export type localizedEnvVarPluginPluginOptions = {};
+export type localizedEnvVarPluginPluginOptions = Record<string, never>;
 
 export const localizedEnvVar = (envVarBase: string, langCode: SubscriptionCollectionLanguageType): string | undefined =>
   process.env[`${envVarBase}_${langCode.toUpperCase()}`];

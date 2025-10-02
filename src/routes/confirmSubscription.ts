@@ -10,7 +10,7 @@ import {
 
 // Confirms subscription
 
-const confirmSubscription: FastifyPluginAsync = async (fastify: FastifyInstance, opts: object): Promise<void> => {
+const confirmSubscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts: object): Promise<void> => {
   fastify.get<{
     Reply: SubscriptionGenericPostResponseType | Generic500ErrorType;
   }>(
@@ -41,7 +41,7 @@ const confirmSubscription: FastifyPluginAsync = async (fastify: FastifyInstance,
         });
       }
 
-      await collection!.updateOne({ _id: new ObjectId(id) }, { $set: { status: SubscriptionStatus.ACTIVE } });
+      await collection?.updateOne({ _id: new ObjectId(id) }, { $set: { status: SubscriptionStatus.ACTIVE } });
 
       return reply.code(200).header('Content-Type', 'application/json; charset=utf-8').send({
         statusCode: 200,
