@@ -2,8 +2,7 @@ import fp from 'fastify-plugin';
 
 // Helper plugin for random hash
 
-export interface RandHashPluginOptions {
-}
+export type RandHashPluginOptions = {};
 
 export default fp<RandHashPluginOptions>(async (fastify, opts) => {
   fastify.decorate('getRandHash', function getRandHash() {

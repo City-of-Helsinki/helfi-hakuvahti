@@ -1,13 +1,13 @@
-import fastify from 'fastify';
-import dotenv from 'dotenv';
-import fastifySentry from '@immobiliarelabs/fastify-sentry';
-import { JSDOM } from 'jsdom';
 import { ObjectId } from '@fastify/mongodb';
-import mongodb from '../plugins/mongodb';
+import fastifySentry from '@immobiliarelabs/fastify-sentry';
+import dotenv from 'dotenv';
+import fastify from 'fastify';
+import { JSDOM } from 'jsdom';
 import atv from '../plugins/atv';
 import mailer from '../plugins/mailer';
+import mongodb from '../plugins/mongodb';
 import '../plugins/sentry';
-import { AtvDocumentType } from '../types/atv';
+import type { AtvDocumentType } from '../types/atv';
 
 dotenv.config();
 
@@ -18,7 +18,7 @@ server.register(fastifySentry, {
   dsn: process.env.SENTRY_DSN,
   environment: process.env.ENVIRONMENT,
   release,
-  setErrorHandler: true
+  setErrorHandler: true,
 });
 
 // Register only needed plugins
@@ -33,7 +33,7 @@ void server.register(atv);
 const BATCH_SIZE = 100;
 
 const app = async (): Promise<{}> => {
-  const checkInId = server.Sentry?.captureCheckIn({monitorSlug: 'hav-send-emails-in-queue', status: 'in_progress'});
+  const checkInId = server.Sentry?.captureCheckIn({ monitorSlug: 'hav-send-emails-in-queue', status: 'in_progress' });
 
   if (typeof server.mongo?.db === 'undefined') {
     console.error('MongoDB connection not working');
@@ -53,7 +53,7 @@ const app = async (): Promise<{}> => {
       hasMoreResults = false;
     } else {
       // Collect email ids as map
-      const emailIdsMap = new Map<string, string|null>();
+      const emailIdsMap = new Map<string, string | null>();
 
       result.forEach((email) => {
         emailIdsMap.set(email.email, null);
@@ -62,7 +62,7 @@ const app = async (): Promise<{}> => {
       // Get batch of email documents from ATV
       const emailIds = [...emailIdsMap.keys()];
       // eslint-disable-next-line no-await-in-loop
-      const emailDocuments:Partial<AtvDocumentType[]> = await server.atvGetDocumentBatch(emailIds);
+      const emailDocuments: Partial<AtvDocumentType[]> = await server.atvGetDocumentBatch(emailIds);
 
       // Update the email map with unencrypted email list
       if (emailDocuments.length > 0) {
@@ -77,7 +77,7 @@ const app = async (): Promise<{}> => {
       // eslint-disable-next-line no-await-in-loop
       await result.reduce(async (previousPromise, email) => {
         await previousPromise;
-        
+
         const atvId = email.email;
         const plaintextEmail = emailIdsMap.get(email.email);
         const dom = new JSDOM(email.content);
@@ -92,21 +92,23 @@ const app = async (): Promise<{}> => {
         if (plaintextEmail) {
           try {
             await new Promise((resolve, reject) => {
-              server.mailer.sendMail({
-                to: plaintextEmail,
-                subject: title,
-                html: email.content
-              }, (errors, info) => {
-                if (errors) {
-                  return reject(new Error(`Sending email to ${atvId} failed.`, { cause: errors }));
-                }
+              server.mailer.sendMail(
+                {
+                  to: plaintextEmail,
+                  subject: title,
+                  html: email.content,
+                },
+                (errors, info) => {
+                  if (errors) {
+                    return reject(new Error(`Sending email to ${atvId} failed.`, { cause: errors }));
+                  }
 
-                return resolve(info);
-              });
+                  return resolve(info);
+                },
+              );
             });
-          }
-          // Continue even if sending email failed.
-          catch (error) {
+          } catch (error) {
+            // Continue even if sending email failed.
             server.Sentry?.captureException(error);
 
             console.error(error);
@@ -115,19 +117,19 @@ const app = async (): Promise<{}> => {
 
         // Remove document from queue. The document is removed
         // event if the email sending does not succeed.
-        const deleteResult = await queueCollection.deleteOne({_id: new ObjectId(email._id) });
+        const deleteResult = await queueCollection.deleteOne({ _id: new ObjectId(email._id) });
         if (deleteResult.deletedCount === 0) {
           console.error(`Could not delete email document with id ${email._id} from queue`);
 
           throw Error('Deleting email from queue failed.');
         }
-        
+
         return Promise.resolve();
       }, Promise.resolve());
     }
   }
 
-  server.Sentry?.captureCheckIn({checkInId, monitorSlug: 'hav-send-emails-in-queue', status: 'ok'});
+  server.Sentry?.captureCheckIn({ checkInId, monitorSlug: 'hav-send-emails-in-queue', status: 'ok' });
   return {};
 };
 
@@ -139,16 +141,18 @@ server.get('/', async function handleRootRequest(request, reply) {
 server.ready((err) => {
   // eslint-disable-next-line no-console
   console.log('fastify server ready');
-  server.inject({
-    method: 'GET',
-    url: '/'
-  }, function handleInjectResponse(injectErr, response) {
-    if (response) {
-      // eslint-disable-next-line no-console
-      console.log(JSON.parse(response.payload));
-    }
+  server.inject(
+    {
+      method: 'GET',
+      url: '/',
+    },
+    function handleInjectResponse(injectErr, response) {
+      if (response) {
+        // eslint-disable-next-line no-console
+        console.log(JSON.parse(response.payload));
+      }
 
-    server.close();
-  });
-
+      server.close();
+    },
+  );
 });

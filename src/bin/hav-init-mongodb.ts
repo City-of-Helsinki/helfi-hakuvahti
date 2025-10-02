@@ -8,8 +8,8 @@
  * Must be run before starting the application to ensure proper database structure.
  */
 
-import fastify from 'fastify';
 import dotenv from 'dotenv';
+import fastify from 'fastify';
 import mongodb from '../plugins/mongodb';
 
 dotenv.config();
@@ -22,10 +22,10 @@ void server.register(mongodb);
 const initMongoDB = async (): Promise<{ success: boolean; error?: unknown }> => {
   try {
     const db = server.mongo.db!;
-    
+
     // Check if collections exist
     const collections = await db.listCollections().toArray();
-    const existingCollections = collections.map(c => c.name);
+    const existingCollections = collections.map((c) => c.name);
 
     let queueResult = null;
     let subscriptionResult = null;
@@ -40,17 +40,17 @@ const initMongoDB = async (): Promise<{ success: boolean; error?: unknown }> => 
             required: ['email', 'content'],
             properties: {
               _id: {
-                'bsonType': 'objectId'
+                bsonType: 'objectId',
               },
               email: {
                 bsonType: 'string',
               },
               content: {
                 bsonType: 'string',
-              }
-            }
-          }
-        }
+              },
+            },
+          },
+        },
       });
       // eslint-disable-next-line no-console
       console.log('Queue collection created:', queueResult?.collectionName);
@@ -69,7 +69,7 @@ const initMongoDB = async (): Promise<{ success: boolean; error?: unknown }> => 
             required: ['email', 'elastic_query', 'query', 'site_id'],
             properties: {
               _id: {
-                'bsonType': 'objectId'
+                bsonType: 'objectId',
               },
               email: {
                 bsonType: 'string',
@@ -93,21 +93,21 @@ const initMongoDB = async (): Promise<{ success: boolean; error?: unknown }> => 
               },
               status: {
                 bsonType: 'int',
-                minimum: 0,  // 0: unconfirmed, 1: active, 2: expired
+                minimum: 0, // 0: unconfirmed, 1: active, 2: expired
                 maximum: 2,
               },
               last_checked: {
-                bsonType: 'int'
+                bsonType: 'int',
               },
               modified: {
-                bsonType: 'date'
+                bsonType: 'date',
               },
               created: {
-                bsonType: 'date'
-              }
-            }
-          }
-        }
+                bsonType: 'date',
+              },
+            },
+          },
+        },
       });
       // eslint-disable-next-line no-console
       console.log('Subscription collection created:', subscriptionResult?.collectionName);
@@ -126,14 +126,14 @@ server.ready(async (err) => {
     console.error('Server failed to start:', err);
     process.exit(1);
   }
-  
+
   // eslint-disable-next-line no-console
   console.log('Fastify server ready');
-  
+
   const result = await initMongoDB();
   // eslint-disable-next-line no-console
   console.log('MongoDB initialization result:', result);
-  
+
   await server.close();
-  process.exit(result.success ? 0 : 1);  // Exit with error code if initialization failed
+  process.exit(result.success ? 0 : 1); // Exit with error code if initialization failed
 });

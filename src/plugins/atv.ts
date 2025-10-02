@@ -1,14 +1,10 @@
-import fp from 'fastify-plugin';
-import axios, { AxiosResponse } from 'axios';
+import axios, { type AxiosResponse } from 'axios';
 import type { FastifyRequest as FastifyRequestType } from 'fastify';
-import { 
-  AtvDocumentBatchType,
-  AtvDocumentType,
-  AtvResponseType } from '../types/atv';
-import { SubscriptionRequestType } from '../types/subscription';
+import fp from 'fastify-plugin';
+import type { AtvDocumentBatchType, AtvDocumentType, AtvResponseType } from '../types/atv';
+import type { SubscriptionRequestType } from '../types/subscription';
 
-export interface AtvPluginOptions {
-}
+export type AtvPluginOptions = {};
 
 /**
  * Fetches content by document id from the ATV API.
@@ -18,17 +14,19 @@ export interface AtvPluginOptions {
  */
 const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDocumentType>> => {
   try {
-    const response: AxiosResponse<Partial<AtvDocumentType>> = await axios.get(`${process.env.ATV_API_URL}/v1/documents/${atvDocumentId}`, {
-      headers: {
-        'x-api-key': process.env.ATV_API_KEY
-      }
-    });
+    const response: AxiosResponse<Partial<AtvDocumentType>> = await axios.get(
+      `${process.env.ATV_API_URL}/v1/documents/${atvDocumentId}`,
+      {
+        headers: {
+          'x-api-key': process.env.ATV_API_KEY,
+        },
+      },
+    );
 
     if (response.data && response.data.content) {
       return response.data.content;
-    } 
-      throw new Error('Empty content returned from API');
-    
+    }
+    throw new Error('Empty content returned from API');
   } catch (error: unknown) {
     console.error(error);
 
@@ -53,13 +51,13 @@ const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDoc
 
     // Minimal document required by ATV
     const documentObject: Partial<AtvDocumentType> = {
-      'draft': 'false',
-      'tos_function_id': 'atvCreateDocumentWithEmail',
-      'tos_record_id': timestamp,
-      'delete_after': deleteAfter.toISOString().substring(0, 10),
-      'content': JSON.stringify({
-        'email': email
-      })
+      draft: 'false',
+      tos_function_id: 'atvCreateDocumentWithEmail',
+      tos_record_id: timestamp,
+      delete_after: deleteAfter.toISOString().substring(0, 10),
+      content: JSON.stringify({
+        email: email,
+      }),
     };
 
     const response: AxiosResponse<Partial<AtvDocumentType>> = await axios.post(
@@ -68,9 +66,9 @@ const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDoc
       {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'X-Api-Key': process.env.ATV_API_KEY
-        }
-      }
+          'X-Api-Key': process.env.ATV_API_KEY,
+        },
+      },
     );
 
     return response.data;
@@ -90,7 +88,7 @@ const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDoc
 const atvGetDocumentBatch = async (emails: string[]): Promise<Partial<AtvDocumentType[]>> => {
   try {
     const documentObject: AtvDocumentBatchType = {
-      document_ids: emails
+      document_ids: emails,
     };
 
     const response: AxiosResponse<Partial<AtvDocumentType[]>> = await axios.post(
@@ -99,9 +97,9 @@ const atvGetDocumentBatch = async (emails: string[]): Promise<Partial<AtvDocumen
       {
         headers: {
           'Content-Type': 'application/json',
-          'X-Api-Key': process.env.ATV_API_KEY
-        }
-      }
+          'X-Api-Key': process.env.ATV_API_KEY,
+        },
+      },
     );
 
     return response.data;
@@ -149,7 +147,8 @@ const requestEmailHook = async (request: FastifyRequestType) => {
 };
 
 const isValidEmail = (email: string): boolean => {
-  const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  const re =
+    /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
   return re.test(String(email).toLowerCase());
 };
 
@@ -172,7 +171,6 @@ export default fp(async (fastify, opts) => {
   fastify.decorate('atvGetDocumentBatch', async function atvGetDocumentBatchHandler(emails: string[]) {
     return atvGetDocumentBatch(emails);
   });
-
 });
 
 declare module 'fastify' {

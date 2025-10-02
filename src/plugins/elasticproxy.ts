@@ -1,12 +1,11 @@
 import axios from 'axios';
 import fp from 'fastify-plugin';
 import https from 'https';
-import { ElasticProxyJsonResponseType } from '../types/elasticproxy';
+import type { ElasticProxyJsonResponseType } from '../types/elasticproxy';
 
 // Query Elastic Proxy
 
-export interface ElasticProxyPluginOptions {
-}
+export type ElasticProxyPluginOptions = {};
 
 /**
  * Sends a query to the ElasticSearch proxy.
@@ -14,13 +13,17 @@ export interface ElasticProxyPluginOptions {
  * @param {string} elasticQueryJson - The JSON string representing the ElasticSearch query.
  * @return {Promise<ElasticProxyJsonResponseType>} The response data from the ElasticSearch proxy.
  */
-const queryElasticProxy = async (elasticProxyBaseUrl: string, elasticQueryJson: string): Promise<ElasticProxyJsonResponseType> => {
+const queryElasticProxy = async (
+  elasticProxyBaseUrl: string,
+  elasticQueryJson: string,
+): Promise<ElasticProxyJsonResponseType> => {
   if (!elasticProxyBaseUrl) {
     throw new Error('elasticProxyBaseUrl is required');
   }
 
   // Elastic proxy supports ndjson (multipart json requests) or single json searches
-  const elasticProxyUrl: string = elasticProxyBaseUrl + (elasticQueryJson.startsWith('{}\n') ? '/_msearch' : '/_search');
+  const elasticProxyUrl: string =
+    elasticProxyBaseUrl + (elasticQueryJson.startsWith('{}\n') ? '/_msearch' : '/_search');
   const contentType: string = elasticQueryJson.startsWith('{}\n') ? 'application/x-ndjson' : 'application/json';
 
   try {
@@ -36,12 +39,12 @@ const queryElasticProxy = async (elasticProxyBaseUrl: string, elasticQueryJson: 
       elasticQueryJson + (elasticQueryJson.endsWith('\n') ? '' : '\n'),
       {
         httpsAgent: new https.Agent({
-          rejectUnauthorized
+          rejectUnauthorized,
         }),
         headers: {
-          'Content-Type': contentType
-        }
-      }
+          'Content-Type': contentType,
+        },
+      },
     );
 
     return response.data;
@@ -58,6 +61,6 @@ export default fp<ElasticProxyPluginOptions>(async (fastify, opts) => {
 
 declare module 'fastify' {
   export interface FastifyInstance {
-    queryElasticProxy(elasticProxyBaseUrl: string, elasticQueryJson: string): Promise<ElasticProxyJsonResponseType>
+    queryElasticProxy(elasticProxyBaseUrl: string, elasticQueryJson: string): Promise<ElasticProxyJsonResponseType>;
   }
 }

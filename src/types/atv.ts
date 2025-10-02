@@ -1,10 +1,10 @@
-import { Static, Type } from '@sinclair/typebox';
+import { type Static, Type } from '@sinclair/typebox';
 
 export const AtvResponse = Type.Object({
-  atvDocumentId: Type.String()
+  atvDocumentId: Type.String(),
 });
 
-export type AtvResponseType = Static<typeof AtvResponse>
+export type AtvResponseType = Static<typeof AtvResponse>;
 
 export const AtvDocument = Type.Object({
   id: Type.Optional(Type.String()),
@@ -63,13 +63,13 @@ export const AtvDocument = Type.Object({
   content_schema_url: Type.Optional(Type.String()),
 
   // Attachments
-  attachments: Type.Optional(Type.Array(Type.Any()))
+  attachments: Type.Optional(Type.Array(Type.Any())),
 });
 
-export type AtvDocumentType = Static<typeof AtvDocument>
+export type AtvDocumentType = Static<typeof AtvDocument>;
 
 export const AtvDocumentBatch = Type.Object({
-  document_ids: Type.Array(Type.String())
+  document_ids: Type.Array(Type.String()),
 });
 
-export type AtvDocumentBatchType = Static<typeof AtvDocumentBatch>
+export type AtvDocumentBatchType = Static<typeof AtvDocumentBatch>;

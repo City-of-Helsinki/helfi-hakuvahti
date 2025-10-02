@@ -1,9 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { SiteConfigurationType, SiteConfigurationMapType, SiteConfigurationFileType, SiteEnvironmentConfigType } from '../types/siteConfig';
+import type {
+  SiteConfigurationFileType,
+  SiteConfigurationMapType,
+  SiteConfigurationType,
+  SiteEnvironmentConfigType,
+} from '../types/siteConfig';
 
 export class SiteConfigurationLoader {
-
   private static instance: SiteConfigurationLoader;
 
   private configurations: SiteConfigurationMapType = {};
@@ -28,13 +32,12 @@ export class SiteConfigurationLoader {
 
     const environment = process.env.ENVIRONMENT || 'dev';
     const configDir = path.resolve(process.cwd(), 'conf');
-    
+
     if (!fs.existsSync(configDir)) {
       throw new Error(`Configuration directory not found: ${configDir}`);
     }
 
-    const files = fs.readdirSync(configDir)
-      .filter(file => file.endsWith('.json'));
+    const files = fs.readdirSync(configDir).filter((file) => file.endsWith('.json'));
 
     if (files.length === 0) {
       throw new Error('No JSON configuration files found in conf/ directory');
@@ -44,11 +47,11 @@ export class SiteConfigurationLoader {
     for (const file of files) {
       const siteId = path.basename(file, '.json');
       const filePath = path.join(configDir, file);
-      
+
       try {
         const fileContent = fs.readFileSync(filePath, 'utf8');
         const rawConfig: SiteConfigurationFileType = JSON.parse(fileContent);
-        
+
         if (!this.validateRawConfiguration(rawConfig)) {
           throw new Error(`Invalid configuration structure in ${filePath}`);
         }
@@ -62,7 +65,7 @@ export class SiteConfigurationLoader {
         if (!this.validateEnvironmentConfiguration(envConfig)) {
           throw new Error(`Invalid environment configuration for '${environment}' in ${filePath}`);
         }
-        
+
         // Flatten to runtime configuration
         this.configurations[siteId] = {
           id: siteId,
@@ -70,7 +73,7 @@ export class SiteConfigurationLoader {
           urls: envConfig.urls,
           subscription: envConfig.subscription,
           mail: envConfig.mail,
-          elasticProxyUrl: envConfig.elasticProxyUrl
+          elasticProxyUrl: envConfig.elasticProxyUrl,
         };
       } catch (error) {
         throw new Error(`Failed to load configuration from ${filePath}: ${error}`);
@@ -110,7 +113,6 @@ export class SiteConfigurationLoader {
     return Object.keys(this.configurations);
   }
 
-
   /**
    * Validates that a raw configuration file has required properties
    * @param {unknown} config - The configuration object to validate
@@ -122,14 +124,14 @@ export class SiteConfigurationLoader {
       return false;
     }
     const configObj = config as Record<string, unknown>;
-    
+
     // Must have 'name' property
     if (!('name' in configObj) || typeof configObj.name !== 'string') {
       return false;
     }
-    
+
     // Must have at least one environment configuration (excluding 'name')
-    const envKeys = Object.keys(configObj).filter(key => key !== 'name');
+    const envKeys = Object.keys(configObj).filter((key) => key !== 'name');
     return envKeys.length > 0;
   }
 
@@ -144,6 +146,6 @@ export class SiteConfigurationLoader {
       return false;
     }
     const required = ['urls', 'subscription', 'mail', 'elasticProxyUrl'];
-    return required.every(prop => prop in config);
+    return required.every((prop) => prop in config);
   }
 }

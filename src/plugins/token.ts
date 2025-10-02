@@ -13,7 +13,7 @@ export default fp(async (fastify, opts) => {
       reply
         .code(403)
         .header('Content-Type', 'application/json; charset=utf-8')
-        .send({ error: 'Authentication failed.'});
+        .send({ error: 'Authentication failed.' });
     }
 
     // TODO: Do something with the token
@@ -24,6 +24,6 @@ export default fp(async (fastify, opts) => {
 
 declare module 'fastify' {
   export interface FastifyRequest {
-    tokenAuthentication?: boolean
+    tokenAuthentication?: boolean;
   }
 }

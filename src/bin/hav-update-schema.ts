@@ -1,12 +1,12 @@
 /**
  * Schema Update Script: Add site_id as required field to subscription collection validator
- * 
+ *
  * This script updates the MongoDB collection validator to make site_id a required field.
  * Run this AFTER migrating existing documents to have site_id.
  */
 
-import fastify from 'fastify';
 import dotenv from 'dotenv';
+import fastify from 'fastify';
 import mongodb from '../plugins/mongodb';
 
 dotenv.config();
@@ -18,7 +18,7 @@ void server.register(mongodb);
 const updateSchema = async (): Promise<{ success: boolean; error?: unknown }> => {
   try {
     const db = server.mongo.db!;
-    
+
     const result = await db.command({
       collMod: 'subscription',
       validator: {
@@ -28,7 +28,7 @@ const updateSchema = async (): Promise<{ success: boolean; error?: unknown }> =>
           required: ['email', 'elastic_query', 'query', 'site_id'],
           properties: {
             _id: {
-              'bsonType': 'objectId'
+              bsonType: 'objectId',
             },
             email: {
               bsonType: 'string',
@@ -52,27 +52,26 @@ const updateSchema = async (): Promise<{ success: boolean; error?: unknown }> =>
             },
             status: {
               bsonType: 'int',
-              minimum: 0,  // 0: unconfirmed, 1: active, 2: expired
+              minimum: 0, // 0: unconfirmed, 1: active, 2: expired
               maximum: 2,
             },
             last_checked: {
-              bsonType: 'int'
+              bsonType: 'int',
             },
             modified: {
-              bsonType: 'date'
+              bsonType: 'date',
             },
             created: {
-              bsonType: 'date'
-            }
-          }
-        }
-      }
+              bsonType: 'date',
+            },
+          },
+        },
+      },
     });
-    
+
     // eslint-disable-next-line no-console
     console.log('Schema updated successfully:', result);
     return { success: true };
-    
   } catch (error) {
     console.error('Error updating schema:', error);
     return { success: false, error };
@@ -84,14 +83,14 @@ server.ready(async (err) => {
     console.error('Server failed to start:', err);
     process.exit(1);
   }
-  
+
   // eslint-disable-next-line no-console
   console.log('Updating subscription collection schema to require site_id...');
 
   const result = await updateSchema();
   // eslint-disable-next-line no-console
   console.log('Schema update result:', result);
-  
+
   await server.close();
   process.exit(result.success ? 0 : 1);
 });

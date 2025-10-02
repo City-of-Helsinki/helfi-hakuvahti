@@ -1,14 +1,13 @@
-import fp from 'fastify-plugin';
 import { Buffer } from 'buffer';
+import fp from 'fastify-plugin';
 
 // Helper plugin to encode/decode base64.
 // Functions can be used through import or through Fastify instance.
 
-export interface Base64PluginOptions {
-}
+export type Base64PluginOptions = {};
 
-export const decode = (str: string):string => Buffer.from(str, 'base64').toString('utf-8');
-export const encode = (str: string):string => Buffer.from(str, 'utf-8').toString('base64');
+export const decode = (str: string): string => Buffer.from(str, 'base64').toString('utf-8');
+export const encode = (str: string): string => Buffer.from(str, 'utf-8').toString('base64');
 
 export default fp<Base64PluginOptions>(async (fastify, opts) => {
   fastify.decorate('b64decode', decode);
