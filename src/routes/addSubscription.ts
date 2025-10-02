@@ -12,6 +12,18 @@ import {
   SubscriptionStatus,
 } from '../types/subscription';
 
+// Validation helpers
+const isValidEmail = (email: string): boolean => {
+  const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  return re.test(String(email).toLowerCase());
+};
+
+const isValidSms = (sms: string): boolean => {
+  // E.164 international format: + followed by 1-15 digits
+  const re = /^\+[1-9]\d{1,14}$/;
+  return re.test(sms);
+};
+
 // Add subscription to given query parameters
 
 const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts: object): Promise<void> => {
@@ -54,6 +66,22 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
           .send({ error: 'Invalid site_id provided.' });
       }
 
+      // Validate email (required)
+      if (!isValidEmail(request.body.email?.trim())) {
+        return reply
+          .code(400)
+          .header('Content-Type', 'application/json; charset=utf-8')
+          .send({ error: 'Invalid email format.' });
+      }
+
+      // Validate SMS (optional)
+      if (request.body.sms && !isValidSms(request.body.sms.trim())) {
+        return reply
+          .code(400)
+          .header('Content-Type', 'application/json; charset=utf-8')
+          .send({ error: 'Invalid SMS format. Use international format (e.g., +358451234567).' });
+      }
+
       // Subscription data that goes to collection
       const subscriptionData: Partial<SubscriptionCollectionType> = {
         ...request.body,
@@ -64,6 +92,11 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         expiry_notification_sent: SubscriptionStatus.INACTIVE,
         status: SubscriptionStatus.INACTIVE,
       };
+
+      // Remove SMS from request body (it's already stored in ATV document)
+      if (request.body.sms) {
+        delete request.body.sms;
+      }
 
       const response = await collection?.insertOne(subscriptionData);
       if (!response) {
