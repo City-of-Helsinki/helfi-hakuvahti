@@ -35,12 +35,13 @@ const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDo
 };
 
 /**
- * Create a document with the given email and return a partial AtvDocumentType.
+ * Create a document with the given email and optional SMS, return a partial AtvDocumentType.
  *
  * @param {string} email - the email to be included in the document
+ * @param {string} sms - optional SMS to be included in the document
  * @return {Promise<Partial<AtvDocumentType>>} the created document
  */
-const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDocumentType>> => {
+const atvCreateDocumentWithEmail = async (email: string, sms?: string): Promise<Partial<AtvDocumentType>> => {
   try {
     const timestamp = Math.floor(Date.now() / 1000).toString();
 
@@ -51,13 +52,14 @@ const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDoc
 
     // Minimal document required by ATV
     const documentObject: Partial<AtvDocumentType> = {
-      draft: 'false',
-      tos_function_id: 'atvCreateDocumentWithEmail',
-      tos_record_id: timestamp,
-      delete_after: deleteAfter.toISOString().substring(0, 10),
-      content: JSON.stringify({
-        email: email,
-      }),
+      'draft': 'false',
+      'tos_function_id': 'atvCreateDocumentWithEmail',
+      'tos_record_id': timestamp,
+      'delete_after': deleteAfter.toISOString().substring(0, 10),
+      'content': JSON.stringify({
+        'email': email,
+        ...(sms && { 'sms': sms })
+      })
     };
 
     const response: AxiosResponse<Partial<AtvDocumentType>> = await axios.post(
@@ -124,15 +126,12 @@ const requestEmailHook = async (request: FastifyRequestType) => {
     }
 
     // If the POST request has 'email' variable, automatically create ATV document
-    // and store email there. Only the ATV document Id gets saved in HAV database.
+    // and store email and optional SMS there. Only the ATV document Id gets saved in HAV database.
     const body: Partial<SubscriptionRequestType> = request.body as Partial<SubscriptionRequestType>;
     const email: string = (body.email as string)?.trim();
+    const sms: string | undefined = body.sms?.trim();
 
-    if (!isValidEmail(email)) {
-      throw new Error('Invalid email format');
-    }
-
-    const atvDocument: Partial<AtvDocumentType> = await atvCreateDocumentWithEmail(email);
+    const atvDocument: Partial<AtvDocumentType> = await atvCreateDocumentWithEmail(email, sms);
     const atvDocumentId: string | undefined = atvDocument.id;
 
     if (atvDocumentId) {
@@ -146,11 +145,6 @@ const requestEmailHook = async (request: FastifyRequestType) => {
   }
 };
 
-const isValidEmail = (email: string): boolean => {
-  const re =
-    /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-  return re.test(String(email).toLowerCase());
-};
 
 export default fp(async (fastify, _opts) => {
   // Hook handler automatically creates ATV document for the email
@@ -180,7 +174,7 @@ declare module 'fastify' {
 
   export interface FastifyInstance {
     atvQueryEmail(email: string): Promise<Partial<AtvDocumentType>>;
-    atvCreateDocumentWithEmail: (email: string) => Promise<Partial<AtvDocumentType>>;
+    atvCreateDocumentWithEmail: (email: string, sms?: string) => Promise<Partial<AtvDocumentType>>;
     atvGetDocumentBatch: (emails: string[]) => Promise<Partial<AtvDocumentType[]>>;
   }
 }
