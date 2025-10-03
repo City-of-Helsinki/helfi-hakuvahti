@@ -21,7 +21,10 @@ void server.register(mongodb);
 
 const initMongoDB = async (): Promise<{ success: boolean; error?: unknown }> => {
   try {
-    const db = server.mongo.db!;
+    const db = server.mongo.db;
+    if (!db) {
+      throw new Error('MongoDB connection not available');
+    }
 
     // Check if collections exist
     const collections = await db.listCollections().toArray();

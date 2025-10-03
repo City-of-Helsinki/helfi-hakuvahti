@@ -1,3 +1,4 @@
+import type { ObjectId } from '@fastify/mongodb';
 import fastifySentry from '@immobiliarelabs/fastify-sentry';
 import dotenv from 'dotenv';
 import fastify from 'fastify';
@@ -113,7 +114,7 @@ const checkShouldSendExpiryNotification = (
 };
 
 const getNewHitsFromElasticsearch = async (
-  subscription: SubscriptionCollectionType & { _id: any },
+  subscription: SubscriptionCollectionType & { _id: ObjectId },
   siteConfig: SiteConfigurationType,
 ): Promise<PartialDrupalNodeType[]> => {
   const elasticQuery: string = server.b64decode(subscription.elastic_query);
@@ -128,7 +129,7 @@ const getNewHitsFromElasticsearch = async (
 
     // Filter out new hits:
     return (elasticResponse?.hits?.hits ?? [])
-      .filter((hit: any) => {
+      .filter((hit: { _source?: PartialDrupalNodeType }) => {
         const publicationStarts = hit?._source?.field_publication_starts;
         if (!Array.isArray(publicationStarts) || publicationStarts.length === 0) {
           return false;
@@ -206,7 +207,7 @@ const processSiteSubscriptions = async (siteConfig: SiteConfigurationType): Prom
     }
 
     const newHits = await getNewHitsFromElasticsearch(
-      subscription as SubscriptionCollectionType & { _id: any },
+      subscription as SubscriptionCollectionType & { _id: ObjectId },
       siteConfig,
     );
 

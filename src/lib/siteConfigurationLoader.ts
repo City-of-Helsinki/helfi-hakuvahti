@@ -57,7 +57,7 @@ export class SiteConfigurationLoader {
         }
 
         // Extract environment-specific config
-        const envConfig = (rawConfig as any)[environment] as SiteEnvironmentConfigType;
+        const envConfig = (rawConfig as Record<string, unknown>)[environment] as SiteEnvironmentConfigType;
         if (!envConfig) {
           throw new Error(`Environment '${environment}' not found in configuration ${filePath}`);
         }

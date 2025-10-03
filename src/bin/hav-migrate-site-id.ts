@@ -22,7 +22,10 @@ const migrateSiteId = async (
   options: MigrationOptions,
 ): Promise<{ success: boolean; updated: number; error?: unknown }> => {
   try {
-    const db = server.mongo.db!;
+    const db = server.mongo.db;
+    if (!db) {
+      throw new Error('MongoDB connection not available');
+    }
     const collection = db.collection('subscription');
 
     // Find documents without site_id

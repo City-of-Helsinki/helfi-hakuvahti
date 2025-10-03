@@ -22,7 +22,7 @@ const app: FastifyPluginAsync<AppOptions> = async (fastify, opts): Promise<void>
   const release = process.env.SENTRY_RELEASE ?? '';
   fastify.register(fastifySentry, {
     dsn: process.env.SENTRY_DSN,
-    beforeSend: (event: any) => {
+    beforeSend: (event) => {
       if (!event?.request?.data) {
         return event;
       }

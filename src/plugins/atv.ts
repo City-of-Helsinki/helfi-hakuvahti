@@ -46,7 +46,7 @@ const atvCreateDocumentWithEmail = async (email: string): Promise<Partial<AtvDoc
 
     // ATV automatically deletes the document after deleteAfter date has passed
     const deleteAfter = new Date();
-    const maxAge: number = +process.env.SUBSCRIPTION_MAX_AGE!;
+    const maxAge: number = Number(process.env.SUBSCRIPTION_MAX_AGE) || 90; // Default: 90 days
     deleteAfter.setDate(deleteAfter.getDate() + maxAge);
 
     // Minimal document required by ATV
@@ -103,7 +103,7 @@ const atvGetDocumentBatch = async (emails: string[]): Promise<Partial<AtvDocumen
     );
 
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(error);
 
     throw new Error('Failed to fetch document. See error log.');

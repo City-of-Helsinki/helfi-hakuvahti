@@ -17,7 +17,10 @@ void server.register(mongodb);
 
 const updateSchema = async (): Promise<{ success: boolean; error?: unknown }> => {
   try {
-    const db = server.mongo.db!;
+    const db = server.mongo.db;
+    if (!db) {
+      throw new Error('MongoDB connection not available');
+    }
 
     const result = await db.command({
       collMod: 'subscription',
