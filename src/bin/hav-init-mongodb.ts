@@ -8,126 +8,135 @@
  * Must be run before starting the application to ensure proper database structure.
  */
 
-import fastify from 'fastify'
+import dotenv from 'dotenv';
+import fastify from 'fastify';
 import mongodb from '../plugins/mongodb';
-import dotenv from 'dotenv'
 
-dotenv.config()
+dotenv.config();
 
-const server = fastify({})
+const server = fastify({});
 
-void server.register(mongodb)
+// eslint-disable-next-line no-void
+void server.register(mongodb);
 
 const initMongoDB = async (): Promise<{ success: boolean; error?: unknown }> => {
   try {
-    const db = server.mongo.db!
-    
-    // Check if collections exist
-    const collections = await db.listCollections().toArray()
-    const existingCollections = collections.map(c => c.name)
+    const db = server.mongo.db;
+    if (!db) {
+      throw new Error('MongoDB connection not available');
+    }
 
-    let queueResult = null
-    let subscriptionResult = null
+    // Check if collections exist
+    const collections = await db.listCollections().toArray();
+    const existingCollections = collections.map((c) => c.name);
+
+    let queueResult = null;
+    let subscriptionResult = null;
 
     // Email queue collection: stores pending notification emails
     if (!existingCollections.includes('queue')) {
-      queueResult = await db.createCollection("queue", {
+      queueResult = await db.createCollection('queue', {
         validator: {
           $jsonSchema: {
-            bsonType: "object",
-            title: "Hakuvahti email queue",
-            required: ["email", "content"],
+            bsonType: 'object',
+            title: 'Hakuvahti email queue',
+            required: ['email', 'content'],
             properties: {
               _id: {
-                "bsonType": "objectId"
+                bsonType: 'objectId',
               },
               email: {
-                bsonType: "string",
+                bsonType: 'string',
               },
               content: {
-                bsonType: "string",
-              }
-            }
-          }
-        }
-      })
-      console.log('Queue collection created:', queueResult?.collectionName)
+                bsonType: 'string',
+              },
+            },
+          },
+        },
+      });
+      // eslint-disable-next-line no-console
+      console.log('Queue collection created:', queueResult?.collectionName);
     } else {
-      console.log('Queue collection already exists')
+      // eslint-disable-next-line no-console
+      console.log('Queue collection already exists');
     }
 
     // Subscription collection: stores user search criteria and metadata
     if (!existingCollections.includes('subscription')) {
-      subscriptionResult = await db.createCollection("subscription", {
+      subscriptionResult = await db.createCollection('subscription', {
         validator: {
           $jsonSchema: {
-            bsonType: "object",
-            title: "Hakuvahti entries",
-            required: ["email", "elastic_query", "query", "site_id"],
+            bsonType: 'object',
+            title: 'Hakuvahti entries',
+            required: ['email', 'elastic_query', 'query', 'site_id'],
             properties: {
               _id: {
-                "bsonType": "objectId"
+                bsonType: 'objectId',
               },
               email: {
-                bsonType: "string",
+                bsonType: 'string',
               },
               elastic_query: {
-                bsonType: "string",
+                bsonType: 'string',
               },
               query: {
-                bsonType: "string",
+                bsonType: 'string',
               },
               site_id: {
-                bsonType: "string",
+                bsonType: 'string',
               },
               hash: {
-                bsonType: "string",
+                bsonType: 'string',
               },
               expiry_notification_sent: {
-                bsonType: "int",
+                bsonType: 'int',
                 minimum: 0,
                 maximum: 1,
               },
               status: {
-                bsonType: "int",
-                minimum: 0,  // 0: unconfirmed, 1: active, 2: expired
+                bsonType: 'int',
+                minimum: 0, // 0: unconfirmed, 1: active, 2: expired
                 maximum: 2,
               },
               last_checked: {
-                bsonType: "int"
+                bsonType: 'int',
               },
               modified: {
-                bsonType: "date"
+                bsonType: 'date',
               },
               created: {
-                bsonType: "date"
-              }
-            }
-          }
-        }
-      })
-      console.log('Subscription collection created:', subscriptionResult?.collectionName)
+                bsonType: 'date',
+              },
+            },
+          },
+        },
+      });
+      // eslint-disable-next-line no-console
+      console.log('Subscription collection created:', subscriptionResult?.collectionName);
     }
 
-    return { success: true }
+    return { success: true };
   } catch (error) {
-    console.error('Error initializing MongoDB:', error)
-    return { success: false, error }
+    console.error('Error initializing MongoDB:', error);
+    return { success: false, error };
   }
-}
+};
 
 // Wait for Fastify and MongoDB plugin to be fully initialized before creating collections
 server.ready(async (err) => {
   if (err) {
-    console.error('Server failed to start:', err)
-    process.exit(1)
+    console.error('Server failed to start:', err);
+    process.exit(1);
   }
-  
-  console.log('Fastify server ready')
-  
-  const result = await initMongoDB()
-  console.log('MongoDB initialization result:', result)
-  
-  await server.close()
-  process.exit(result.success ? 0 : 1)  // Exit with error code if initialization failed
-})
+
+  // eslint-disable-next-line no-console
+  console.log('Fastify server ready');
+
+  const result = await initMongoDB();
+  // eslint-disable-next-line no-console
+  console.log('MongoDB initialization result:', result);
+
+  await server.close();
+  process.exit(result.success ? 0 : 1); // Exit with error code if initialization failed
+});

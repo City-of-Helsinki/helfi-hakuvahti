@@ -1,18 +1,14 @@
-import { Static, Type } from '@sinclair/typebox'
+import { type Static, Type } from '@sinclair/typebox';
 
 export enum SubscriptionStatus {
   DISABLED = 2,
   ACTIVE = 1,
-  INACTIVE = 0
+  INACTIVE = 0,
 }
-export const SubscriptionStatusType = Type.Enum(SubscriptionStatus)
+export const SubscriptionStatusType = Type.Enum(SubscriptionStatus);
 
-export const SubscriptionCollectionLanguage = Type.Union([
-  Type.Literal('en'),
-  Type.Literal('fi'),
-  Type.Literal('sv'),
-])
-export type SubscriptionCollectionLanguageType = Static<typeof SubscriptionCollectionLanguage>
+export const SubscriptionCollectionLanguage = Type.Union([Type.Literal('en'), Type.Literal('fi'), Type.Literal('sv')]);
+export type SubscriptionCollectionLanguageType = Static<typeof SubscriptionCollectionLanguage>;
 
 export const SubscriptionCollection = Type.Object({
   email: Type.String(),
@@ -26,9 +22,9 @@ export const SubscriptionCollection = Type.Object({
   lang: SubscriptionCollectionLanguage,
   last_checked: Type.Optional(Type.Number()),
   expiry_notification_sent: Type.Enum(SubscriptionStatus),
-  status: Type.Enum(SubscriptionStatus)
-})
-export type SubscriptionCollectionType = Static<typeof SubscriptionCollection>
+  status: Type.Enum(SubscriptionStatus),
+});
+export type SubscriptionCollectionType = Static<typeof SubscriptionCollection>;
 
 // MongoDB response when inserting:
 export const SubscriptionResponse = Type.Object({
@@ -36,8 +32,8 @@ export const SubscriptionResponse = Type.Object({
 
   // This is actually MongoDB's ObjectId object:
   insertedId: Type.Optional(Type.Unknown()),
-})
-export type SubscriptionResponseType = Static<typeof SubscriptionResponse>
+});
+export type SubscriptionResponseType = Static<typeof SubscriptionResponse>;
 
 // Request to add new subscription:
 export const SubscriptionRequest = Type.Object({
@@ -46,20 +42,20 @@ export const SubscriptionRequest = Type.Object({
   query: Type.String(),
   search_description: Type.Optional(Type.String()),
   site_id: Type.String(),
-  lang: SubscriptionCollectionLanguage
-})
-export type SubscriptionRequestType = Static<typeof SubscriptionRequest>
+  lang: SubscriptionCollectionLanguage,
+});
+export type SubscriptionRequestType = Static<typeof SubscriptionRequest>;
 
 // Generic request with SubscriptionId
 export const SubscriptionGenericPostRequest = Type.Object({
-  id: Type.String()
-})
-export type SubscriptionGenericPostRequestType = Static<typeof SubscriptionGenericPostRequest>
+  id: Type.String(),
+});
+export type SubscriptionGenericPostRequestType = Static<typeof SubscriptionGenericPostRequest>;
 
 // Generic response with id and status code
 export const SubscriptionGenericPostResponse = Type.Object({
   id: Type.Optional(Type.String()),
   statusCode: Type.Number(),
-  statusMessage: Type.Optional(Type.String())
-})
-export type SubscriptionGenericPostResponseType = Static<typeof SubscriptionGenericPostResponse>
+  statusMessage: Type.Optional(Type.String()),
+});
+export type SubscriptionGenericPostResponseType = Static<typeof SubscriptionGenericPostResponse>;

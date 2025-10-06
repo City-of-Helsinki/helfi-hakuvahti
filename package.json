@@ -9,12 +9,14 @@
   "scripts": {
     "test": "npm run build:ts && tsc -p test/tsconfig.json && c8 node --test -r ts-node/register test/**/*.ts",
     "start": "npm run build:ts && npm run copy:assets && npm run hav:init-mongodb && fastify start -l info dist/app.js",
-    "build:ts": "npm run copy:assets; tsc",
+    "build:ts": "npm run lint:check && npm run copy:assets; tsc",
     "watch:ts": "npm run copy:assets; tsc -w",
     "copy:assets": "mkdir -p dist; cp -R src/templates dist/",
     "dev": "npm run copy:assets; npm run build:ts && npm run hav:init-mongodb && concurrently -k -p \"[{name}]\" -n \"TypeScript,App\" -c \"yellow.bold,cyan.bold\" \"npm:watch:ts\" \"npm:dev:start\"",
     "dev:start": "npm run copy:assets; fastify start --ignore-watch=.ts$ -w -l info -P dist/app.js",
     "info": "fastify print-routes ./routes/root.ts",
+    "lint": "biome check --write src/",
+    "lint:check": "biome check src/",
     "hav:init-mongodb": "node dist/bin/hav-init-mongodb.js",
     "hav:migrate-site-id": "node dist/bin/hav-migrate-site-id.js",
     "hav:update-schema": "node dist/bin/hav-update-schema.js",
@@ -43,6 +45,7 @@
     "sprightly": "^2.0.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.2.4",
     "@types/jsdom": "^21.1.6",
     "@types/node": "^20.4.4",
     "@types/nodemailer": "^6.4.14",
