@@ -14,7 +14,8 @@ import {
 
 // Validation helpers
 const isValidEmail = (email: string): boolean => {
-  const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  const re =
+    /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
   return re.test(String(email).toLowerCase());
 };
 
@@ -39,6 +40,25 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
           200: SubscriptionResponse,
           500: Generic500Error,
         },
+      },
+      preHandler: async (request: FastifyRequest<{ Body: SubscriptionRequestType }>, reply: FastifyReply) => {
+        // Validate email and SMS BEFORE ATV document creation
+        const email = request.body.email?.trim();
+        const sms = request.body.sms?.trim();
+
+        if (!isValidEmail(email)) {
+          return reply
+            .code(400)
+            .header('Content-Type', 'application/json; charset=utf-8')
+            .send({ error: 'Invalid email format.' });
+        }
+
+        if (sms && !isValidSms(sms)) {
+          return reply
+            .code(400)
+            .header('Content-Type', 'application/json; charset=utf-8')
+            .send({ error: 'Invalid SMS format. Use international format (e.g., +358451234567).' });
+        }
       },
     },
     async (request: FastifyRequest<{ Body: SubscriptionRequestType }>, reply: FastifyReply) => {
@@ -66,22 +86,6 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
           .send({ error: 'Invalid site_id provided.' });
       }
 
-      // Validate email (required)
-      if (!isValidEmail(request.body.email?.trim())) {
-        return reply
-          .code(400)
-          .header('Content-Type', 'application/json; charset=utf-8')
-          .send({ error: 'Invalid email format.' });
-      }
-
-      // Validate SMS (optional)
-      if (request.body.sms && !isValidSms(request.body.sms.trim())) {
-        return reply
-          .code(400)
-          .header('Content-Type', 'application/json; charset=utf-8')
-          .send({ error: 'Invalid SMS format. Use international format (e.g., +358451234567).' });
-      }
-
       // Subscription data that goes to collection
       const subscriptionData: Partial<SubscriptionCollectionType> = {
         ...request.body,
@@ -93,10 +97,8 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         status: SubscriptionStatus.INACTIVE,
       };
 
-      // Remove SMS from request body (it's already stored in ATV document)
-      if (request.body.sms) {
-        delete request.body.sms;
-      }
+      // SMS is already stored in ATV document, no need to store in MongoDB
+      // It was removed by the ATV hook after validation
 
       const response = await collection?.insertOne(subscriptionData);
       if (!response) {

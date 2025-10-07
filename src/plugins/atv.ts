@@ -52,14 +52,14 @@ const atvCreateDocumentWithEmail = async (email: string, sms?: string): Promise<
 
     // Minimal document required by ATV
     const documentObject: Partial<AtvDocumentType> = {
-      'draft': 'false',
-      'tos_function_id': 'atvCreateDocumentWithEmail',
-      'tos_record_id': timestamp,
-      'delete_after': deleteAfter.toISOString().substring(0, 10),
-      'content': JSON.stringify({
-        'email': email,
-        ...(sms && { 'sms': sms })
-      })
+      draft: 'false',
+      tos_function_id: 'atvCreateDocumentWithEmail',
+      tos_record_id: timestamp,
+      delete_after: deleteAfter.toISOString().substring(0, 10),
+      content: JSON.stringify({
+        email: email,
+        ...(sms && { sms: sms }),
+      }),
     };
 
     const response: AxiosResponse<Partial<AtvDocumentType>> = await axios.post(
@@ -105,15 +105,14 @@ const atvGetDocumentBatch = async (emails: string[]): Promise<Partial<AtvDocumen
     );
 
     return response.data;
-  } catch (error: unknown) {
-    console.error(error);
-
+  } catch (_error: unknown) {
     throw new Error('Failed to fetch document. See error log.');
   }
 };
 
 /**
  * Request email hook function.
+ * This is a pure storage layer - validation should happen in route handlers.
  *
  * @param {FastifyRequest} request - the request object
  * @return {void} no return value
@@ -139,12 +138,16 @@ const requestEmailHook = async (request: FastifyRequestType) => {
         atvDocumentId,
       };
     }
+
+    // Remove SMS from request body after ATV storage (it shouldn't go to MongoDB)
+    if (body.sms) {
+      delete body.sms;
+    }
   } catch (error) {
     console.error('An error occurred:', error);
     throw new Error('Could not create document to ATV. Cannot subscribe.');
   }
 };
-
 
 export default fp(async (fastify, _opts) => {
   // Hook handler automatically creates ATV document for the email
