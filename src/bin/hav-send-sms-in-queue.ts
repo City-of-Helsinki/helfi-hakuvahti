@@ -3,6 +3,7 @@ import fastifySentry from '@immobiliarelabs/fastify-sentry';
 import dotenv from 'dotenv';
 import fastify from 'fastify';
 import atv from '../plugins/atv';
+import dialogi from '../plugins/dialogi';
 import mongodb from '../plugins/mongodb';
 import '../plugins/sentry';
 import type { AtvDocumentType } from '../types/atv';
@@ -24,6 +25,8 @@ server.register(fastifySentry, {
 void server.register(mongodb);
 // eslint-disable-next-line no-void
 void server.register(atv);
+// eslint-disable-next-line no-void
+void server.register(dialogi);
 
 // Command line/cron application to send all SMS from queue collection
 const BATCH_SIZE = 100;
@@ -85,10 +88,15 @@ const app = async (): Promise<void> => {
       console.info('Processing SMS for ATV ID:', atvId);
 
       if (phoneNumber) {
-        // Send SMS here
-        // phoneNumber: recipient's phone number (e.g., "+358501234567")
-        // messageContent: SMS message to send
-        console.log(`Would send SMS to ${phoneNumber}: ${messageContent.substring(0, 50)}...`);
+        try {
+          // Send SMS using Dialogi plugin
+          await server.dialogi.sendSms(phoneNumber, messageContent);
+          console.log(`SMS sent successfully to ${phoneNumber}`);
+        } catch (error) {
+          // Log error but continue processing queue
+          server.Sentry?.captureException(error);
+          console.error(`Failed to send SMS to ${phoneNumber}:`, error);
+        }
       } else {
         console.warn(`Phone number not found for ATV ID ${atvId}`);
       }
