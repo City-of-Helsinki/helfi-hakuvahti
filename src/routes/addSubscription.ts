@@ -41,8 +41,9 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
           500: Generic500Error,
         },
       },
-      preHandler: async (request: FastifyRequest<{ Body: SubscriptionRequestType }>, reply: FastifyReply) => {
+      preValidation: async (request: FastifyRequest<{ Body: SubscriptionRequestType }>, reply: FastifyReply) => {
         // Validate email and SMS BEFORE ATV document creation
+        // preValidation runs BEFORE preHandler (where ATV storage happens)
         const email = request.body.email?.trim();
         const sms = request.body.sms?.trim();
 
