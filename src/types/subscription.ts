@@ -43,7 +43,7 @@ export const SubscriptionRequest = Type.Object({
   search_description: Type.Optional(Type.String()),
   site_id: Type.String(),
   lang: SubscriptionCollectionLanguage,
-  sms: Type.Optional(Type.String())
+  sms: Type.Optional(Type.String()),
 });
 export type SubscriptionRequestType = Static<typeof SubscriptionRequest>;
 
