@@ -21,7 +21,8 @@
     "hav:migrate-site-id": "node dist/bin/hav-migrate-site-id.js",
     "hav:update-schema": "node dist/bin/hav-update-schema.js",
     "hav:populate-email-queue": "node dist/bin/hav-populate-email-queue.js",
-    "hav:send-emails-in-queue": "node dist/bin/hav-send-emails-in-queue.js"
+    "hav:send-emails-in-queue": "node dist/bin/hav-send-emails-in-queue.js",
+    "hav:send-sms-in-queue": "node dist/bin/hav-send-sms-in-queue.js"
   },
   "keywords": [],
   "author": "",
