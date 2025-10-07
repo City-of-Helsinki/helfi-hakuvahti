@@ -112,7 +112,7 @@ Example configuration structure:
 ### Environment Selection
 
 The system automatically selects the correct environment configuration based on the `ENVIRONMENT` variable:
-- Defaults to `dev` if `ENVIRONMENT` is not set
+- Defaults to `local` if `ENVIRONMENT` is not set
 - Use `ENVIRONMENT=production` for production deployment
 - Sites usually have `local`, `dev`, `staging` and `production` environments
 
