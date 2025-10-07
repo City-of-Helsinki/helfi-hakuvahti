@@ -62,6 +62,7 @@ Pre-requisities to use Hakuvahti are:
 - For production environment, add following commands to cron:
   - `npm run hav:populate-email-queue` (this should be run once per hour or at least daily)
   - `npm run hav:send-emails-in-queue` (this should be run at least once per minute)
+  - `npm run hav:send-sms-in-queue` (optional, for SMS notifications - should be run at least once per minute)
 
 ## Configuration
 
@@ -221,6 +222,20 @@ The system automatically selects the correct environment configuration based on 
 `MAIL_AUTH_USER` (Username to authenticate at SMTP server)
 
 `MAIL_AUTH_PASS` (Password to authenticate at SMTP server)
+
+### Elisa Dialogi SMS Service (Optional)
+
+Hakuvahti supports sending SMS notifications via Elisa Dialogi API. SMS notifications are optional and work alongside email notifications.
+
+`DIALOGI_API_URL` Set the Elisa Dialogi API base URL (for example `https://dialogi.elisa.fi/api/v1`)
+
+`DIALOGI_API_KEY` Set the API key/bearer token for Dialogi authentication
+
+**Note:** If these environment variables are not set, SMS functionality will be disabled and only email notifications will be sent. The system will log a warning on startup if Dialogi is not configured.
+
+For SMS notifications to work:
+1. Users must provide their phone number in E.164 international format (e.g., `+358501234567`) when subscribing
+2. Run the SMS queue processor: `npm run hav:send-sms-in-queue` (should be run at least once per minute in production)
 
 # REST Endpoints:
 
