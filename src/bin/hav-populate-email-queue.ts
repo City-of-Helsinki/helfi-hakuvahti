@@ -2,6 +2,7 @@ import type { ObjectId } from '@fastify/mongodb';
 import fastifySentry from '@immobiliarelabs/fastify-sentry';
 import dotenv from 'dotenv';
 import fastify from 'fastify';
+import minimist from 'minimist';
 
 import { expiryEmail, newHitsEmail } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
@@ -19,6 +20,19 @@ import {
 } from '../types/subscription';
 
 dotenv.config();
+
+// Parse CLI arguments
+const argv = minimist(process.argv.slice(2));
+const targetSite: string | undefined = argv.site;
+const isDryRun: boolean = argv['dry-run'] === true;
+
+// Statistics tracking
+interface ProcessingStats {
+  sitesProcessed: number;
+  subscriptionsChecked: number;
+  expiryEmailsQueued: number;
+  newResultsEmailsQueued: number;
+}
 
 const server = fastify({});
 const release = process.env.SENTRY_RELEASE ?? '';
@@ -149,9 +163,10 @@ const getNewHitsFromElasticsearch = async (
  * Processes subscriptions for a specific site configuration.
  *
  * @param {SiteConfiguration} siteConfig - The site configuration to process
+ * @param {ProcessingStats} stats - Statistics object to track processing
  * @return {Promise<void>} A Promise that resolves when processing is complete
  */
-const processSiteSubscriptions = async (siteConfig: SiteConfigurationType): Promise<void> => {
+const processSiteSubscriptions = async (siteConfig: SiteConfigurationType, stats: ProcessingStats): Promise<void> => {
   const collection = server.mongo.db?.collection('subscription');
   const queueCollection = server.mongo.db?.collection('queue');
 
@@ -167,6 +182,8 @@ const processSiteSubscriptions = async (siteConfig: SiteConfigurationType): Prom
     })
     .toArray();
 
+  stats.subscriptionsChecked += result.length;
+
   // Process subscriptions sequentially to avoid overwhelming the system
   await result.reduce(async (previousPromise, subscription) => {
     await previousPromise;
@@ -175,7 +192,12 @@ const processSiteSubscriptions = async (siteConfig: SiteConfigurationType): Prom
 
     // If subscription should expire soon, send an expiration email
     if (checkShouldSendExpiryNotification(subscription as Partial<SubscriptionCollectionType>, siteConfig)) {
-      await collection.updateOne({ _id: subscription._id }, { $set: { expiry_notification_sent: 1 } });
+      if (isDryRun) {
+        // eslint-disable-next-line no-console
+        console.log(`[DRY RUN] Would send expiry email to ${subscription.email} (site: ${siteConfig.id})`);
+      } else {
+        await collection.updateOne({ _id: subscription._id }, { $set: { expiry_notification_sent: 1 } });
+      }
 
       const subscriptionValidForDays = siteConfig.subscription.maxAge;
       const subscriptionExpiresAt =
@@ -203,7 +225,10 @@ const processSiteSubscriptions = async (siteConfig: SiteConfigurationType): Prom
       };
 
       // Add email to queue
-      await queueCollection.insertOne(expiryEmailToQueue);
+      if (!isDryRun) {
+        await queueCollection.insertOne(expiryEmailToQueue);
+      }
+      stats.expiryEmailsQueued++;
     }
 
     const newHits = await getNewHitsFromElasticsearch(
@@ -239,13 +264,20 @@ const processSiteSubscriptions = async (siteConfig: SiteConfigurationType): Prom
       content: emailContent,
     };
 
-    // Add email to queue
-    await queueCollection.insertOne(email);
+    if (isDryRun) {
+      // eslint-disable-next-line no-console
+      console.log(
+        `[DRY RUN] Would queue email for ${subscription.email}: ${newHits.length} new result(s) (site: ${siteConfig.id})`,
+      );
+    } else {
+      // Add email to queue
+      await queueCollection.insertOne(email);
 
-    // Set last checked timestamp to this moment
-    const dateUnixtime: number = Math.floor(Date.now() / 1000);
-
-    await collection.updateOne({ _id: subscription._id }, { $set: { last_checked: dateUnixtime } });
+      // Set last checked timestamp to this moment
+      const dateUnixtime: number = Math.floor(Date.now() / 1000);
+      await collection.updateOne({ _id: subscription._id }, { $set: { last_checked: dateUnixtime } });
+    }
+    stats.newResultsEmailsQueued++;
 
     return Promise.resolve();
   }, Promise.resolve());
@@ -262,36 +294,82 @@ const app = async (): Promise<void> => {
     status: 'in_progress',
   });
 
+  // Initialize statistics
+  const stats: ProcessingStats = {
+    sitesProcessed: 0,
+    subscriptionsChecked: 0,
+    expiryEmailsQueued: 0,
+    newResultsEmailsQueued: 0,
+  };
+
   try {
     // eslint-disable-next-line no-console
     console.log('Environment:', process.env.ENVIRONMENT || 'dev');
+    if (isDryRun) {
+      // eslint-disable-next-line no-console
+      console.log('\n=== DRY RUN MODE - No changes will be made ===\n');
+    }
     // eslint-disable-next-line no-console
     console.log('Loading site configurations...');
 
     // Load site configurations
     const configLoader = SiteConfigurationLoader.getInstance();
     await configLoader.loadConfigurations();
-    const siteConfigs = configLoader.getConfigurations();
+    const allSiteConfigs = configLoader.getConfigurations();
 
+    // Filter by --site parameter if provided
+    let siteConfigsToProcess = Object.entries(allSiteConfigs);
+    if (targetSite) {
+      siteConfigsToProcess = siteConfigsToProcess.filter(([siteId]) => siteId === targetSite);
+
+      if (siteConfigsToProcess.length === 0) {
+        console.error(`Error: Site '${targetSite}' not found in configurations`);
+        console.log(`Available sites: ${Object.keys(allSiteConfigs).join(', ')}`);
+        process.exit(1);
+      }
+    }
+
+    const siteNames = siteConfigsToProcess.map(([siteId]) => siteId).join(', ');
     // eslint-disable-next-line no-console
-    console.log('Loaded configurations for sites:', Object.keys(siteConfigs));
+    console.log(`Processing ${siteConfigsToProcess.length} site(s): ${siteNames}\n`);
 
     // Process each site configuration
-    await Object.entries(siteConfigs).reduce(async (previousPromise, [siteId, siteConfig]) => {
+    await siteConfigsToProcess.reduce(async (previousPromise, [siteId, siteConfig]) => {
       await previousPromise;
       // eslint-disable-next-line no-console
       console.log(`Processing subscriptions for site: ${siteId}`);
-      await processSiteSubscriptions(siteConfig);
+      await processSiteSubscriptions(siteConfig, stats);
+      stats.sitesProcessed++;
       return Promise.resolve();
     }, Promise.resolve());
+
+    // Print summary
+    // eslint-disable-next-line no-console
+    console.log('\n=== Summary ===');
+    // eslint-disable-next-line no-console
+    console.log(`Sites processed: ${stats.sitesProcessed}`);
+    // eslint-disable-next-line no-console
+    console.log(`Subscriptions checked: ${stats.subscriptionsChecked}`);
+    // eslint-disable-next-line no-console
+    console.log(`Expiry emails queued: ${stats.expiryEmailsQueued}`);
+    // eslint-disable-next-line no-console
+    console.log(`New results emails queued: ${stats.newResultsEmailsQueued}`);
+    if (isDryRun) {
+      // eslint-disable-next-line no-console
+      console.log('\n[DRY RUN] No changes were made to the database');
+    }
   } catch (error) {
     console.error('Configuration loading error:', error);
-    server.Sentry?.captureCheckIn({ checkInId, monitorSlug: 'hav-populate-email-queue', status: 'error' });
-    server.Sentry?.captureException(error);
+    if (!isDryRun) {
+      server.Sentry?.captureCheckIn({ checkInId, monitorSlug: 'hav-populate-email-queue', status: 'error' });
+      server.Sentry?.captureException(error);
+    }
     return;
   }
 
-  server.Sentry?.captureCheckIn({ checkInId, monitorSlug: 'hav-populate-email-queue', status: 'ok' });
+  if (!isDryRun) {
+    server.Sentry?.captureCheckIn({ checkInId, monitorSlug: 'hav-populate-email-queue', status: 'ok' });
+  }
 };
 
 server.get('/', async function handleRootRequest(_request, _reply) {

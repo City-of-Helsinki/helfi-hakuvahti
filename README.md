@@ -65,6 +65,51 @@ Pre-requisities to use Hakuvahti are:
 
 ## Configuration
 
+### Email Queue Population Script
+
+The `hav-populate-email-queue` script checks for new search results and queues notification emails. It supports site-specific processing and dry-run mode for testing.
+
+**Usage:**
+
+```bash
+# Process all sites
+npm run hav:populate-email-queue
+
+# Process specific site only
+npm run hav:populate-email-queue -- --site=rekry
+
+# Preview what would happen without making changes (dry run)
+npm run hav:populate-email-queue -- --dry-run
+
+# Dry run for specific site
+npm run hav:populate-email-queue -- --site=rekry --dry-run
+```
+
+**CLI Parameters:**
+- `--site=<sitename>` - Process only the specified site (omit to process all sites)
+- `--dry-run` - Preview mode that shows what would happen without making any database changes
+
+**OpenShift Crontab Examples:**
+
+```yaml
+# Rekry site - check at 6 AM daily
+- name: populate-rekry
+  schedule: "0 6 * * *"
+  command: ["npm", "run", "hav:populate-email-queue", "--", "--site=rekry"]
+
+# General site - check hourly
+- name: populate-general  
+  schedule: "0 * * * *"
+  command: ["npm", "run", "hav:populate-email-queue", "--", "--site=general"]
+
+# Queue processor runs every minute (processes all sites)
+- name: send-emails
+  schedule: "* * * * *"
+  command: ["npm", "run", "hav:send-emails-in-queue"]
+```
+
+**Note:** Each site can have its own schedule. The `--site` parameter allows you to control when each site's results are collected, which is useful when different sites want notifications at different times or to spread the load on ElasticSearch.
+
 ### Site Configuration Files
 
 Create JSON configuration files in the `conf/` directory. Each file represents a site and should be named `{site-id}.json` (e.g., `rekry.json`).
