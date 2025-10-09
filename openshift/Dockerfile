@@ -17,17 +17,14 @@ ENV npm_config_cache="/tmp/.npm"
 ENV APP_NAME rekry-hakuvahti
 
 WORKDIR "$HOME"
-COPY package*.json ./
 
+COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --chown=default:0 / "$HOME/"
 COPY --from=builder --chown=default:0 $HOME/dist $HOME/dist
 
 EXPOSE 3000
-RUN \
-  chown -R :0 "$HOME" && \
-  chmod -R g+wx "$HOME"
 
 USER nobody:0
 
