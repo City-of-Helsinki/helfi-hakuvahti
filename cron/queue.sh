@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cd /app
+cd "$HOME"
 
 echo "Sending emails in queue"
 
