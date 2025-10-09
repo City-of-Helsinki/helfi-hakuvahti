@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cd /app
+cd "$HOME"
 
 echo "Populating email queue"
 
