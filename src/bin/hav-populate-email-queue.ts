@@ -4,8 +4,9 @@ import dotenv from 'dotenv';
 import fastify from 'fastify';
 import minimist from 'minimist';
 
-import { expiryEmail, newHitsEmail } from '../lib/email';
+import { expiryEmail, newHitsEmail, newHitsSms } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
+import atv from '../plugins/atv';
 import base64Plugin from '../plugins/base64';
 import elasticproxy from '../plugins/elasticproxy';
 import mongodb from '../plugins/mongodb';
@@ -13,6 +14,7 @@ import '../plugins/sentry';
 import type { ElasticProxyJsonResponseType, PartialDrupalNodeType } from '../types/elasticproxy';
 import type { QueueInsertDocumentType } from '../types/mailer';
 import type { SiteConfigurationType } from '../types/siteConfig';
+import type { SmsQueueInsertDocumentType } from '../types/sms';
 import {
   type SubscriptionCollectionLanguageType,
   type SubscriptionCollectionType,
@@ -32,6 +34,7 @@ interface ProcessingStats {
   subscriptionsChecked: number;
   expiryEmailsQueued: number;
   newResultsEmailsQueued: number;
+  smsQueued: number;
 }
 
 const server = fastify({});
@@ -51,6 +54,8 @@ void server.register(mongodb);
 void server.register(elasticproxy);
 // eslint-disable-next-line no-void
 void server.register(base64Plugin);
+// eslint-disable-next-line no-void
+void server.register(atv);
 
 export const getLocalizedUrl = (
   siteConfig: SiteConfigurationType,
@@ -169,8 +174,9 @@ const getNewHitsFromElasticsearch = async (
 const processSiteSubscriptions = async (siteConfig: SiteConfigurationType, stats: ProcessingStats): Promise<void> => {
   const collection = server.mongo.db?.collection('subscription');
   const queueCollection = server.mongo.db?.collection('queue');
+  const smsQueueCollection = server.mongo.db?.collection('smsqueue');
 
-  if (!collection || !queueCollection) {
+  if (!collection || !queueCollection || !smsQueueCollection) {
     throw new Error('MongoDB collections not available');
   }
 
@@ -279,6 +285,42 @@ const processSiteSubscriptions = async (siteConfig: SiteConfigurationType, stats
     }
     stats.newResultsEmailsQueued++;
 
+    // Check if subscription has SMS in ATV and queue if present
+    try {
+      const atvDocs = await server.atvGetDocumentBatch([subscription.email]);
+      if (atvDocs?.[0]?.content) {
+        const atvContent = JSON.parse(atvDocs[0].content);
+
+        // Only queue SMS if user provided one
+        if (atvContent.sms) {
+          const smsContent = await newHitsSms(
+            subscription.lang,
+            {
+              search_description: subscription.search_description,
+              search_link: subscription.query,
+            },
+            siteConfig,
+          );
+
+          const smsToQueue: SmsQueueInsertDocumentType = {
+            sms: subscription.email, // atvDocumentId
+            content: smsContent,
+          };
+
+          if (isDryRun) {
+            // eslint-disable-next-line no-console
+            console.log(`[DRY RUN] Would queue SMS for ${subscription._id}`);
+          } else {
+            await smsQueueCollection.insertOne(smsToQueue);
+          }
+          stats.smsQueued++;
+        }
+      }
+    } catch (error) {
+      // Log error but don't break email sending
+      console.error(`Failed to check/queue SMS for ${subscription._id}:`, error);
+    }
+
     return Promise.resolve();
   }, Promise.resolve());
 };
@@ -300,6 +342,7 @@ const app = async (): Promise<void> => {
     subscriptionsChecked: 0,
     expiryEmailsQueued: 0,
     newResultsEmailsQueued: 0,
+    smsQueued: 0,
   };
 
   try {
@@ -354,6 +397,8 @@ const app = async (): Promise<void> => {
     console.log(`Expiry emails queued: ${stats.expiryEmailsQueued}`);
     // eslint-disable-next-line no-console
     console.log(`New results emails queued: ${stats.newResultsEmailsQueued}`);
+    // eslint-disable-next-line no-console
+    console.log(`SMS queued: ${stats.smsQueued}`);
     if (isDryRun) {
       // eslint-disable-next-line no-console
       console.log('\n[DRY RUN] No changes were made to the database');
