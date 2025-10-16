@@ -68,3 +68,18 @@ export const newHitsEmail = async (
     throw error;
   }
 };
+
+// SMS notification for new search results
+export const newHitsSms = async (
+  lang: SubscriptionCollectionLanguageType,
+  data: {
+    search_description: string;
+    search_link: string;
+  },
+  siteConfig: SiteConfigurationType,
+) =>
+  sprightly(`dist/templates/${siteConfig.mail.templatePath}/sms/sms-${lang}.html`, {
+    lang,
+    search_description: data.search_description,
+    search_link: siteConfig.urls.base + data.search_link,
+  });
