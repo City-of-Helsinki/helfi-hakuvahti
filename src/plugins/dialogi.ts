@@ -44,7 +44,7 @@ export default fp(async function dialogiPlugin(fastify: FastifyInstance) {
         };
 
         const response: AxiosResponse<DialogiSmsResponseType> = await axios.post(
-          `${process.env.DIALOGI_API_URL}/send`,
+          process.env.DIALOGI_API_URL,
           requestBody,
           {
             headers: {
