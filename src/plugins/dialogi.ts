@@ -13,11 +13,11 @@ import type { DialogiSmsRequestType, DialogiSmsResponseType } from '../types/dia
 export interface DialogiClient {
   /**
    * Send an SMS message
-   * @param to - Recipient phone number in E.164 format (e.g., "+358501234567")
-   * @param message - SMS message content
+   * @param destination - Recipient phone number in E.164 format (e.g., "+358501234567")
+   * @param text - SMS message content
    * @returns Promise with Dialogi API response
    */
-  sendSms(to: string, message: string): Promise<DialogiSmsResponseType>;
+  sendSms(destination: string, text: string): Promise<DialogiSmsResponseType>;
 }
 
 export default fp(async function dialogiPlugin(fastify: FastifyInstance) {
@@ -30,17 +30,24 @@ export default fp(async function dialogiPlugin(fastify: FastifyInstance) {
     fastify.log.warn('DIALOGI_API_KEY not configured - SMS sending will be disabled');
   }
 
+  if (!process.env.DIALOGI_SENDER) {
+    fastify.log.warn('DIALOGI_SENDER not configured - SMS sending will be disabled');
+  }
+
   const dialogiClient: DialogiClient = {
-    async sendSms(to: string, message: string): Promise<DialogiSmsResponseType> {
+    async sendSms(destination: string, text: string): Promise<DialogiSmsResponseType> {
       // Check if Dialogi is configured
-      if (!process.env.DIALOGI_API_URL || !process.env.DIALOGI_API_KEY) {
-        throw new Error('Dialogi SMS service is not configured. Please set DIALOGI_API_URL and DIALOGI_API_KEY');
+      if (!process.env.DIALOGI_API_URL || !process.env.DIALOGI_API_KEY || !process.env.DIALOGI_SENDER) {
+        throw new Error(
+          'Dialogi SMS service is not configured. Please set DIALOGI_API_URL, DIALOGI_API_KEY, and DIALOGI_SENDER',
+        );
       }
 
       try {
         const requestBody: DialogiSmsRequestType = {
-          to,
-          message,
+          sender: process.env.DIALOGI_SENDER,
+          destination,
+          text,
         };
 
         const response: AxiosResponse<DialogiSmsResponseType> = await axios.post(
@@ -55,7 +62,7 @@ export default fp(async function dialogiPlugin(fastify: FastifyInstance) {
           },
         );
 
-        fastify.log.info({ to, messageId: response.data.id }, 'SMS sent successfully via Dialogi');
+        fastify.log.info({ destination, messageId: response.data.id }, 'SMS sent successfully via Dialogi');
 
         return response.data;
       } catch (error) {
@@ -63,7 +70,7 @@ export default fp(async function dialogiPlugin(fastify: FastifyInstance) {
           const errorMessage = error.response?.data?.message || error.message;
           fastify.log.error(
             {
-              to,
+              destination,
               error: errorMessage,
               status: error.response?.status,
               statusText: error.response?.statusText,
@@ -73,7 +80,7 @@ export default fp(async function dialogiPlugin(fastify: FastifyInstance) {
           throw new Error(`Dialogi SMS API error: ${errorMessage}`);
         }
 
-        fastify.log.error({ to, error }, 'Unexpected error sending SMS via Dialogi');
+        fastify.log.error({ destination, error }, 'Unexpected error sending SMS via Dialogi');
         throw error;
       }
     },
