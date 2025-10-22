@@ -227,9 +227,11 @@ The system automatically selects the correct environment configuration based on 
 
 Hakuvahti supports sending SMS notifications via Elisa Dialogi API. SMS notifications are optional and work alongside email notifications.
 
-`DIALOGI_API_URL` Set the Elisa Dialogi API base URL (for example `https://dialogi.elisa.fi/api/v1`)
+`DIALOGI_API_URL` Set the Elisa Dialogi API base URL (for example `https://dialogi.elisa.fi/api/v1/`)
 
 `DIALOGI_API_KEY` Set the API key/bearer token for Dialogi authentication
+
+`DIALOGI_SENDER` Set the SMS sender identifier (international number with +, shortcode, or alphanumeric max 11 characters)
 
 **Note:** If these environment variables are not set, SMS functionality will be disabled and only email notifications will be sent. The system will log a warning on startup if Dialogi is not configured.
 
