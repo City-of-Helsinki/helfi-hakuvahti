@@ -28,4 +28,4 @@ EXPOSE 3000
 
 USER nobody:0
 
-CMD ["fastify", "start", "-l", "info", "dist/app.js"]
+CMD ["npx", "fastify", "start", "-l", "info", "dist/app.js"]
