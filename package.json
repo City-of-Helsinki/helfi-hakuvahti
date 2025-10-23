@@ -42,7 +42,7 @@
     "fastify-plugin": "^4.0.0",
     "jsdom": "^24.0.0",
     "minimist": "^1.2.8",
-    "nodemailer": "^6.9.9",
+    "nodemailer": "^7.0.10",
     "sprightly": "^2.0.1"
   },
   "devDependencies": {
