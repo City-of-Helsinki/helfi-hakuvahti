@@ -76,7 +76,6 @@ export default fp(async function dialogiPlugin(fastify: FastifyInstance) {
           const errorMessage = error.response?.data?.message || error.message;
           fastify.log.error(
             {
-              destination,
               error: errorMessage,
               status: error.response?.status,
               statusText: error.response?.statusText,

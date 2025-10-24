@@ -91,11 +91,11 @@ const app = async (): Promise<void> => {
         try {
           // Send SMS using Dialogi plugin
           await server.dialogi.sendSms(phoneNumber, messageContent);
-          console.log(`SMS sent successfully to ${phoneNumber}`);
+          console.log(`SMS sent successfully for ATV ID: ${atvId}`);
         } catch (error) {
           // Log error but continue processing queue
           server.Sentry?.captureException(error);
-          console.error(`Failed to send SMS to ${phoneNumber}:`, error);
+          console.error(`Failed to send SMS for ATV ID ${atvId}:`, error);
         }
       } else {
         console.warn(`Phone number not found for ATV ID ${atvId}`);
