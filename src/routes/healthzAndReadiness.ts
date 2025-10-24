@@ -4,6 +4,7 @@ const healthzAndReadiness: FastifyPluginAsync = async (fastify: FastifyInstance,
   fastify.get(
     '/healthz',
     {
+      logLevel: 'silent',
       schema: {
         response: {
           200: {
@@ -27,6 +28,7 @@ const healthzAndReadiness: FastifyPluginAsync = async (fastify: FastifyInstance,
   fastify.get(
     '/readiness',
     {
+      logLevel: 'silent',
       schema: {
         response: {
           200: {

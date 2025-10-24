@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { confirmationEmail } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
-import { Generic500Error, type Generic500ErrorType } from '../types/error';
+import { Generic400Error, type Generic400ErrorType, Generic500Error, type Generic500ErrorType } from '../types/error';
 import type { QueueInsertDocumentType } from '../types/mailer';
 import {
   type SubscriptionCollectionType,
@@ -17,7 +17,7 @@ import {
 const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts: object): Promise<void> => {
   fastify.post<{
     Body: SubscriptionRequestType;
-    Reply: SubscriptionResponseType | Generic500ErrorType;
+    Reply: SubscriptionResponseType | Generic400ErrorType | Generic500ErrorType;
   }>(
     '/subscription',
     {
@@ -25,6 +25,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         body: SubscriptionRequest,
         response: {
           200: SubscriptionResponse,
+          400: Generic400Error,
           500: Generic500Error,
         },
       },
@@ -33,6 +34,16 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
       const mongodb = fastify.mongo;
       const collection = mongodb.db?.collection('subscription');
       const hash = fastify.getRandHash();
+
+      // Check if elastic query validation failed
+      if (request.elasticQueryValidation && !request.elasticQueryValidation.isValid) {
+        return reply
+          .code(400)
+          .header('Content-Type', 'application/json; charset=utf-8')
+          .send({
+            error: `Invalid elastic_query: ${request.elasticQueryValidation.error || 'Query validation failed'}`,
+          });
+      }
 
       // Replace email in request with ATV hashed email
       if (!request?.atvResponse?.atvDocumentId)
