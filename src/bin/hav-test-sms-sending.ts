@@ -73,7 +73,12 @@ const app = async (): Promise<void> => {
       // Send SMS via Dialogi API
       try {
         const response = await server.dialogi.sendSms(testPhoneNumber, smsContent);
-        console.log(`✓ SMS sent successfully! Message ID: ${response.id || 'N/A'}`);
+        // Extract message ID from Dialogi response
+        const messageId =
+          response.messages?.[0]?.[testPhoneNumber]?.messageid ||
+          Object.values(response.messages?.[0] || {})[0]?.messageid ||
+          'N/A';
+        console.log(`SMS Message ID: ${messageId}`);
       } catch (error) {
         console.error(`✗ Failed to send ${lang} SMS:`, error);
         throw error;
