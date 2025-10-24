@@ -11,8 +11,21 @@ export type DialogiSmsRequestType = Static<typeof DialogiSmsRequest>;
 
 // Response types for Elisa Dialogi SMS API
 export const DialogiSmsResponse = Type.Object({
-  id: Type.Optional(Type.String()), // Message ID from Dialogi
-  status: Type.Optional(Type.String()), // Status of the SMS
+  messages: Type.Optional(
+    Type.Array(
+      Type.Record(
+        Type.String(),
+        Type.Object({
+          converted: Type.Optional(Type.String()),
+          status: Type.Optional(Type.String()),
+          reason: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+          messageid: Type.Optional(Type.String()),
+        }),
+      ),
+    ),
+  ),
+  warnings: Type.Optional(Type.Array(Type.Object({ message: Type.String() }))),
+  errors: Type.Optional(Type.Array(Type.Object({ message: Type.String() }))),
 });
 
 export type DialogiSmsResponseType = Static<typeof DialogiSmsResponse>;
