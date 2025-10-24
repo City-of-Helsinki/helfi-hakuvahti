@@ -62,7 +62,13 @@ export default fp(async function dialogiPlugin(fastify: FastifyInstance) {
           },
         );
 
-        fastify.log.info({ destination, messageId: response.data.id }, 'SMS sent successfully via Dialogi');
+        // Extract message ID from response
+        const messageId =
+          response.data.messages?.[0]?.[destination]?.messageid ||
+          Object.values(response.data.messages?.[0] || {})[0]?.messageid ||
+          'unknown';
+
+        fastify.log.info({ messageId }, 'SMS sent to Dialogi');
 
         return response.data;
       } catch (error) {
@@ -80,7 +86,7 @@ export default fp(async function dialogiPlugin(fastify: FastifyInstance) {
           throw new Error(`Dialogi SMS API error: ${errorMessage}`);
         }
 
-        fastify.log.error({ destination, error }, 'Unexpected error sending SMS via Dialogi');
+        fastify.log.error({ error }, 'Unexpected error sending SMS via Dialogi');
         throw error;
       }
     },
