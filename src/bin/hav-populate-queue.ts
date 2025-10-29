@@ -289,40 +289,34 @@ const processSiteSubscriptions = async (siteConfig: SiteConfigurationType, stats
     }
     stats.newResultsEmailsQueued++;
 
-    // Check if subscription has SMS in ATV and queue if present
-    try {
-      const atvDocs = await server.atvGetDocumentBatch([subscription.email]);
-      if (atvDocs?.[0]?.content) {
-        const atvContent = JSON.parse(atvDocs[0].content);
+    // Queue SMS if subscription has SMS flag
+    if (subscription.has_sms) {
+      try {
+        const smsContent = await newHitsSms(
+          subscription.lang,
+          {
+            search_description: subscription.search_description,
+            search_link: subscription.query,
+          },
+          siteConfig,
+        );
 
-        // Only queue SMS if user provided one
-        if (atvContent.sms) {
-          const smsContent = await newHitsSms(
-            subscription.lang,
-            {
-              search_description: subscription.search_description,
-              search_link: subscription.query,
-            },
-            siteConfig,
-          );
+        const smsToQueue: SmsQueueInsertDocumentType = {
+          sms: subscription.email, // atvDocumentId
+          content: smsContent,
+        };
 
-          const smsToQueue: SmsQueueInsertDocumentType = {
-            sms: subscription.email, // atvDocumentId
-            content: smsContent,
-          };
-
-          if (isDryRun) {
-            // eslint-disable-next-line no-console
-            console.log(`[DRY RUN] Would queue SMS for ${subscription._id}`);
-          } else {
-            await smsQueueCollection.insertOne(smsToQueue);
-          }
-          stats.smsQueued++;
+        if (isDryRun) {
+          // eslint-disable-next-line no-console
+          console.log(`[DRY RUN] Would queue SMS for ${subscription._id}`);
+        } else {
+          await smsQueueCollection.insertOne(smsToQueue);
         }
+        stats.smsQueued++;
+      } catch (error) {
+        // Log error but don't break email sending
+        console.error(`Error queueing SMS for subscription ${subscription._id}:`, error);
       }
-    } catch (error) {
-      // Log error but don't break email sending
-      console.error(`Failed to check/queue SMS for ${subscription._id}:`, error);
     }
 
     return Promise.resolve();

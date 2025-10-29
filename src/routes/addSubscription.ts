@@ -96,6 +96,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         last_checked: Math.floor(Date.now() / 1000),
         expiry_notification_sent: SubscriptionStatus.INACTIVE,
         status: SubscriptionStatus.INACTIVE,
+        has_sms: !!request.atvResponse?.hasSms,
       };
 
       // SMS is already stored in ATV document, no need to store in MongoDB

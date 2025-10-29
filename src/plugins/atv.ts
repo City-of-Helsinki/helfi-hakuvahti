@@ -136,6 +136,7 @@ const requestEmailHook = async (request: FastifyRequestType) => {
     if (atvDocumentId) {
       request.atvResponse = {
         atvDocumentId,
+        hasSms: !!sms,
       };
     }
 

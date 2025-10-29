@@ -2,6 +2,7 @@ import { type Static, Type } from '@sinclair/typebox';
 
 export const AtvResponse = Type.Object({
   atvDocumentId: Type.String(),
+  hasSms: Type.Optional(Type.Boolean()),
 });
 
 export type AtvResponseType = Static<typeof AtvResponse>;
