@@ -62,7 +62,7 @@ make shell
 **Action:** In the Hakuvahti shell, run:
 
 ```bash
-npm run hav:populate-email-queue
+npm run hav:populate-queue
 npm run hav:send-emails-in-queue
 ```
 
@@ -112,7 +112,7 @@ drush cr
 **Action:** In the Hakuvahti shell (access via `make shell` if needed), run:
 
 ```bash
-npm run hav:populate-email-queue
+npm run hav:populate-queue
 npm run hav:send-emails-in-queue
 ```
 

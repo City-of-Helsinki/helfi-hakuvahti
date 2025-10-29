@@ -247,6 +247,10 @@ const processSiteSubscriptions = async (siteConfig: SiteConfigurationType, stats
       return Promise.resolve();
     }
 
+    // Limit hits in email (user can see all via search_link)
+    const maxHitsInEmail = siteConfig.mail.maxHitsInEmail ?? 10;
+    const hitsForEmail = newHits.slice(0, maxHitsInEmail);
+
     // Format Mongo DateTime to EU format for email.
     const createdDate: string = new Date(subscription.created).toISOString().substring(0, 10);
     const date = new Date(createdDate);
@@ -260,7 +264,7 @@ const processSiteSubscriptions = async (siteConfig: SiteConfigurationType, stats
         search_description: subscription.search_description,
         search_link: subscription.query,
         remove_link: `${localizedBaseUrl}/hakuvahti/unsubscribe?subscription=${subscription._id}&hash=${subscription.hash}`,
-        hits: newHits,
+        hits: hitsForEmail,
       },
       siteConfig,
     );
@@ -332,7 +336,7 @@ const processSiteSubscriptions = async (siteConfig: SiteConfigurationType, stats
  */
 const app = async (): Promise<void> => {
   const checkInId = server.Sentry?.captureCheckIn({
-    monitorSlug: 'hav-populate-email-queue',
+    monitorSlug: 'hav-populate-queue',
     status: 'in_progress',
   });
 
@@ -406,14 +410,14 @@ const app = async (): Promise<void> => {
   } catch (error) {
     console.error('Configuration loading error:', error);
     if (!isDryRun) {
-      server.Sentry?.captureCheckIn({ checkInId, monitorSlug: 'hav-populate-email-queue', status: 'error' });
+      server.Sentry?.captureCheckIn({ checkInId, monitorSlug: 'hav-populate-queue', status: 'error' });
       server.Sentry?.captureException(error);
     }
     return;
   }
 
   if (!isDryRun) {
-    server.Sentry?.captureCheckIn({ checkInId, monitorSlug: 'hav-populate-email-queue', status: 'ok' });
+    server.Sentry?.captureCheckIn({ checkInId, monitorSlug: 'hav-populate-queue', status: 'ok' });
   }
 };
 
