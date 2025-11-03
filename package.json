@@ -20,8 +20,11 @@
     "hav:init-mongodb": "node dist/bin/hav-init-mongodb.js",
     "hav:migrate-site-id": "node dist/bin/hav-migrate-site-id.js",
     "hav:update-schema": "node dist/bin/hav-update-schema.js",
-    "hav:populate-email-queue": "node dist/bin/hav-populate-email-queue.js",
-    "hav:send-emails-in-queue": "node dist/bin/hav-send-emails-in-queue.js"
+    "hav:populate-queue": "node dist/bin/hav-populate-queue.js",
+    "hav:send-emails-in-queue": "node dist/bin/hav-send-emails-in-queue.js",
+    "hav:send-sms-in-queue": "node dist/bin/hav-send-sms-in-queue.js",
+    "hav:test-sms-sending": "node dist/bin/hav-test-sms-sending.js",
+    "hav:run-dialogi-test-server": "npm run build:ts && node dist/bin/hav-dialogi-test-server.js"
   },
   "keywords": [],
   "author": "",

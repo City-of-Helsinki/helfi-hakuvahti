@@ -65,3 +65,8 @@ test/types/index.js
 
 # compiled app
 dist
+
+# Misc
+.less-history-file
+.lesshst
+.bash_history

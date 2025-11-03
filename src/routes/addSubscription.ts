@@ -12,6 +12,19 @@ import {
   SubscriptionStatus,
 } from '../types/subscription';
 
+// Validation helpers
+const isValidEmail = (email: string): boolean => {
+  const re =
+    /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  return re.test(String(email).toLowerCase());
+};
+
+const isValidSms = (sms: string): boolean => {
+  // E.164 international format: + followed by 1-15 digits
+  const re = /^\+[1-9]\d{1,14}$/;
+  return re.test(sms);
+};
+
 // Add subscription to given query parameters
 
 const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts: object): Promise<void> => {
@@ -28,6 +41,26 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
           400: Generic400Error,
           500: Generic500Error,
         },
+      },
+      preValidation: async (request: FastifyRequest<{ Body: SubscriptionRequestType }>, reply: FastifyReply) => {
+        // Validate email and SMS BEFORE ATV document creation
+        // preValidation runs BEFORE preHandler (where ATV storage happens)
+        const email = request.body.email?.trim();
+        const sms = request.body.sms?.trim();
+
+        if (!isValidEmail(email)) {
+          return reply
+            .code(400)
+            .header('Content-Type', 'application/json; charset=utf-8')
+            .send({ error: 'Invalid email format.' });
+        }
+
+        if (sms && !isValidSms(sms)) {
+          return reply
+            .code(400)
+            .header('Content-Type', 'application/json; charset=utf-8')
+            .send({ error: 'Invalid SMS format. Use international format (e.g., +358451234567).' });
+        }
       },
     },
     async (request: FastifyRequest<{ Body: SubscriptionRequestType }>, reply: FastifyReply) => {
@@ -74,7 +107,11 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         last_checked: Math.floor(Date.now() / 1000),
         expiry_notification_sent: SubscriptionStatus.INACTIVE,
         status: SubscriptionStatus.INACTIVE,
+        has_sms: !!request.atvResponse?.hasSms,
       };
+
+      // SMS is already stored in ATV document, no need to store in MongoDB
+      // It was removed by the ATV hook after validation
 
       const response = await collection?.insertOne(subscriptionData);
       if (!response) {

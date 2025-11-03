@@ -60,29 +60,30 @@ Pre-requisities to use Hakuvahti are:
 - `npm start` (or `npm run dev` for development)
 - Hakuvahti should now be running in port `:3000` (by default)
 - For production environment, add following commands to cron:
-  - `npm run hav:populate-email-queue` (this should be run once per hour or at least daily)
+  - `npm run hav:populate-queue` (this should be run once per hour or at least daily)
   - `npm run hav:send-emails-in-queue` (this should be run at least once per minute)
+  - `npm run hav:send-sms-in-queue` (optional, for SMS notifications - should be run at least once per minute)
 
 ## Configuration
 
-### Email Queue Population Script
+### Queue Population Script
 
-The `hav-populate-email-queue` script checks for new search results and queues notification emails. It supports site-specific processing and dry-run mode for testing.
+The `hav:populate-queue` script checks for new search results and queues notification emails and SMS messages. It supports site-specific processing and dry-run mode for testing.
 
 **Usage:**
 
 ```bash
 # Process all sites
-npm run hav:populate-email-queue
+npm run hav:populate-queue
 
 # Process specific site only
-npm run hav:populate-email-queue -- --site=rekry
+npm run hav:populate-queue -- --site=rekry
 
 # Preview what would happen without making changes (dry run)
-npm run hav:populate-email-queue -- --dry-run
+npm run hav:populate-queue -- --dry-run
 
 # Dry run for specific site
-npm run hav:populate-email-queue -- --site=rekry --dry-run
+npm run hav:populate-queue -- --site=rekry --dry-run
 ```
 
 **CLI Parameters:**
@@ -95,12 +96,12 @@ npm run hav:populate-email-queue -- --site=rekry --dry-run
 # Rekry site - check at 6 AM daily
 - name: populate-rekry
   schedule: "0 6 * * *"
-  command: ["npm", "run", "hav:populate-email-queue", "--", "--site=rekry"]
+  command: ["npm", "run", "hav:populate-queue", "--", "--site=rekry"]
 
 # General site - check hourly
 - name: populate-general  
   schedule: "0 * * * *"
-  command: ["npm", "run", "hav:populate-email-queue", "--", "--site=general"]
+  command: ["npm", "run", "hav:populate-queue", "--", "--site=general"]
 
 # Queue processor runs every minute (processes all sites)
 - name: send-emails
@@ -157,7 +158,7 @@ Example configuration structure:
 ### Environment Selection
 
 The system automatically selects the correct environment configuration based on the `ENVIRONMENT` variable:
-- Defaults to `dev` if `ENVIRONMENT` is not set
+- Defaults to `local` if `ENVIRONMENT` is not set
 - Use `ENVIRONMENT=production` for production deployment
 - Sites usually have `local`, `dev`, `staging` and `production` environments
 
@@ -222,6 +223,26 @@ The system automatically selects the correct environment configuration based on 
 
 `MAIL_AUTH_PASS` (Password to authenticate at SMTP server)
 
+### Elisa Dialogi SMS Service (Optional)
+
+Hakuvahti supports sending SMS notifications via Elisa Dialogi API. SMS notifications are optional and work alongside email notifications.
+
+`DIALOGI_API_URL` Set the Elisa Dialogi API base URL (for example `https://viestipalvelu-api.elisa.fi/api/v1/`)
+
+`DIALOGI_API_KEY` Set the API key/bearer token for Dialogi authentication
+
+`DIALOGI_SENDER` Set the SMS sender identifier (international number with +, shortcode, or alphanumeric max 11 characters)
+
+**Note:** If these environment variables are not set, SMS functionality will be disabled and only email notifications will be sent. The system will log a warning on startup if Dialogi is not configured.
+
+For SMS notifications to work:
+1. Users must provide their phone number in E.164 international format (e.g., `+358501234567`) when subscribing
+2. Run the SMS queue processor: `npm run hav:send-sms-in-queue` (should be run at least once per minute in production)
+
+### Testing
+
+`TEST_SMS_NUMBER` Set your phone number in E.164 format for testing SMS sending (e.g., `+358501234567`). Used by `npm run hav:test-sms-sending` to verify Dialogi API integration.
+
 # REST Endpoints:
 
 ## Add Subscription
@@ -246,7 +267,7 @@ Adds new Hakuvahti subscription:
 
 Confirms a subscription. To confirm a subscription, user must know both the id and hash (`hash` field in collection).
 
-Subscriptions that are not confirmed, will not be checked during `npm run hav:populate-email-queue ` command.
+Subscriptions that are not confirmed, will not be checked during `npm run hav:populate-queue` command.
 
 ## Delete a subscription
 
@@ -272,22 +293,81 @@ Initialize MongoDB collections. Required before running populate or send command
 
 ### Query for new results for subscriptions
 
-`npm run hav:populate-email-queue`
+`npm run hav:populate-queue`
 
-Queries all Hakuvahti entries and checks for new results in ElasticSearch. This populates the email queue.
+Queries all Hakuvahti entries and checks for new results in ElasticSearch. This populates the email and SMS queues.
 
 Removes expired subscriptions.
 
-Adds following emails to the email queue:
+Adds following notifications to queues:
 
-- New results from ElasticQuery queries
-- Notifications if subscription is going to expire
+- **Email queue**: New results from ElasticQuery queries and expiry notifications
+- **SMS queue**: New results notifications (only for subscriptions with SMS in ATV)
 
 ### Sends emails from queue
 
 `npm run hav:send-emails-in-queue`
 
-Sends emails in queue that were generated by `hav:populate-email-queue`
+Sends emails in queue that were generated by `hav:populate-queue`
+
+### Sends SMS from queue
+
+`npm run hav:send-sms-in-queue`
+
+Sends SMS messages in queue that were generated by `hav:populate-queue`. Only processes subscriptions that have SMS stored in ATV.
+
+### Test SMS Sending
+
+`npm run hav:test-sms-sending`
+
+Test script to verify Elisa Dialogi SMS API integration. Sends test SMS messages in all supported languages (fi, sv, en) to a specified phone number.
+
+**Prerequisites:**
+- Set `TEST_SMS_NUMBER` in your `.env` file (e.g., `TEST_SMS_NUMBER=+358501234567`)
+- Configure `DIALOGI_API_URL` and `DIALOGI_API_KEY`
+- Build the project: `npm run build:ts`
+
+**Example usage:**
+```bash
+# Add to .env file:
+TEST_SMS_NUMBER=+358501234567
+
+# Build and run test
+npm run build:ts
+npm run hav:test-sms-sending
+```
+
+The script will send three test SMS messages (one per language) with dummy search data to verify the integration is working correctly.
+
+### Mock Dialogi Server (Local Development)
+
+`npm run hav:run-dialogi-test-server`
+
+Runs a mock Dialogi API server for local testing when you don't have access to the real Dialogi API (requires static IP).
+
+**Usage:**
+```bash
+# Terminal 1: Start the mock server
+npm run hav:run-dialogi-test-server
+
+(or after starting hakuvahti with make up, you can start server with:
+"docker compose exec nodejs npm run hav:run-dialogi-test-server")
+
+# Terminal 2: Configure your .env to use the mock server
+DIALOGI_API_URL=http://localhost:3001/sms
+DIALOGI_API_KEY=any-value-works
+DIALOGI_SENDER=TestSender
+
+# Now test the full SMS pipeline locally
+npm run hav:test-sms-sending
+```
+
+The mock server:
+- Runs on `http://localhost:3001`
+- Accepts POST requests to `/sms`
+- Returns valid Dialogi-like responses
+- Logs all "sent" SMS messages to console
+- Allows testing the entire SMS pipeline without the real API
 
 ### Migration
 

@@ -23,6 +23,7 @@ export const SubscriptionCollection = Type.Object({
   last_checked: Type.Optional(Type.Number()),
   expiry_notification_sent: Type.Enum(SubscriptionStatus),
   status: Type.Enum(SubscriptionStatus),
+  has_sms: Type.Optional(Type.Boolean()),
 });
 export type SubscriptionCollectionType = Static<typeof SubscriptionCollection>;
 
@@ -43,6 +44,7 @@ export const SubscriptionRequest = Type.Object({
   search_description: Type.Optional(Type.String()),
   site_id: Type.String(),
   lang: SubscriptionCollectionLanguage,
+  sms: Type.Optional(Type.String()),
 });
 export type SubscriptionRequestType = Static<typeof SubscriptionRequest>;
 
