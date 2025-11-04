@@ -91,6 +91,23 @@ const renewSubscription: FastifyPluginAsync = async (fastify: FastifyInstance, _
         updateFields.first_created = subscription.created;
       }
 
+      // Update ATV document's delete_after timestamp to match the new subscription expiry
+      try {
+        await fastify.atvUpdateDocumentDeleteAfter(subscription.email, subscriptionValidForDays);
+      } catch (error) {
+        fastify.log.error({
+          level: 'error',
+          message: 'Failed to update ATV document delete_after timestamp',
+          error,
+          subscriptionId: id,
+          atvDocumentId: subscription.email,
+        });
+        return reply.code(500).send({
+          statusCode: 500,
+          statusMessage: 'Failed to update subscription expiry in storage.',
+        });
+      }
+
       // Update subscription with new created timestamp
       await collection?.updateOne({ _id: new ObjectId(id) }, { $set: updateFields });
 

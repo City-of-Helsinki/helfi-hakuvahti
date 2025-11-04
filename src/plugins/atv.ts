@@ -82,6 +82,59 @@ const atvCreateDocumentWithEmail = async (email: string, sms?: string): Promise<
 };
 
 /**
+ * Updates the delete_after timestamp for an ATV document.
+ * Fetches the existing document first to preserve all content and required fields.
+ *
+ * @param {string} atvDocumentId - The id of the ATV document to update
+ * @param {number} maxAge - The number of days until deletion (defaults to SUBSCRIPTION_MAX_AGE env var or 90)
+ * @return {Promise<Partial<AtvDocumentType>>} The updated document
+ */
+const atvUpdateDocumentDeleteAfter = async (
+  atvDocumentId: string,
+  maxAge?: number,
+): Promise<Partial<AtvDocumentType>> => {
+  try {
+    // First, fetch the existing document to preserve all content
+    const existingDocResponse: AxiosResponse<Partial<AtvDocumentType>> = await axios.get(
+      `${process.env.ATV_API_URL}/v1/documents/${atvDocumentId}`,
+      {
+        headers: {
+          'x-api-key': process.env.ATV_API_KEY,
+        },
+      },
+    );
+
+    // Calculate new delete_after date
+    const deleteAfter = new Date();
+    const daysUntilDeletion: number = maxAge || Number(process.env.SUBSCRIPTION_MAX_AGE) || 90;
+    deleteAfter.setDate(deleteAfter.getDate() + daysUntilDeletion);
+
+    // Update with full document + modified delete_after
+    const updateObject: Partial<AtvDocumentType> = {
+      ...existingDocResponse.data,
+      delete_after: deleteAfter.toISOString().substring(0, 10),
+    };
+
+    const response: AxiosResponse<Partial<AtvDocumentType>> = await axios.patch(
+      `${process.env.ATV_API_URL}/v1/documents/${atvDocumentId}`,
+      updateObject,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Api-Key': process.env.ATV_API_KEY,
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: unknown) {
+    console.error(error);
+
+    throw new Error('Failed to update ATV document. See error log.');
+  }
+};
+
+/**
  * Retrieves a batch of documents for the given emails.
  *
  * @param {string[]} emails - The array of document ids for which to retrieve documents
@@ -169,6 +222,14 @@ export default fp(async (fastify, _opts) => {
   fastify.decorate('atvGetDocumentBatch', async function atvGetDocumentBatchHandler(emails: string[]) {
     return atvGetDocumentBatch(emails);
   });
+
+  // Expose atvUpdateDocumentDeleteAfter function to global scope
+  fastify.decorate(
+    'atvUpdateDocumentDeleteAfter',
+    async function atvUpdateDocumentDeleteAfterHandler(atvDocumentId: string, maxAge?: number) {
+      return atvUpdateDocumentDeleteAfter(atvDocumentId, maxAge);
+    },
+  );
 });
 
 declare module 'fastify' {
@@ -180,5 +241,6 @@ declare module 'fastify' {
     atvQueryEmail(email: string): Promise<Partial<AtvDocumentType>>;
     atvCreateDocumentWithEmail: (email: string, sms?: string) => Promise<Partial<AtvDocumentType>>;
     atvGetDocumentBatch: (emails: string[]) => Promise<Partial<AtvDocumentType[]>>;
+    atvUpdateDocumentDeleteAfter: (atvDocumentId: string, maxAge?: number) => Promise<Partial<AtvDocumentType>>;
   }
 }
