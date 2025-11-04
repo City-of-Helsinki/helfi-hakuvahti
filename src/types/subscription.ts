@@ -7,6 +7,18 @@ export enum SubscriptionStatus {
 }
 export const SubscriptionStatusType = Type.Enum(SubscriptionStatus);
 
+export const SubscriptionStatusResponse = Type.Object({
+  subscriptionStatus: Type.Union([Type.Literal('active'), Type.Literal('inactive'), Type.Literal('disabled')]),
+});
+export type SubscriptionStatusResponseType = Static<typeof SubscriptionStatusResponse>;
+
+export const SubscriptionRenewResponse = Type.Object({
+  statusCode: Type.Number(),
+  statusMessage: Type.String(),
+  expiryDate: Type.String(), // ISO date string
+});
+export type SubscriptionRenewResponseType = Static<typeof SubscriptionRenewResponse>;
+
 export const SubscriptionCollectionLanguage = Type.Union([Type.Literal('en'), Type.Literal('fi'), Type.Literal('sv')]);
 export type SubscriptionCollectionLanguageType = Static<typeof SubscriptionCollectionLanguage>;
 
