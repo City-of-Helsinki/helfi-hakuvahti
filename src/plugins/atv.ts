@@ -109,9 +109,13 @@ const atvUpdateDocumentDeleteAfter = async (
     const daysUntilDeletion: number = maxAge || Number(process.env.SUBSCRIPTION_MAX_AGE) || 90;
     deleteAfter.setDate(deleteAfter.getDate() + daysUntilDeletion);
 
-    // Update with full document + modified delete_after
+    const existingDoc = existingDocResponse.data;
+
     const updateObject: Partial<AtvDocumentType> = {
-      ...existingDocResponse.data,
+      tos_function_id: existingDoc.tos_function_id,
+      tos_record_id: existingDoc.tos_record_id,
+      content: existingDoc.content,
+      draft: existingDoc.draft,
       delete_after: deleteAfter.toISOString().substring(0, 10),
     };
 
