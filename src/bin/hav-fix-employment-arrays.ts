@@ -24,9 +24,7 @@ const fixCommaSeparatedArrays = (obj: any, path = ''): { fixed: any; modified: b
       if (needsFix) {
         modified = true;
         changedFields.push(currentPath);
-        return value.flatMap((v) =>
-          typeof v === 'string' && v.includes(',') ? v.split(',').map((s) => s.trim()) : v,
-        );
+        return value.flatMap((v) => (typeof v === 'string' && v.includes(',') ? v.split(',').map((s) => s.trim()) : v));
       }
     }
     return value;

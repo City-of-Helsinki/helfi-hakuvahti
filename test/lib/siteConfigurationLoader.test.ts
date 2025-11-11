@@ -7,6 +7,23 @@ import { SiteConfigurationLoader } from '../../src/lib/siteConfigurationLoader'
 
 const mockRekryConfig = {
   name: 'rekry',
+  local: {
+    urls: {
+      base: 'https://helfi-rekry.docker.so',
+      en: 'https://helfi-rekry.docker.so/en',
+      fi: 'https://helfi-rekry.docker.so/fi',
+      sv: 'https://helfi-rekry.docker.so/sv'
+    },
+    subscription: {
+      maxAge: 90,
+      unconfirmedMaxAge: 5,
+      expiryNotificationDays: 3
+    },
+    mail: {
+      templatePath: 'rekry'
+    },
+    elasticProxyUrl: 'http://localhost:9200'
+  },
   dev: {
     urls: {
       base: 'https://helfi-rekry.docker.so',
@@ -21,7 +38,8 @@ const mockRekryConfig = {
     },
     mail: {
       templatePath: 'rekry'
-    }
+    },
+    elasticProxyUrl: 'http://localhost:9200'
   },
   prod: {
     urls: {
@@ -37,12 +55,30 @@ const mockRekryConfig = {
     },
     mail: {
       templatePath: 'rekry'
-    }
+    },
+    elasticProxyUrl: 'http://localhost:9200'
   }
 }
 
 const mockAnotherConfig = {
   name: 'another-site',
+  local: {
+    urls: {
+      base: 'https://another.docker.so',
+      en: 'https://another.docker.so/en',
+      fi: 'https://another.docker.so/fi',
+      sv: 'https://another.docker.so/sv'
+    },
+    subscription: {
+      maxAge: 60,
+      unconfirmedMaxAge: 3,
+      expiryNotificationDays: 2
+    },
+    mail: {
+      templatePath: 'another'
+    },
+    elasticProxyUrl: 'http://localhost:9200'
+  },
   dev: {
     urls: {
       base: 'https://another.docker.so',
@@ -57,7 +93,8 @@ const mockAnotherConfig = {
     },
     mail: {
       templatePath: 'another'
-    }
+    },
+    elasticProxyUrl: 'http://localhost:9200'
   },
   prod: {
     urls: {
@@ -73,7 +110,8 @@ const mockAnotherConfig = {
     },
     mail: {
       templatePath: 'another'
-    }
+    },
+    elasticProxyUrl: 'http://localhost:9200'
   }
 }
 
@@ -125,7 +163,7 @@ test('SiteConfigurationLoader', async (t) => {
     ;(SiteConfigurationLoader as any).instance = undefined
     
     // Reset environment to default
-    process.env.ENVIRONMENT = 'dev'
+    process.env.ENVIRONMENT = 'local'
     
     // Ensure clean test files exist
     const confDir = path.join(tempDir, 'conf')
@@ -158,7 +196,7 @@ test('SiteConfigurationLoader', async (t) => {
   })
 
   await t.test('loadConfigurations loads config files successfully', async () => {
-    process.env.ENVIRONMENT = 'dev'
+    process.env.ENVIRONMENT = 'local'
     
     const loader = SiteConfigurationLoader.getInstance()
     await loader.loadConfigurations()
@@ -180,8 +218,8 @@ test('SiteConfigurationLoader', async (t) => {
     assert.strictEqual(rekryConfig?.urls.base, 'https://hel.fi')
   })
 
-  await t.test('loadConfigurations defaults to dev environment', async () => {
-    delete process.env.ENVIRONMENT
+  await t.test('loadConfigurations uses local environment', async () => {
+    process.env.ENVIRONMENT = 'local'
     
     const loader = SiteConfigurationLoader.getInstance()
     await loader.loadConfigurations()
@@ -191,7 +229,7 @@ test('SiteConfigurationLoader', async (t) => {
   })
 
   await t.test('getConfiguration returns specific site config', async () => {
-    process.env.ENVIRONMENT = 'dev'
+    process.env.ENVIRONMENT = 'local'
     
     const loader = SiteConfigurationLoader.getInstance()
     await loader.loadConfigurations()
@@ -205,7 +243,7 @@ test('SiteConfigurationLoader', async (t) => {
   })
 
   await t.test('getConfiguration returns undefined for non-existent site', async () => {
-    process.env.ENVIRONMENT = 'dev'
+    process.env.ENVIRONMENT = 'local'
     
     const loader = SiteConfigurationLoader.getInstance()
     await loader.loadConfigurations()
@@ -215,7 +253,7 @@ test('SiteConfigurationLoader', async (t) => {
   })
 
   await t.test('getSiteIds returns array of site IDs', async () => {
-    process.env.ENVIRONMENT = 'dev'
+    process.env.ENVIRONMENT = 'local'
     
     const loader = SiteConfigurationLoader.getInstance()
     await loader.loadConfigurations()
@@ -319,15 +357,15 @@ test('SiteConfigurationLoader', async (t) => {
       fs.unlinkSync(path.join(confDir, file))
     }
     
-    // Reset to dev environment for this test
-    process.env.ENVIRONMENT = 'dev'
+    // Reset to local environment for this test
+    process.env.ENVIRONMENT = 'local'
     
     // Write config without required properties
     fs.writeFileSync(path.join(confDir, 'missing-props.json'), JSON.stringify({
       name: 'test',
-      dev: {
+      local: {
         urls: { base: 'test' }
-        // Missing subscription and mail properties
+        // Missing subscription, mail, and elasticProxyUrl properties
       }
     }))
     
@@ -340,7 +378,7 @@ test('SiteConfigurationLoader', async (t) => {
   })
 
   await t.test('prevents multiple loadConfigurations calls', async () => {
-    process.env.ENVIRONMENT = 'dev'
+    process.env.ENVIRONMENT = 'local'
     
     // Clean up first to ensure we have clean test files
     const confDir = path.join(tempDir, 'conf')
