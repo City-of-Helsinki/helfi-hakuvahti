@@ -114,14 +114,11 @@ const renewSubscription: FastifyPluginAsync = async (fastify: FastifyInstance, _
       // Calculate new expiry date
       const newExpiryDate = new Date(Date.now() + subscriptionValidForDays * 24 * 60 * 60 * 1000);
 
-      return reply
-        .code(200)
-        .header('Content-Type', 'application/json; charset=utf-8')
-        .send({
-          statusCode: 200,
-          statusMessage: 'Subscription renewed successfully.',
-          expiryDate: newExpiryDate.toISOString(),
-        });
+      return reply.code(200).header('Content-Type', 'application/json; charset=utf-8').send({
+        statusCode: 200,
+        statusMessage: 'Subscription renewed successfully.',
+        expiryDate: newExpiryDate.toISOString(),
+      });
     },
   );
 };
