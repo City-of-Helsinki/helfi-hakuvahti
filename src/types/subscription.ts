@@ -61,3 +61,9 @@ export const SubscriptionGenericPostResponse = Type.Object({
   statusMessage: Type.Optional(Type.String()),
 });
 export type SubscriptionGenericPostResponseType = Static<typeof SubscriptionGenericPostResponse>;
+
+// Response for subscription status check
+export const SubscriptionStatusResponse = Type.Object({
+  subscriptionStatus: Type.Union([Type.Literal('active'), Type.Literal('inactive'), Type.Literal('disabled')]),
+});
+export type SubscriptionStatusResponseType = Static<typeof SubscriptionStatusResponse>;
