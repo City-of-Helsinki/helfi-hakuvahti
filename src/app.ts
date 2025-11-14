@@ -43,18 +43,16 @@ const app: FastifyPluginAsync<AppOptions> = async (fastify, opts): Promise<void>
     setErrorHandler: true,
   });
 
-  await Promise.all([
-    fastify.register(AutoLoad, {
-      dir: join(__dirname, 'plugins'),
-      options: opts,
-      ignorePattern: /(^|\/|\\)(index|.d).*\.ts$/,
-    }),
-    fastify.register(AutoLoad, {
-      dir: join(__dirname, 'routes'),
-      options: opts,
-      ignorePattern: /(^|\/|\\)(index|.d).*\.ts$/,
-    }),
-  ]);
+  fastify.register(AutoLoad, {
+    dir: join(__dirname, 'plugins'),
+    options: opts,
+    ignorePattern: /(^|\/|\\)(index|.d).*\.ts$/,
+  });
+  fastify.register(AutoLoad, {
+    dir: join(__dirname, 'routes'),
+    options: opts,
+    ignorePattern: /(^|\/|\\)(index|.d).*\.ts$/,
+  });
 };
 
 export default app;
