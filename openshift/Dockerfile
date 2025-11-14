@@ -11,6 +11,23 @@ RUN \
   npm run copy:assets && \
   npx tsc
 
+# Development image
+
+FROM registry.access.redhat.com/ubi9/nodejs-22 as development
+
+ENV npm_config_cache="$HOME/.npm"
+ENV APP_NAME rekry-hakuvahti
+
+WORKDIR /app
+
+RUN mkdir -p "$HOME/node_modules" "$HOME/logs"
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]
+
+# Production image
+
 FROM registry.access.redhat.com/ubi9/nodejs-22
 
 ENV npm_config_cache="/tmp/.npm"

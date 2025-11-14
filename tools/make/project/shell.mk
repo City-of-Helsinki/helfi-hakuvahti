@@ -1,2 +1,2 @@
-CLI_SERVICE := nodejs
-CLI_SHELL := /bin/sh
+CLI_SERVICE := app
+CLI_SHELL := /usr/bin/bash

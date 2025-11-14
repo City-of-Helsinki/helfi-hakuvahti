@@ -9,13 +9,14 @@ services:
       - hav-internal
       - helfi-hakuvahti-network
 
-  nodejs:
+  app:
     user: root
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: openshift/Dockerfile
+      target: development
     volumes:
-      - .:/opt/app-root/src:delegated
+      - .:/app:delegated
     ports:
       - "3000:3000"
     depends_on:
@@ -27,6 +28,13 @@ services:
       - "helfi-rekry.docker.so:host-gateway"
       - "elastic-helfi-rekry.docker.so:host-gateway"
       - "host-machine.local:host-gateway"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.hakuvahti-app.entrypoints=https"
+      - "traefik.http.routers.hakuvahti-app.rule=Host(`hakuvahti.docker.so`)"
+      - "traefik.http.routers.hakuvahti-app.tls=true"
+      - "traefik.http.services.hakuvahti-app.loadbalancer.server.port=3000"
+      - "traefik.docker.network=stonehenge-network"
 
 networks:
   hav-internal:

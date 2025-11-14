@@ -21,7 +21,7 @@ Pre-requisities to use Hakuvahti are:
   performing API actions and collecting results from ElasticSearch does not 
   depend on possible ATV errors or network lag, or availability of 
   SMTP server.
-- Adding, confirming and deleting subscriptions happens through REST api, while: 
+- Adding, confirming, and deleting subscriptions happens through REST api, while: 
 - ElasticProxy queries and sending emails happen through cron scripts.
 - Subscriptions are also removed through cron script, based on expiration
   days in site configuration.
@@ -31,38 +31,34 @@ Pre-requisities to use Hakuvahti are:
     to a different folder, i.e. `src/templates/something2` and updating
     the `mail.templatePath` in the site configuration.
 
-## Installing and running Hakuvahti with Docker (Druid Tools)
+## Development setup
 
 - Copy `.env.dist` as `.env` and configure:
-  - MongoDB (defaults in .env.dist should work with docker),
-  - ElasticProxy (defaults in .env.dist should work with docker),
-  - SMTP settings for email sending (https://mailpit.docker.so/ should work with docker),
-  - [ATV integration](https://github.com/City-of-Helsinki/atv)
-    - Make sure the `ATV_API_KEY` is set, otherwise the local Hakuvahti cannot connect to ATV and will trigger an error.
+  - ElasticProxy (default to local rekry elasticsearch),
+  - `ATC_API_KEY` (Hakuvahti will trigger an error if ATV cannot be reached)
 - Configure site-specific settings in `conf/` directory (see Configuration section below)
-- `make up` to build and start the docker
-  - hakuvahti should be available to Docker containers through Rekry docker network (easier to run with drupal dockers) but running locally recommended for development.
-- `make down`to tear down the environment
-- Hakuvahti server should work at `http://localhost:3000`
-- Local environment does not run cron scripts automatically. Start a shell into docker image and run the commands manually when testing them.
 
-## Installing and running Hakuvahti locally
+Start the local environment with:
 
-- `npm i` to install dependencies
-- Copy `.env.dist` as `.env` and configure:
-  - MongoDB,
-  - ElasticProxy, 
-  - SMTP settings for email sending,
-  - [ATV integration](https://github.com/City-of-Helsinki/atv)
-     - Make sure the `ATV_API_KEY` is set, otherwise the local Hakuvahti cannot connect to ATV and will trigger an error.
-- Configure site-specific settings in `conf/` directory (see Configuration section below)
-- Create MongoDB collections: `npm run hav:init-mongodb`
-- `npm start` (or `npm run dev` for development)
-- Hakuvahti should now be running in port `:3000` (by default)
-- For production environment, add following commands to cron:
-  - `npm run hav:populate-queue` (this should be run once per hour or at least daily)
-  - `npm run hav:send-emails-in-queue` (this should be run at least once per minute)
-  - `npm run hav:send-sms-in-queue` (optional, for SMS notifications - should be run at least once per minute)
+```bash
+make fresh
+```
+
+Hakuvahti should be availabe at `http://localhost:3000`.
+
+Get a shell inside the container:
+
+```bash
+make down
+```
+
+The local environment does not run cron scripts automatically. Run scripts manually when testing, see [`package.json`](./package.json) for available commands.
+
+Shutdown the container with:
+
+```bash
+make down
+```
 
 ## Configuration
 
@@ -251,7 +247,7 @@ For SMS notifications to work:
 
 Adds new Hakuvahti subscription:
 
-```
+```json
 {
     "elastic_query": "<full elastic query as base64 encoded string>",
     "search_description": "<Some search with terms, used in email notifications>",
@@ -339,40 +335,6 @@ npm run hav:test-sms-sending
 
 The script will send three test SMS messages (one per language) with dummy search data to verify the integration is working correctly.
 
-### Mock Dialogi Server (Local Development)
+### Mock server
 
-`npm run hav:run-dialogi-test-server`
-
-Runs a mock Dialogi API server for local testing when you don't have access to the real Dialogi API (requires static IP).
-
-**Usage:**
-```bash
-# Terminal 1: Start the mock server
-npm run hav:run-dialogi-test-server
-
-(or after starting hakuvahti with make up, you can start server with:
-"docker compose exec nodejs npm run hav:run-dialogi-test-server")
-
-# Terminal 2: Configure your .env to use the mock server
-DIALOGI_API_URL=http://localhost:3001/sms
-DIALOGI_API_KEY=any-value-works
-DIALOGI_SENDER=TestSender
-
-# Now test the full SMS pipeline locally
-npm run hav:test-sms-sending
-```
-
-The mock server:
-- Runs on `http://localhost:3001`
-- Accepts POST requests to `/sms`
-- Returns valid Dialogi-like responses
-- Logs all "sent" SMS messages to console
-- Allows testing the entire SMS pipeline without the real API
-
-### Migration
-
-To migrate existing subscriptions to have `site_id` field, run: 
-
-`npm run hav:migrate-site-id rekry`
-
-`npm run hav:update-schema`
+See [dialogi-server.md](./documentation/dialogi-server.md).

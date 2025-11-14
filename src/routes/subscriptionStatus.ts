@@ -3,9 +3,9 @@ import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest 
 import { Generic500Error, type Generic500ErrorType } from '../types/error';
 
 import {
+  SubscriptionStatus,
   SubscriptionStatusResponse,
   type SubscriptionStatusResponseType,
-  SubscriptionStatus,
 } from '../types/subscription';
 
 // Checks subscription status
