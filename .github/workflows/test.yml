@@ -18,21 +18,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v6
-        with:
-          node-version-file: '.nvmrc'
-
-      - name: Install dependencies
-        run: npm ci
+      - name: Start hakuvahti
+        run: make fresh
 
       - name: Lint
-        run: npx biome ci src --reporter=github --colors=off
+        run: docker compose exec app bash -c "npx biome ci src --reporter=github --colors=off"
 
       - name: Run tests
-        run: |
-          cp .env.dist .env
-          make fresh test
+        run: make test
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
