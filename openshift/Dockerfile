@@ -21,7 +21,7 @@ ENV APP_NAME rekry-hakuvahti
 WORKDIR /app
 
 COPY --chown=default:0 package*.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 EXPOSE 3000
 
