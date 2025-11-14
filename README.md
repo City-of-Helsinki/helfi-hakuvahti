@@ -49,7 +49,7 @@ Hakuvahti should be availabe at `https://hakuvahti.docker.so`.
 Get a shell inside the container:
 
 ```bash
-make down
+make shell
 ```
 
 The local environment does not run cron scripts automatically. Run scripts manually when testing, see [`package.json`](./package.json) for available commands.
