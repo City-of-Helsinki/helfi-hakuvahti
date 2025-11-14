@@ -6,8 +6,7 @@ services:
     ports:
       - "27017:27017"
     networks:
-      - hav-internal
-      - helfi-hakuvahti-network
+      - internal
 
   app:
     user: root
@@ -25,8 +24,8 @@ services:
     depends_on:
       - mongodb
     networks:
-      - hav-internal
-      - helfi-hakuvahti-network
+      - internal
+      - stonehenge-network
     extra_hosts:
       - "helfi-rekry.docker.so:host-gateway"
       - "elastic-helfi-rekry.docker.so:host-gateway"
@@ -43,7 +42,7 @@ volumes:
   node_modules:
 
 networks:
-  hav-internal:
+  internal:
     internal: true
-  helfi-hakuvahti-network:
-    driver: bridge
+  stonehenge-network:
+    external: true

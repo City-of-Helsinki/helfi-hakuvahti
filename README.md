@@ -44,7 +44,7 @@ Start the local environment with:
 make fresh
 ```
 
-Hakuvahti should be availabe at `http://localhost:3000`.
+Hakuvahti should be availabe at `https://hakuvahti.docker.so`.
 
 Get a shell inside the container:
 
@@ -176,7 +176,7 @@ The system automatically selects the correct environment configuration based on 
 ### Core
 `ENVIRONMENT` Either `production`, `staging` or `dev`. This is used by Sentry and/or other services that need environment info.
 
-`FASTIFY_PORT` Port where Hakuvahti runs (for example `3000`). If you change the envvar, remember to update Dockerfile and compose.yaml.
+`FASTIFY_PORT` Port where Hakuvahti runs. Do not change this.
 
 ### Website
 `BASE_URL` Website that uses Hakuvahti (for example https://www.hel.fi)

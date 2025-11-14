@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/nodejs-22 as builder
+FROM registry.access.redhat.com/ubi9/nodejs-22 AS builder
 
 ENV npm_config_cache="/tmp/.npm"
 
@@ -13,14 +13,12 @@ RUN \
 
 # Development image
 
-FROM registry.access.redhat.com/ubi9/nodejs-22 as development
+FROM registry.access.redhat.com/ubi9/nodejs-22 AS development
 
 ENV npm_config_cache="$HOME/.npm"
 ENV APP_NAME rekry-hakuvahti
 
 WORKDIR /app
-
-RUN mkdir -p "$HOME/node_modules" "$HOME/logs"
 
 COPY --chown=default:0 package*.json ./
 RUN npm install
