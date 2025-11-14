@@ -20,7 +20,7 @@ jobs:
         run: npm ci
 
       - name: Lint
-        run: npm run lint
+        run: npx biome ci src --reporter=github --colors=off
 
       - name: Run tests
         run: npm run test
