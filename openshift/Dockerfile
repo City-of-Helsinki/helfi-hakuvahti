@@ -22,6 +22,9 @@ WORKDIR /app
 
 RUN mkdir -p "$HOME/node_modules" "$HOME/logs"
 
+COPY --chown=default:0 package*.json ./
+RUN npm install
+
 EXPOSE 3000
 
 CMD ["npm", "run", "dev"]

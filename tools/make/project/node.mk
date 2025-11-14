@@ -1,5 +1,5 @@
 NODE_FRESH_TARGETS := up post-install
-NODE_POST_INSTALL_TARGETS := npm-install hav-init-db
+NODE_POST_INSTALL_TARGETS := hav-build hav-init-db
 
 PHONY += fresh
 fresh: ## Build fresh development environment and sync
@@ -9,10 +9,10 @@ PHONY += post-install
 post-install: ## Run post-install actions
 	@$(MAKE) $(NODE_POST_INSTALL_TARGETS)
 
-PHONY += npm-install
-npm-install: ## Run npm install
-	$(call step,Run npm install...\n)
-	$(call npm,install)
+PHONY += hav-build
+hav-build: ## Compile typescript
+	$(call step,Run tsc...\n)
+	$(call npm,run build:ts)
 
 PHONY += hav-init-db
 hav-init-db: ## Run database updates

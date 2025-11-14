@@ -17,6 +17,9 @@ services:
       target: development
     volumes:
       - .:/app:delegated
+      - node_modules:/app/node_modules
+      - type: tmpfs
+        target: /app/dist
     ports:
       - "3000:3000"
     depends_on:
@@ -35,6 +38,9 @@ services:
       - "traefik.http.routers.hakuvahti-app.tls=true"
       - "traefik.http.services.hakuvahti-app.loadbalancer.server.port=3000"
       - "traefik.docker.network=stonehenge-network"
+
+volumes:
+  node_modules:
 
 networks:
   hav-internal:
