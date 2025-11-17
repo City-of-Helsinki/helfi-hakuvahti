@@ -8,6 +8,16 @@ export const SiteLanguageUrls = Type.Object({
 });
 export type SiteLanguageUrlsType = Static<typeof SiteLanguageUrls>;
 
+const TranslationValue = Type.Object({
+  fi: Type.String(),
+  en: Type.String(),
+  sv: Type.String(),
+});
+export type TranslationValueType = Static<typeof TranslationValue>;
+
+export const TranslationMap = Type.Record(Type.String(), TranslationValue);
+export type TranslationMapType = Static<typeof TranslationMap>;
+
 export const SiteSubscriptionSettings = Type.Object({
   maxAge: Type.Number(),
   unconfirmedMaxAge: Type.Number(),
@@ -32,6 +42,7 @@ export type SiteEnvironmentConfigType = Static<typeof SiteEnvironmentConfig>;
 export const SiteConfigurationFile = Type.Object(
   {
     name: Type.String(),
+    translations: Type.Optional(TranslationMap),
   },
   { additionalProperties: SiteEnvironmentConfig },
 );
@@ -44,6 +55,7 @@ export const SiteConfiguration = Type.Object({
   subscription: SiteSubscriptionSettings,
   mail: SiteMailSettings,
   elasticProxyUrl: Type.String(),
+  translations: Type.Optional(TranslationMap),
 });
 export type SiteConfigurationType = Static<typeof SiteConfiguration>;
 export const SiteConfigurationMap = Type.Record(Type.String(), SiteConfiguration);

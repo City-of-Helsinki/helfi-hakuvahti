@@ -1,5 +1,117 @@
 {
   "name": "rekry",
+  "translations": {
+    "email_subject_confirmation": {
+      "fi": "Vahvista hakuvahdin tilaus sivustolta hel.fi",
+      "en": "Confirm a saved search on hel.fi",
+      "sv": "Bekräfta beställningen av en sökvakt på webbplatsen till hel.fi"
+    },
+    "email_subject_expiry": {
+      "fi": "Hakuvahtisi on vanhentumassa",
+      "en": "Your saved search is about to expire",
+      "sv": "Tiden för din sökvakt håller på att gå ut"
+    },
+    "email_subject_newhits": {
+      "fi": "Uusia hakuvahtiosumia",
+      "en": "New search matches",
+      "sv": "Nya träffar med sökvakten"
+    },
+    "instructions_text": {
+      "fi": "Työpaikkojen hakuvahdin käyttöohjeet",
+      "en": "Job alert instructions",
+      "sv": "Anvisningar för jobbevakningen"
+    },
+    "instructions_link": {
+      "fi": "https://www.hel.fi/fi/",
+      "en": "https://www.hel.fi/en",
+      "sv": "https://www.hel.fi/ev"
+    },
+    "email_confirmation_greeting": {
+      "fi": "Hei!",
+      "en": "Hi!",
+      "sv": "Hej!"
+    },
+    "email_confirmation_intro": {
+      "fi": "Tälle sähköpostille luotiin hakuvahti Helsingin kaupungin verkkosivustolla. Vahvista hakuvahdin tilaus klikkaamalla alla olevaa linkkiä:",
+      "en": "This email address was used to save a search on the City of Helsinki website. Please confirm the saved search to receive notifications. Click on the link below:",
+      "sv": "En sökvakt på Helsingfors stads webbplats har skapats för den här epostadressen. Bekräfta beställningen av sökvakten genom att klicka på länken nedan:"
+    },
+    "email_confirmation_button": {
+      "fi": "Vahvista hakuvahti",
+      "en": "Confirm saved search",
+      "sv": "Bekräfta sökvakten"
+    },
+    "email_confirmation_ignore": {
+      "fi": "Jos et tilannut hakuvahtia, voit jättää tämän sähköpostin huomioimatta.",
+      "en": "If you did not save a search, you can ignore this message.",
+      "sv": "Om du inte har beställt sökvakten, kan strunta i det här epostmeddelandet."
+    },
+    "email_generic_kind_regards": {
+      "fi": "Ystävällisin terveisin,",
+      "en": "Kind regards,",
+      "sv": "Med vänlig hälsning,"
+    },
+    "email_generic_signature": {
+      "fi": "Helsingin kaupunki",
+      "en": "City of Helsinki",
+      "sv": "Helsingfors stad"
+    },
+    "email_generic_remove_link": {
+      "fi": "Poista hakuvahti",
+      "en": "Delete saved search",
+      "sv": "Radera sökvakten"
+    },
+    "email_expiry_intro_before_date": {
+      "fi": "Hakuvahtisi Helsingin kaupungin sivustolla on päättymässä",
+      "en": "Your saved search on the City of Helsinki website is about to expire on",
+      "sv": "Din sökvakt på Helsingfors stads webbplats kommer att gå ut den"
+    },
+    "email_expiry_intro_after_date": {
+      "fi": "mutta voit tehdä sen uudelleen.",
+      "en": "but you can renew it, if you wish.",
+      "sv": "men du kan skapa den på nytt."
+    },
+    "email_expiry_intro_before_search_description": {
+      "fi": "Hakuehdot:",
+      "en": "Search criteria:",
+      "sv": "Sökvillkor:"
+    },
+    "email_expiry_intro_after_search_description": {
+      "fi": ".",
+      "en": ".",
+      "sv": "."
+    },
+    "email_expiry_button": {
+      "fi": "Tee uusi hakuvahti",
+      "en": "Save a new search",
+      "sv": "Spara en ny sökvakt"
+    },
+    "email_newhits_intro_prefix": {
+      "fi": "Löysimme uusia osumia hakuvahdillasi. Hakuehdot:",
+      "en": "We found new matches for your saved search. Search criteria:",
+      "sv": "Vi hittade nya träffar med din sökvakt. Sökvillkor:"
+    },
+    "email_newhits_button": {
+      "fi": "Katso kaikki hakuvahtitulokset",
+      "en": "See all results",
+      "sv": "Se alla sökvaktens resultat"
+    },
+    "email_newhits_do_not_reply": {
+      "fi": "Tähän viestiin ei voi vastata.",
+      "en": "Please do not reply to this message.",
+      "sv": "Detta meddelande kan inte besvaras."
+    },
+    "sms_newhits_intro": {
+      "fi": "Hakuvahti: Uusia tuloksia haulle",
+      "en": "Search alert: New results for",
+      "sv": "Sökbevakning: Nya resultat för sökningen"
+    },
+    "sms_newhits_cta": {
+      "fi": "Katso tulokset",
+      "en": "View results",
+      "sv": "Se resultat"
+    }
+  },
   "local": {
     "urls": {
       "base": "https://helfi-rekry.docker.so",
