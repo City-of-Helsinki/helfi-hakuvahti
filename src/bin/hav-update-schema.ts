@@ -5,18 +5,14 @@
  * Run this AFTER migrating existing documents to have site_id.
  */
 
-import dotenv from 'dotenv';
-import fastify from 'fastify';
+import command from '../lib/command';
 import mongodb from '../plugins/mongodb';
 
-dotenv.config();
+command(
+  async (server) => {
+    // eslint-disable-next-line no-console
+    console.log('Updating subscription collection schema to require site_id...');
 
-const server = fastify({});
-// eslint-disable-next-line no-void
-void server.register(mongodb);
-
-const updateSchema = async (): Promise<{ success: boolean; error?: unknown }> => {
-  try {
     const db = server.mongo.db;
     if (!db) {
       throw new Error('MongoDB connection not available');
@@ -74,26 +70,6 @@ const updateSchema = async (): Promise<{ success: boolean; error?: unknown }> =>
 
     // eslint-disable-next-line no-console
     console.log('Schema updated successfully:', result);
-    return { success: true };
-  } catch (error) {
-    console.error('Error updating schema:', error);
-    return { success: false, error };
-  }
-};
-
-server.ready(async (err) => {
-  if (err) {
-    console.error('Server failed to start:', err);
-    process.exit(1);
-  }
-
-  // eslint-disable-next-line no-console
-  console.log('Updating subscription collection schema to require site_id...');
-
-  const result = await updateSchema();
-  // eslint-disable-next-line no-console
-  console.log('Schema update result:', result);
-
-  await server.close();
-  process.exit(result.success ? 0 : 1);
-});
+  },
+  [mongodb],
+);

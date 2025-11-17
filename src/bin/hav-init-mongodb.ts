@@ -8,19 +8,11 @@
  * Must be run before starting the application to ensure proper database structure.
  */
 
-import dotenv from 'dotenv';
-import fastify from 'fastify';
+import command from '../lib/command';
 import mongodb from '../plugins/mongodb';
 
-dotenv.config();
-
-const server = fastify({});
-
-// eslint-disable-next-line no-void
-void server.register(mongodb);
-
-const initMongoDB = async (): Promise<{ success: boolean; error?: unknown }> => {
-  try {
+command(
+  async (server) => {
     const db = server.mongo.db;
     if (!db) {
       throw new Error('MongoDB connection not available');
@@ -85,6 +77,7 @@ const initMongoDB = async (): Promise<{ success: boolean; error?: unknown }> => 
           },
         },
       });
+
       // eslint-disable-next-line no-console
       console.log('SMS queue collection created:', smsQueueResult?.collectionName);
     } else {
@@ -142,31 +135,10 @@ const initMongoDB = async (): Promise<{ success: boolean; error?: unknown }> => 
           },
         },
       });
+
       // eslint-disable-next-line no-console
       console.log('Subscription collection created:', subscriptionResult?.collectionName);
     }
-
-    return { success: true };
-  } catch (error) {
-    console.error('Error initializing MongoDB:', error);
-    return { success: false, error };
-  }
-};
-
-// Wait for Fastify and MongoDB plugin to be fully initialized before creating collections
-server.ready(async (err) => {
-  if (err) {
-    console.error('Server failed to start:', err);
-    process.exit(1);
-  }
-
-  // eslint-disable-next-line no-console
-  console.log('Fastify server ready');
-
-  const result = await initMongoDB();
-  // eslint-disable-next-line no-console
-  console.log('MongoDB initialization result:', result);
-
-  await server.close();
-  process.exit(result.success ? 0 : 1); // Exit with error code if initialization failed
-});
+  },
+  [mongodb],
+);

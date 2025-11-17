@@ -2,15 +2,8 @@
  * Migration Script: Add site_id to existing subscription documents
  */
 
-import dotenv from 'dotenv';
-import fastify from 'fastify';
+import command, { type Server } from '../lib/command';
 import mongodb from '../plugins/mongodb';
-
-dotenv.config();
-
-const server = fastify({});
-// eslint-disable-next-line no-void
-void server.register(mongodb);
 
 interface MigrationOptions {
   defaultSiteId: string;
@@ -19,13 +12,15 @@ interface MigrationOptions {
 }
 
 const migrateSiteId = async (
+  server: Server,
   options: MigrationOptions,
 ): Promise<{ success: boolean; updated: number; error?: unknown }> => {
+  const db = server.mongo.db;
+  if (!db) {
+    throw new Error('MongoDB connection not available');
+  }
+
   try {
-    const db = server.mongo.db;
-    if (!db) {
-      throw new Error('MongoDB connection not available');
-    }
     const collection = db.collection('subscription');
 
     // Find documents without site_id
@@ -85,44 +80,38 @@ const migrateSiteId = async (
   }
 };
 
-// CLI argument parsing
-const args = process.argv.slice(2);
-const dryRun = args.includes('--dry-run');
-const batchSize = Number.parseInt(args.find((arg) => arg.startsWith('--batch-size='))?.split('=')[1] || '100', 10);
+command(
+  async (server) => {
+    const args = process.argv.slice(2);
+    const dryRun = args.includes('--dry-run');
+    const batchSize = Number.parseInt(args.find((arg) => arg.startsWith('--batch-size='))?.split('=')[1] || '100', 10);
 
-// Get site_id from first argument (required)
-const siteId = args.find((arg) => !arg.startsWith('--'));
-if (!siteId) {
-  console.error('Error: site_id is required');
-  console.error('Usage: npm run hav:migrate-site-id <site_id> [--dry-run] [--batch-size=100]');
-  console.error('Example: npm run hav:migrate-site-id rekry');
-  process.exit(1);
-}
+    // Get site_id from first argument (required)
+    const siteId = args.find((arg) => !arg.startsWith('--'));
+    if (!siteId) {
+      console.error('Error: site_id is required');
+      console.error('Usage: npm run hav:migrate-site-id <site_id> [--dry-run] [--batch-size=100]');
+      console.error('Example: npm run hav:migrate-site-id rekry');
+      process.exit(1);
+    }
 
-server.ready(async (err) => {
-  if (err) {
-    console.error('Server failed to start:', err);
-    process.exit(1);
-  }
+    // eslint-disable-next-line no-console
+    console.log('Starting site_id migration...');
+    // eslint-disable-next-line no-console
+    console.log(`Target site_id: ${siteId}`);
+    // eslint-disable-next-line no-console
+    console.log(`Dry run: ${dryRun}`);
+    // eslint-disable-next-line no-console
+    console.log(`Batch size: ${batchSize}`);
 
-  // eslint-disable-next-line no-console
-  console.log('Starting site_id migration...');
-  // eslint-disable-next-line no-console
-  console.log(`Target site_id: ${siteId}`);
-  // eslint-disable-next-line no-console
-  console.log(`Dry run: ${dryRun}`);
-  // eslint-disable-next-line no-console
-  console.log(`Batch size: ${batchSize}`);
+    const result = await migrateSiteId(server, {
+      defaultSiteId: siteId,
+      dryRun,
+      batchSize,
+    });
 
-  const result = await migrateSiteId({
-    defaultSiteId: siteId,
-    dryRun,
-    batchSize,
-  });
-
-  // eslint-disable-next-line no-console
-  console.log('Migration result:', result);
-
-  await server.close();
-  process.exit(result.success ? 0 : 1);
-});
+    // eslint-disable-next-line no-console
+    console.log('Migration result:', result);
+  },
+  [mongodb],
+);
