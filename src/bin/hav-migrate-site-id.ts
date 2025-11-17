@@ -88,7 +88,7 @@ const migrateSiteId = async (
 // CLI argument parsing
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
-const batchSize = parseInt(args.find((arg) => arg.startsWith('--batch-size='))?.split('=')[1] || '100', 10);
+const batchSize = Number.parseInt(args.find((arg) => arg.startsWith('--batch-size='))?.split('=')[1] || '100', 10);
 
 // Get site_id from first argument (required)
 const siteId = args.find((arg) => !arg.startsWith('--'));

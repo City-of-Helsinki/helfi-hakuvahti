@@ -121,7 +121,7 @@ const app = async (): Promise<void> => {
         if (deleteResult.deletedCount === 0) {
           console.error(`Could not delete email document with id ${email._id} from queue`);
 
-          throw Error('Deleting email from queue failed.');
+          throw new Error('Deleting email from queue failed.');
         }
 
         return Promise.resolve();
