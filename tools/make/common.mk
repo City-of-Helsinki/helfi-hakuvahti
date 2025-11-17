@@ -45,11 +45,6 @@ clean: ## Cleanup
 	@rm -rf vendor
 	@git clean -fdx $(foreach item,$(CLEAN_EXCLUDE),-e $(item))
 
-PHONY += self-update
-self-update: ## Self-update makefiles from druidfi/tools
-	$(call step,Update makefiles from druidfi/tools\n)
-	@bash -c "$$(curl -fsSL $(UPDATE_SCRIPT_URL))"
-
 PHONY += shell-%
 shell-%: OPTS = $(INSTANCE_$*_OPTS)
 shell-%: USER = $(INSTANCE_$*_USER)
@@ -62,14 +57,3 @@ PHONY += sync
 sync: ## Sync data from other environments
 	$(call group_step,Sync:$(NO_COLOR) $(SYNC_TARGETS))
 	@$(MAKE) $(SYNC_TARGETS) ENV=$(ENV)
-
-PHONY += gh-download-dump
-gh-download-dump: GH_FLAGS += $(if $(GH_ARTIFACT),-n $(GH_ARTIFACT),-n latest-dump)
-gh-download-dump: GH_FLAGS += $(if $(GH_REPO),-R $(GH_REPO),)
-gh-download-dump: ## Download database dump from repository artifacts
-	$(call step,Download database dump from repository artifacts\n)
-ifeq ($(DUMP_SQL_EXISTS),no)
-	$(call run,gh run download $(strip $(GH_FLAGS)),Downloaded $(DUMP_SQL_FILENAME),Failed)
-else
-	@echo "There is already $(DUMP_SQL_FILENAME)"
-endif

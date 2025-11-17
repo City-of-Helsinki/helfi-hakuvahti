@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/nodejs-22 as builder
+FROM registry.access.redhat.com/ubi9/nodejs-22 AS builder
 
 ENV npm_config_cache="/tmp/.npm"
 
@@ -10,6 +10,24 @@ RUN npm ci
 RUN \
   npm run copy:assets && \
   npx tsc
+
+# Development image
+
+FROM registry.access.redhat.com/ubi9/nodejs-22 AS development
+
+ENV npm_config_cache="$HOME/.npm"
+ENV APP_NAME rekry-hakuvahti
+
+WORKDIR /app
+
+COPY --chown=default:0 package*.json ./
+RUN npm ci --ignore-scripts
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]
+
+# Production image
 
 FROM registry.access.redhat.com/ubi9/nodejs-22
 

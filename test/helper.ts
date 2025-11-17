@@ -1,5 +1,5 @@
 // This file contains code that we reuse between our tests.
-const helper = require('fastify-cli/helper.js')
+import helper from 'fastify-cli/helper.js';
 import * as path from 'path'
 import * as test from 'node:test'
 
