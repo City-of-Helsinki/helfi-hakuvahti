@@ -211,6 +211,7 @@ const processSiteSubscriptions = async (
 
       // Add email to queue
       if (!isDryRun) {
+        // @todo: move email queue code to emailQueueService.
         await queueCollection.insertOne(expiryEmailToQueue);
       }
       stats.expiryEmailsQueued++;
