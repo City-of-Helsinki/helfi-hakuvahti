@@ -28,18 +28,32 @@ function config () {
 
 /**
  * Helper for creating subscription in the database.
+ *
+ * @param collection - MongoDB collection to insert into
+ * @param subscriptionData - Optional partial subscription data to override defaults
+ * @returns The ObjectId of the created subscription
  */
-export async function createSubscription(collection: Collection | undefined, hash = `test-hash-${Date.now()}`): Promise<ObjectId> {
-  const testSubscription = {
-    hash,
+export async function createSubscription(
+  collection: Collection | undefined,
+  subscriptionData: Partial<{
+    hash: string;
+    status: SubscriptionStatus;
+    site_id: string;
+    email: string;
+    elastic_query: string;
+    query: string;
+    [key: string]: unknown;
+  }> = {}
+): Promise<ObjectId> {
+  const insertResult = await collection?.insertOne({
+    hash: `test-hash-${Date.now()}`,
     status: SubscriptionStatus.INACTIVE,
     site_id: 'test',
     email: 'test-atv-doc-id',
     elastic_query: 'test-query',
     query: '/search?q=test',
-  };
-
-  const insertResult = await collection?.insertOne(testSubscription);
+    ...subscriptionData, // Override defaults with provided data
+  });
 
   assert.ok(insertResult)
 

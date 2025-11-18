@@ -40,7 +40,7 @@ describe('/subscription/delete', () => {
 
     const collection = app.mongo.db?.collection('subscription');
     const hash = `test-hash-123-${Date.now()}`;
-    const subscriptionId = await createSubscription(collection, hash);
+    const subscriptionId = await createSubscription(collection, { hash });
 
     const res = await app.inject({
       method: 'DELETE',
