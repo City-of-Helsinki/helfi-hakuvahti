@@ -2,12 +2,11 @@ import { ObjectId } from '@fastify/mongodb';
 import type * as Sentry from '@sentry/node';
 import type { FastifyInstance } from 'fastify';
 import { JSDOM } from 'jsdom';
-import type { Collection, Db } from 'mongodb';
+import type { Db } from 'mongodb';
 import type { FastifyMailer } from '../types/mailer';
+import { type BaseQueueItem, BaseQueueService } from './baseQueueService';
 
-export const BATCH_SIZE = 100;
-
-export interface EmailQueueItem {
+export interface EmailQueueItem extends BaseQueueItem {
   _id: ObjectId;
   email: string; // This is the ATV document ID
   content: string; // HTML content
@@ -26,42 +25,22 @@ export interface EmailQueueServiceDependencies {
  * Handles fetching emails from queue, retrieving plaintext emails from ATV,
  * sending emails, and removing processed items from queue.
  */
-export class EmailQueueService {
-  private readonly queueCollection: Collection;
+export class EmailQueueService extends BaseQueueService<EmailQueueItem> {
   private readonly emailSender: FastifyMailer;
   private readonly atvClient: FastifyInstance;
   private readonly sentry?: typeof Sentry;
-  private readonly batchSize: number;
 
   constructor(dependencies: EmailQueueServiceDependencies) {
-    this.queueCollection = dependencies.db.collection('queue');
+    super(dependencies.db.collection('queue'), dependencies.batchSize);
     this.atvClient = dependencies.atvClient;
     this.emailSender = dependencies.emailSender;
     this.sentry = dependencies.sentry;
-    this.batchSize = dependencies.batchSize ?? BATCH_SIZE;
-  }
-
-  /**
-   * Process all emails in the queue in batches.
-   */
-  async processQueue(): Promise<void> {
-    let hasMoreResults = true;
-
-    while (hasMoreResults) {
-      const result = (await this.queueCollection.find({}).limit(this.batchSize).toArray()) as EmailQueueItem[];
-
-      if (result.length === 0) {
-        hasMoreResults = false;
-      } else {
-        await this.processBatch(result);
-      }
-    }
   }
 
   /**
    * Process a batch of emails.
    */
-  private async processBatch(batch: EmailQueueItem[]): Promise<void> {
+  protected async processBatch(batch: EmailQueueItem[]): Promise<void> {
     // Collect unique email ATV IDs
     const emailIdsMap = new Map<string, string | null>();
     batch.forEach((email) => {
