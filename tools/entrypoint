@@ -1,0 +1,20 @@
+#!/usr/bin/sh
+
+# Development process manager for Docker container
+#
+# When running the Fastify dev server directly as PID 1 in Docker
+# (via CMD ["npm", "run", "dev"]), any crash or unhandled error causes
+# the entire container to exit.
+#
+# This wrapper script keeps the container alive by automatically
+# restarting the application process when it crashes.
+
+while true; do
+  npm run dev
+  EXIT_CODE=$?
+  echo "========================================="
+  echo "Process exited with code $EXIT_CODE"
+  echo "Restarting in 3 seconds..."
+  echo "========================================="
+  sleep 3
+done
