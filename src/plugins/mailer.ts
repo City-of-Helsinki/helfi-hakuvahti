@@ -1,10 +1,9 @@
-import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import type { FastifyMailer } from '../types/mailer';
 
 // Initialize mailer as plugin
 
-export default fp(async function mailerPlugin(fastify: FastifyInstance) {
+export default fp(async function mailerPlugin(fastify) {
   const opts = {
     defaults: {
       from: process.env.MAIL_FROM,
