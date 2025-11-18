@@ -1,8 +1,8 @@
-import { describe, test, mock } from 'node:test';
 import * as assert from 'node:assert';
-import { build, createSubscription } from '../helper';
+import { describe, mock, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';
 import { SubscriptionStatus } from '../../src/types/subscription';
+import { build, createSubscription } from '../helper';
 
 describe('/subscription/renew', () => {
   test('renewSubscription - invalid subscription ID', async (t) => {
@@ -38,7 +38,7 @@ describe('/subscription/renew', () => {
 
     assert.strictEqual(res.statusCode, 400);
     assert.strictEqual(JSON.parse(res.payload).statusMessage, 'Only active subscriptions can be renewed.');
-  })
+  });
 
   test('renewSubscription - successfully renews old subscription', async (t) => {
     const app = await build(t);
@@ -86,6 +86,6 @@ describe('/subscription/renew', () => {
     assert.strictEqual(updated?.first_created.getTime(), oldDate.getTime(), 'Original date should be archived');
     assert.strictEqual(updated?.expiry_notification_sent, 0, 'Expiry notification should be reset');
 
-    assert.ok(atvMock.mock.callCount() >= 1)
+    assert.ok(atvMock.mock.callCount() >= 1);
   });
-})
+});

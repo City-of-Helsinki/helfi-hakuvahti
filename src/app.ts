@@ -13,7 +13,7 @@ const app: FastifyPluginAsync<AppOptions> = async (fastify, opts) => {
   // Skip override option breaks fastify encapsulation.
   // This is used by tests to get access to plugins
   // registered by application.
-  delete opts.skipOverride
+  delete opts.skipOverride;
 
   if (process.env.ENVIRONMENT === undefined) {
     throw new Error('ENVIRONMENT environment variable is not set');

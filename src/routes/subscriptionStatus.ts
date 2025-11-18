@@ -1,6 +1,6 @@
 import { ObjectId } from '@fastify/mongodb';
 import type { FastifyPluginAsync } from 'fastify';
-import {Generic500Error, type Generic500ErrorType, GenericResponse, GenericResponseType} from '../types/error';
+import { Generic500Error, type Generic500ErrorType, GenericResponse, type GenericResponseType } from '../types/error';
 
 import {
   SubscriptionStatus,
@@ -26,12 +26,10 @@ const subscriptionStatus: FastifyPluginAsync = async (fastify, _opts) => {
     async (request, reply) => {
       const { id, hash } = request.params as { id: string; hash: string };
 
-      const subscription = await fastify.mongo.db
-        ?.collection('subscription')
-        ?.findOne({
-          _id: new ObjectId(id),
-          hash,
-        });
+      const subscription = await fastify.mongo.db?.collection('subscription')?.findOne({
+        _id: new ObjectId(id),
+        hash,
+      });
 
       if (!subscription) {
         return reply.code(404).send({

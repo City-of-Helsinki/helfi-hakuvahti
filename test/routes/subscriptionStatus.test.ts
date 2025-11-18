@@ -1,8 +1,8 @@
-import { describe, test } from 'node:test';
 import * as assert from 'node:assert';
-import { build, createSubscription } from '../helper';
+import { describe, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';
 import { SubscriptionStatus } from '../../src/types/subscription';
+import { build, createSubscription } from '../helper';
 
 describe('/subscription/status', () => {
   test('404 response for unknown subscription', async (t) => {
@@ -22,17 +22,17 @@ describe('/subscription/status', () => {
       [SubscriptionStatus.INACTIVE, 'inactive'],
       [SubscriptionStatus.ACTIVE, 'active'],
       [SubscriptionStatus.DISABLED, 'disabled'],
-    ] as const
+    ] as const;
 
     const app = await build(t);
     const collection = app.mongo.db?.collection('subscription');
 
     for (const [status, result] of tests) {
-      const hash = crypto.randomUUID()
+      const hash = crypto.randomUUID();
       const subscriptionId = await createSubscription(collection, {
         status,
-        hash
-      })
+        hash,
+      });
 
       const res = await app.inject({
         method: 'GET',
@@ -43,5 +43,5 @@ describe('/subscription/status', () => {
       assert.strictEqual(res.statusCode, 200);
       assert.strictEqual(JSON.parse(res.payload).subscriptionStatus, result);
     }
-  })
-})
+  });
+});

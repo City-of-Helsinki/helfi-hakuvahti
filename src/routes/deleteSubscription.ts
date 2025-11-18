@@ -22,31 +22,24 @@ const deleteSubscription: FastifyPluginAsync = async (fastify, _opts) => {
       const { id, hash } = request.params as { id: string; hash: string };
 
       // Delete subscription if client knows object id and hash.
-      const result = await fastify.mongo.db
-        ?.collection('subscription')
-        ?.deleteOne({ _id: new ObjectId(id), hash });
+      const result = await fastify.mongo.db?.collection('subscription')?.deleteOne({ _id: new ObjectId(id), hash });
 
       if (result?.deletedCount === 0) {
-        return reply
-          .code(404)
-          .send({
-            statusCode: 404,
-            statusMessage: 'Subscription not found.',
-          });
-      }
-      else {
+        return reply.code(404).send({
+          statusCode: 404,
+          statusMessage: 'Subscription not found.',
+        });
+      } else {
         fastify.log.info({
           level: 'info',
           message: `Subscription ${id} deleted`,
           result,
         });
 
-        return reply
-          .code(200)
-          .send({
-            statusCode: 200,
-            statusMessage: 'Subscription deleted',
-          });
+        return reply.code(200).send({
+          statusCode: 200,
+          statusMessage: 'Subscription deleted',
+        });
       }
     },
   );

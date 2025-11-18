@@ -1,7 +1,7 @@
-import { describe, test } from 'node:test';
 import * as assert from 'node:assert';
-import { build, createSubscription } from '../helper';
+import { describe, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';
+import { build, createSubscription } from '../helper';
 
 describe('/subscription/delete', () => {
   test('invalid subscription ID', async (t) => {
@@ -54,4 +54,4 @@ describe('/subscription/delete', () => {
     const updatedSubscription = await collection?.findOne({ _id: subscriptionId });
     assert.ok(!updatedSubscription, 'Subscription was deleted');
   });
-})
+});

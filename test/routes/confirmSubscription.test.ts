@@ -1,8 +1,8 @@
-import { describe, test } from 'node:test';
 import * as assert from 'node:assert';
-import { build, createSubscription } from '../helper';
+import { describe, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';
-import { SubscriptionStatus } from "../../src/types/subscription";
+import { SubscriptionStatus } from '../../src/types/subscription';
+import { build, createSubscription } from '../helper';
 
 describe('/subscription/confirm', () => {
   test('invalid subscription ID', async (t) => {
@@ -55,4 +55,4 @@ describe('/subscription/confirm', () => {
     const updatedSubscription = await collection?.findOne({ _id: subscriptionId });
     assert.strictEqual(updatedSubscription?.status, SubscriptionStatus.ACTIVE, 'Status should be ACTIVE');
   });
-})
+});

@@ -27,16 +27,14 @@ const confirmSubscription: FastifyPluginAsync = async (fastify, _opts) => {
       const { id, hash } = request.params as { id: string; hash: string };
 
       // Set status to active if the client known object id and hash value.
-      const response = await fastify.mongo.db
-        ?.collection('subscription')
-        ?.updateOne(
-          {
-            _id: new ObjectId(id),
-            hash,
-            status: SubscriptionStatus.INACTIVE,
-          },
-          { $set: { status: SubscriptionStatus.ACTIVE } },
-        );
+      const response = await fastify.mongo.db?.collection('subscription')?.updateOne(
+        {
+          _id: new ObjectId(id),
+          hash,
+          status: SubscriptionStatus.INACTIVE,
+        },
+        { $set: { status: SubscriptionStatus.ACTIVE } },
+      );
 
       if (response?.modifiedCount) {
         fastify.log.info({
@@ -44,22 +42,15 @@ const confirmSubscription: FastifyPluginAsync = async (fastify, _opts) => {
           message: `Subscription ${id} confirmed`,
         });
 
-        return reply
-          .code(200)
-          .header('Content-Type', 'application/json; charset=utf-8')
-          .send({
-            statusCode: 200,
-            statusMessage: 'Subscription enabled.',
-          });
-      }
-      else {
-        return reply
-          .code(404)
-          .header('Content-Type', 'application/json; charset=utf-8')
-          .send({
-            statusCode: 404,
-            statusMessage: 'Subscription not found.',
-          })
+        return reply.code(200).header('Content-Type', 'application/json; charset=utf-8').send({
+          statusCode: 200,
+          statusMessage: 'Subscription enabled.',
+        });
+      } else {
+        return reply.code(404).header('Content-Type', 'application/json; charset=utf-8').send({
+          statusCode: 404,
+          statusMessage: 'Subscription not found.',
+        });
       }
     },
   );

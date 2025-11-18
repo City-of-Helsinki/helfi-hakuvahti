@@ -1,5 +1,5 @@
 import * as assert from 'node:assert';
-import { afterEach, beforeEach, describe, mock, test, type Mock } from 'node:test';
+import { afterEach, beforeEach, describe, type Mock, mock, test } from 'node:test';
 import command, { type Command } from '../../src/lib/command';
 
 /**
