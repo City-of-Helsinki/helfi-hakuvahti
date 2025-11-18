@@ -61,7 +61,7 @@ describe('EmailQueueService', () => {
       options: any,
       callback?: (err: Error | null, info: any) => void,
     ): void => {
-      assert.strictEqual(options.to, 'test@example.com');
+      assert.strictEqual(options.to, 'test@example.com', 'Email To matches the expected value');
 
       callback?.(null, {
         messageId: 'test-id',
@@ -84,6 +84,6 @@ describe('EmailQueueService', () => {
     });
 
     // Assert that item was deleted.
-    assert.ok(result === null);
+    assert.ok(result === null, "Queue item was deleted");
   });
 });

@@ -57,7 +57,7 @@ describe('SmsQueueService', () => {
     );
 
     smsSender.sendSms.mock.mockImplementation((phoneNumber: string, message: string): Promise<void> => {
-      assert.strictEqual(phoneNumber, '+358401234567');
+      assert.strictEqual(phoneNumber, '+358401234567', 'SMS recipient matches the expected value');
       assert.strictEqual(message, 'Hello, this is a test SMS message');
 
       return Promise.resolve();
@@ -79,6 +79,6 @@ describe('SmsQueueService', () => {
     });
 
     // Assert that item was deleted.
-    assert.ok(result === null);
+    assert.ok(result === null, 'Queue item was deleted');
   });
 });
