@@ -1,6 +1,6 @@
 import { ObjectId } from '@fastify/mongodb';
-import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
-import { Generic500Error, type Generic500ErrorType } from '../types/error';
+import type { FastifyPluginAsync } from 'fastify';
+import {Generic500Error, type Generic500ErrorType, GenericResponse, GenericResponseType} from '../types/error';
 
 import {
   SubscriptionStatus,
@@ -9,33 +9,32 @@ import {
 } from '../types/subscription';
 
 // Checks subscription status
-
-const subscriptionStatus: FastifyPluginAsync = async (fastify: FastifyInstance, _opts: object): Promise<void> => {
+const subscriptionStatus: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.get<{
-    Reply: SubscriptionStatusResponseType | Generic500ErrorType;
+    Reply: SubscriptionStatusResponseType | GenericResponseType | Generic500ErrorType;
   }>(
     '/subscription/status/:id/:hash',
     {
       schema: {
         response: {
           200: SubscriptionStatusResponse,
+          404: GenericResponse,
           500: Generic500Error,
         },
       },
     },
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      const mongodb = fastify.mongo;
-      const collection = mongodb.db?.collection('subscription');
+    async (request, reply) => {
       const { id, hash } = request.params as { id: string; hash: string };
 
-      const subscription = await collection?.findOne({
-        _id: new ObjectId(id),
-        hash,
-      });
+      const subscription = await fastify.mongo.db
+        ?.collection('subscription')
+        ?.findOne({
+          _id: new ObjectId(id),
+          hash,
+        });
 
       if (!subscription) {
         return reply.code(404).send({
-          statusCode: 404,
           statusMessage: 'Subscription not found.',
         });
       }
