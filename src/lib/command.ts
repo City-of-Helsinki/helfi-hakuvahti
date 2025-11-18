@@ -54,4 +54,6 @@ export default function command(app: Command, plugins: Array<(...args: any[]) =>
     // Exit with failure if command failed.
     process.exit(result ? 0 : 1);
   });
+
+  return server;
 }
