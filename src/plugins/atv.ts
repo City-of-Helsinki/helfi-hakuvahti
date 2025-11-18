@@ -176,6 +176,7 @@ const atvGetDocumentBatch = async (emails: string[]): Promise<Partial<AtvDocumen
  */
 const requestEmailHook = async (request: FastifyRequestType) => {
   try {
+    // @fixme this should not affect all post requests.
     // Hook only runs on POST requests
     if (request.method !== 'POST') {
       return;
