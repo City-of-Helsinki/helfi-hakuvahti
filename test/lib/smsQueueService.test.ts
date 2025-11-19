@@ -26,12 +26,12 @@ describe('SmsQueueService', () => {
     await mongo.close();
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     smsSender.sendSms.mock.restore();
     atv.atvGetDocumentBatch.mock.restore();
 
     // Delete all items.
-    mongo.db().collection('smsqueue').deleteMany({});
+    await mongo.db().collection('smsqueue').deleteMany({});
   });
 
   test('Sends SMS correctly', { concurrency: false }, async () => {
