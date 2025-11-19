@@ -27,12 +27,12 @@ describe('EmailQueueService', () => {
     await mongo.close();
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     emailSender.sendMail.mock.restore();
     atv.atvGetDocumentBatch.mock.restore();
 
     // Delete all items.
-    mongo.db().collection('queue').deleteMany({});
+    await mongo.db().collection('queue').deleteMany({});
   });
 
   test('Sends emails correctly', { concurrency: false }, async () => {
