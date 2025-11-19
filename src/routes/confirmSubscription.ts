@@ -1,5 +1,5 @@
 import { ObjectId } from '@fastify/mongodb';
-import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyPluginAsync } from 'fastify';
 import { Generic500Error, type Generic500ErrorType } from '../types/error';
 
 import {
@@ -9,8 +9,8 @@ import {
 } from '../types/subscription';
 
 // Confirms subscription
-
-const confirmSubscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts: object): Promise<void> => {
+const confirmSubscription: FastifyPluginAsync = async (fastify, _opts) => {
+  // @fixme change request type to post.
   fastify.get<{
     Reply: SubscriptionGenericPostResponseType | Generic500ErrorType;
   }>(
@@ -23,30 +23,35 @@ const confirmSubscription: FastifyPluginAsync = async (fastify: FastifyInstance,
         },
       },
     },
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      const mongodb = fastify.mongo;
-      const collection = mongodb.db?.collection('subscription');
+    async (request, reply) => {
       const { id, hash } = request.params as { id: string; hash: string };
 
-      const subscription = await collection?.findOne({
-        _id: new ObjectId(id),
-        hash,
-        status: SubscriptionStatus.INACTIVE,
-      });
+      // Set status to active if the client known object id and hash value.
+      const response = await fastify.mongo.db?.collection('subscription')?.updateOne(
+        {
+          _id: new ObjectId(id),
+          hash,
+          status: SubscriptionStatus.INACTIVE,
+        },
+        { $set: { status: SubscriptionStatus.ACTIVE } },
+      );
 
-      if (!subscription) {
-        return reply.code(404).send({
+      if (response?.modifiedCount) {
+        fastify.log.info({
+          level: 'info',
+          message: `Subscription ${id} confirmed`,
+        });
+
+        return reply.code(200).header('Content-Type', 'application/json; charset=utf-8').send({
+          statusCode: 200,
+          statusMessage: 'Subscription enabled.',
+        });
+      } else {
+        return reply.code(404).header('Content-Type', 'application/json; charset=utf-8').send({
           statusCode: 404,
           statusMessage: 'Subscription not found.',
         });
       }
-
-      await collection?.updateOne({ _id: new ObjectId(id) }, { $set: { status: SubscriptionStatus.ACTIVE } });
-
-      return reply.code(200).header('Content-Type', 'application/json; charset=utf-8').send({
-        statusCode: 200,
-        statusMessage: 'Subscription enabled.',
-      });
     },
   );
 };

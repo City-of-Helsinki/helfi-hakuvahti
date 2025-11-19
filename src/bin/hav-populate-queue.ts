@@ -1,9 +1,5 @@
 import type { ObjectId } from '@fastify/mongodb';
-import fastifySentry from '@immobiliarelabs/fastify-sentry';
-import dotenv from 'dotenv';
-import fastify from 'fastify';
-import minimist from 'minimist';
-
+import command, { type Server } from '../lib/command';
 import { expiryEmail, newHitsEmail, newHitsSms } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
 import atv from '../plugins/atv';
@@ -21,13 +17,6 @@ import {
   SubscriptionStatus,
 } from '../types/subscription';
 
-dotenv.config();
-
-// Parse CLI arguments
-const argv = minimist(process.argv.slice(2));
-const targetSite: string | undefined = argv.site;
-const isDryRun: boolean = argv['dry-run'] === true;
-
 // Statistics tracking
 interface ProcessingStats {
   sitesProcessed: number;
@@ -36,26 +25,6 @@ interface ProcessingStats {
   newResultsEmailsQueued: number;
   smsQueued: number;
 }
-
-const server = fastify({});
-const release = process.env.SENTRY_RELEASE ?? '';
-
-server.register(fastifySentry, {
-  dsn: process.env.SENTRY_DSN,
-  environment: process.env.ENVIRONMENT,
-  release,
-  setErrorHandler: true,
-});
-
-// Register only needed plugins
-// eslint-disable-next-line no-void
-void server.register(mongodb);
-// eslint-disable-next-line no-void
-void server.register(elasticproxy);
-// eslint-disable-next-line no-void
-void server.register(base64Plugin);
-// eslint-disable-next-line no-void
-void server.register(atv);
 
 export const getLocalizedUrl = (
   siteConfig: SiteConfigurationType,
@@ -75,12 +44,14 @@ export const getLocalizedUrl = (
 /**
  * Deletes subscriptions older than a specified number of days with a certain status for a specific site.
  *
- * @param {SubscriptionStatus} modifyStatus - the status to modify subscriptions
- * @param {number} olderThanDays - the number of days to consider for deletion
- * @param {string} siteId - the site ID to filter subscriptions
+ * @param server - fastify instance.
+ * @param modifyStatus - the status to modify subscriptions
+ * @param olderThanDays - the number of days to consider for deletion
+ * @param siteId - the site ID to filter subscriptions
  * @return {Promise<void>} Promise that resolves when the subscriptions are deleted
  */
 const massDeleteSubscriptions = async (
+  server: Server,
   modifyStatus: SubscriptionStatus,
   olderThanDays: number,
   siteId: string,
@@ -135,6 +106,7 @@ const checkShouldSendExpiryNotification = (
 const getNewHitsFromElasticsearch = async (
   subscription: SubscriptionCollectionType & { _id: ObjectId },
   siteConfig: SiteConfigurationType,
+  server: Server,
 ): Promise<PartialDrupalNodeType[]> => {
   const elasticQuery: string = server.b64decode(subscription.elastic_query);
   const lastChecked: number = subscription.last_checked ? subscription.last_checked : Math.floor(Date.now() / 1000);
@@ -167,11 +139,18 @@ const getNewHitsFromElasticsearch = async (
 /**
  * Processes subscriptions for a specific site configuration.
  *
- * @param {SiteConfiguration} siteConfig - The site configuration to process
- * @param {ProcessingStats} stats - Statistics object to track processing
+ * @param server - Fastify server instance.
+ * @param siteConfig - The site configuration to process
+ * @param stats - Statistics object to track processing
+ * @param isDryRun - Do not write changes
  * @return {Promise<void>} A Promise that resolves when processing is complete
  */
-const processSiteSubscriptions = async (siteConfig: SiteConfigurationType, stats: ProcessingStats): Promise<void> => {
+const processSiteSubscriptions = async (
+  server: Server,
+  siteConfig: SiteConfigurationType,
+  stats: ProcessingStats,
+  isDryRun: boolean,
+): Promise<void> => {
   const collection = server.mongo.db?.collection('subscription');
   const queueCollection = server.mongo.db?.collection('queue');
   const smsQueueCollection = server.mongo.db?.collection('smsqueue');
@@ -232,6 +211,7 @@ const processSiteSubscriptions = async (siteConfig: SiteConfigurationType, stats
 
       // Add email to queue
       if (!isDryRun) {
+        // @todo: move email queue code to emailQueueService.
         await queueCollection.insertOne(expiryEmailToQueue);
       }
       stats.expiryEmailsQueued++;
@@ -240,6 +220,7 @@ const processSiteSubscriptions = async (siteConfig: SiteConfigurationType, stats
     const newHits = await getNewHitsFromElasticsearch(
       subscription as SubscriptionCollectionType & { _id: ObjectId },
       siteConfig,
+      server,
     );
 
     // No new hits
@@ -326,9 +307,9 @@ const processSiteSubscriptions = async (siteConfig: SiteConfigurationType, stats
 /**
  * Main application function that processes all site configurations.
  *
- * @return {Promise<void>} A Promise that resolves when complete.
+ * @return A Promise that resolves when complete.
  */
-const app = async (): Promise<void> => {
+const app = async (targetSite: string | undefined, isDryRun: boolean, server: Server): Promise<void> => {
   const checkInId = server.Sentry?.captureCheckIn({
     monitorSlug: 'hav-populate-queue',
     status: 'in_progress',
@@ -379,7 +360,7 @@ const app = async (): Promise<void> => {
       await previousPromise;
       // eslint-disable-next-line no-console
       console.log(`Processing subscriptions for site: ${siteId}`);
-      await processSiteSubscriptions(siteConfig, stats);
+      await processSiteSubscriptions(server, siteConfig, stats, isDryRun);
       stats.sitesProcessed++;
       return Promise.resolve();
     }, Promise.resolve());
@@ -415,45 +396,42 @@ const app = async (): Promise<void> => {
   }
 };
 
-server.get('/', async function handleRootRequest(_request, _reply) {
-  // Load site configurations
-  const configLoader = SiteConfigurationLoader.getInstance();
-  await configLoader.loadConfigurations();
-  const siteConfigs = configLoader.getConfigurations();
+command(
+  async function handle(server, argv) {
+    const targetSite: string | undefined = argv.site;
+    const isDryRun: boolean = argv['dry-run'] === true;
 
-  // Clean up expired subscriptions for each site
-  await Object.entries(siteConfigs).reduce(async (previousPromise, [siteId, siteConfig]) => {
-    await previousPromise;
+    // Load site configurations
+    const configLoader = SiteConfigurationLoader.getInstance();
+    await configLoader.loadConfigurations();
+    const siteConfigs = configLoader.getConfigurations();
 
-    // Remove expired subscriptions that haven't been confirmed
-    await massDeleteSubscriptions(SubscriptionStatus.INACTIVE, siteConfig.subscription.unconfirmedMaxAge, siteId);
+    // Clean up expired subscriptions for each site
+    await Object.entries(siteConfigs).reduce(async (previousPromise, [siteId, siteConfig]) => {
+      await previousPromise;
 
-    // Remove expired subscriptions
-    await massDeleteSubscriptions(SubscriptionStatus.ACTIVE, siteConfig.subscription.maxAge, siteId);
+      // Remove expired subscriptions that haven't been confirmed
+      await massDeleteSubscriptions(
+        server,
+        SubscriptionStatus.INACTIVE,
+        siteConfig.subscription.unconfirmedMaxAge,
+        siteId,
+      );
 
-    return Promise.resolve();
-  }, Promise.resolve());
+      // Remove expired subscriptions
+      await massDeleteSubscriptions(server, SubscriptionStatus.ACTIVE, siteConfig.subscription.maxAge, siteId);
 
-  // Loop through subscriptions and add new results to email queue
-  await app();
-  return { success: true };
-});
+      return Promise.resolve();
+    }, Promise.resolve());
 
-server.ready((_err) => {
-  // eslint-disable-next-line no-console
-  console.log('fastify server ready');
-  server.inject(
-    {
-      method: 'GET',
-      url: '/',
-    },
-    function handleInjectResponse(_injectErr, response) {
-      if (response) {
-        // eslint-disable-next-line no-console
-        console.log(JSON.parse(response.payload));
-      }
-
-      server.close();
-    },
-  );
-});
+    // Loop through subscriptions and add new results to email queue
+    await app(targetSite, isDryRun, server);
+  },
+  [
+    // Register only needed plugins
+    mongodb,
+    elasticproxy,
+    base64Plugin,
+    atv,
+  ],
+);

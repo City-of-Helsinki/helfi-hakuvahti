@@ -25,6 +25,12 @@ export class SiteConfigurationLoader {
     return SiteConfigurationLoader.instance;
   }
 
+  /**
+   * This function needs to be called after getInstance
+   * to populate site data.
+   *
+   * @fixme call loadConfiguration automatically in getInstance.
+   */
   public async loadConfigurations(): Promise<void> {
     if (this.loaded) {
       return;

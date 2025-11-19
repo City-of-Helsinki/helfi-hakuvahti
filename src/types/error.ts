@@ -1,5 +1,11 @@
 import { type Static, Type } from '@sinclair/typebox';
 
+export const GenericResponse = Type.Object({
+  statusMessage: Type.String(),
+});
+
+export type GenericResponseType = Static<typeof GenericResponse>;
+
 export const Generic400Error = Type.Object({
   error: Type.String(),
 });

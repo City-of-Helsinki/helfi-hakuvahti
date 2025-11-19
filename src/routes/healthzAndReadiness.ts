@@ -1,6 +1,6 @@
-import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 
-const healthzAndReadiness: FastifyPluginAsync = async (fastify: FastifyInstance, _opts: object): Promise<void> => {
+const healthzAndReadiness: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.get(
     '/healthz',
     {

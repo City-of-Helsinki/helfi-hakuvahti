@@ -1,5 +1,5 @@
 NODE_FRESH_TARGETS := up post-install
-NODE_POST_INSTALL_TARGETS := dotenv hav-build hav-init-db
+NODE_POST_INSTALL_TARGETS := dotenv npm-install hav-build hav-init-db
 
 PHONY += fresh
 fresh: ## Build fresh development environment and sync
@@ -12,6 +12,11 @@ post-install: ## Run post-install actions
 PHONY += dotenv
 dotenv: ## Ensure dotenv exists
 	$(call docker_compose_exec,cp -n .env.dist .env)
+
+PHONY += npm-install
+npm-install:
+	$(call step,npm ci...\n)
+	$(call npm,ci)
 
 PHONY += hav-build
 hav-build: ## Compile typescript

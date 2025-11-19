@@ -1,12 +1,11 @@
 import { ObjectId } from '@fastify/mongodb';
-import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyPluginAsync } from 'fastify';
 import { Generic500Error, type Generic500ErrorType } from '../types/error';
 
 import { SubscriptionGenericPostResponse, type SubscriptionGenericPostResponseType } from '../types/subscription';
 
 // Deletes subscription
-
-const deleteSubscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts: object): Promise<void> => {
+const deleteSubscription: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.delete<{
     Reply: SubscriptionGenericPostResponseType | Generic500ErrorType;
   }>(
@@ -19,44 +18,29 @@ const deleteSubscription: FastifyPluginAsync = async (fastify: FastifyInstance, 
         },
       },
     },
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      const mongodb = fastify.mongo;
-      const collection = mongodb.db?.collection('subscription');
+    async (request, reply) => {
       const { id, hash } = request.params as { id: string; hash: string };
 
-      // Check that subscription exists and hash matches
-      const subscription = await collection?.findOne({
-        _id: new ObjectId(id),
-        hash,
-      });
-
-      if (!subscription) {
-        return reply.code(404).send({
-          statusCode: 404,
-          statusMessage: 'Subscription not found.',
-        });
-      }
-
-      // Delete subscription
-      const result = await collection?.deleteOne({ _id: new ObjectId(id) });
-
-      fastify.log.info({
-        level: 'info',
-        message: 'Subscription deleted',
-        result,
-      });
+      // Delete subscription if client knows object id and hash.
+      const result = await fastify.mongo.db?.collection('subscription')?.deleteOne({ _id: new ObjectId(id), hash });
 
       if (result?.deletedCount === 0) {
         return reply.code(404).send({
           statusCode: 404,
           statusMessage: 'Subscription not found.',
         });
-      }
+      } else {
+        fastify.log.info({
+          level: 'info',
+          message: `Subscription ${id} deleted`,
+          result,
+        });
 
-      return reply.code(200).send({
-        statusCode: 200,
-        message: 'Subscription deleted',
-      });
+        return reply.code(200).send({
+          statusCode: 200,
+          statusMessage: 'Subscription deleted',
+        });
+      }
     },
   );
 };

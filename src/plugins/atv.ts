@@ -9,8 +9,8 @@ export type AtvPluginOptions = Record<string, never>;
 /**
  * Fetches content by document id from the ATV API.
  *
- * @param {string} atvDocumentId - The id of the ATV document
- * @return {Promise<Partial<AtvDocumentType>>} The content of the document
+ * @param atvDocumentId - The id of the ATV document
+ * @return The content of the document
  */
 const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDocumentType>> => {
   try {
@@ -37,9 +37,9 @@ const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDo
 /**
  * Create a document with the given email and optional SMS, return a partial AtvDocumentType.
  *
- * @param {string} email - the email to be included in the document
- * @param {string} sms - optional SMS to be included in the document
- * @return {Promise<Partial<AtvDocumentType>>} the created document
+ * @param email - the email to be included in the document
+ * @param sms - optional SMS to be included in the document
+ * @return the created document
  */
 const atvCreateDocumentWithEmail = async (email: string, sms?: string): Promise<Partial<AtvDocumentType>> => {
   try {
@@ -85,9 +85,9 @@ const atvCreateDocumentWithEmail = async (email: string, sms?: string): Promise<
  * Updates the delete_after timestamp for an ATV document.
  * Fetches the existing document first to preserve all content and required fields.
  *
- * @param {string} atvDocumentId - The id of the ATV document to update
- * @param {number} maxAge - The number of days until deletion (defaults to SUBSCRIPTION_MAX_AGE env var or 90)
- * @return {Promise<Partial<AtvDocumentType>>} The updated document
+ * @param atvDocumentId - The id of the ATV document to update
+ * @param maxAge - The number of days until deletion (defaults to SUBSCRIPTION_MAX_AGE env var or 90)
+ * @return The updated document
  */
 const atvUpdateDocumentDeleteAfter = async (
   atvDocumentId: string,
@@ -141,8 +141,8 @@ const atvUpdateDocumentDeleteAfter = async (
 /**
  * Retrieves a batch of documents for the given emails.
  *
- * @param {string[]} emails - The array of document ids for which to retrieve documents
- * @return {Promise<Partial<AtvDocumentType[]>>} A promise that resolves with a partial array of AtvDocumentType objects
+ * @param emails - The array of document ids for which to retrieve documents
+ * @return A promise that resolves with a partial array of AtvDocumentType objects
  */
 const atvGetDocumentBatch = async (emails: string[]): Promise<Partial<AtvDocumentType[]>> => {
   try {
@@ -171,11 +171,11 @@ const atvGetDocumentBatch = async (emails: string[]): Promise<Partial<AtvDocumen
  * Request email hook function.
  * This is a pure storage layer - validation should happen in route handlers.
  *
- * @param {FastifyRequest} request - the request object
- * @return {void} no return value
+ * @param request - the request object
  */
 const requestEmailHook = async (request: FastifyRequestType) => {
   try {
+    // @fixme this should not affect all post requests.
     // Hook only runs on POST requests
     if (request.method !== 'POST') {
       return;
@@ -207,6 +207,10 @@ const requestEmailHook = async (request: FastifyRequestType) => {
   }
 };
 
+// @todo: Exposing separate functions that handle ATV
+// communication is not the best approach. We should
+// create ATV class in src/lib that abstract the API,
+// and expose the class as a plugin.
 export default fp(async (fastify, _opts) => {
   // Hook handler automatically creates ATV document for the email
   // and sets the returned documentId to atvResponse.email variable

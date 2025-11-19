@@ -15,6 +15,9 @@ services:
       dockerfile: openshift/Dockerfile
       target: development
     hostname: hakuvahti
+    environment:
+      FASTIFY_PORT: 3000
+      MONGODB: mongodb://mongodb:27017/hakuvahti
     volumes:
       - .:/app:delegated
       - node_modules:/app/node_modules

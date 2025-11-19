@@ -35,7 +35,7 @@ Pre-requisities to use Hakuvahti are:
 
 - Copy `.env.dist` as `.env` and configure:
   - ElasticProxy (default to local rekry elasticsearch),
-  - `ATC_API_KEY` (Hakuvahti will trigger an error if ATV cannot be reached)
+  - `ATV_API_KEY` (Hakuvahti will trigger an error if ATV cannot be reached)
 - Configure site-specific settings in `conf/` directory (see Configuration section below)
 
 Start the local environment with:

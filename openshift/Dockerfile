@@ -20,12 +20,11 @@ ENV APP_NAME rekry-hakuvahti
 
 WORKDIR /app
 
-COPY --chown=default:0 package*.json ./
-RUN npm ci --ignore-scripts
+COPY tools/entrypoint /entrypoint
 
 EXPOSE 3000
 
-CMD ["npm", "run", "dev"]
+ENTRYPOINT ["/entrypoint"]
 
 # Production image
 
