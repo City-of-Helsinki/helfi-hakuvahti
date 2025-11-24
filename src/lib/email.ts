@@ -40,17 +40,13 @@ export const wrapWithLayout = (
   const innerContent = sprightly(innerTemplatePath, templateData);
   const now = new Date();
   const year = String(now.getFullYear());
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
 
   const layoutData: SprightlyContext = {
     ...translations,
     lang,
     title,
     content: innerContent,
-    year,
-    month,
-    day,
+    year
   };
 
   return sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/index.html`, layoutData);
