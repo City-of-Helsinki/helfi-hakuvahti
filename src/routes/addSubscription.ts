@@ -127,6 +127,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         request.body.lang,
         {
           link: `${subscribeLinkBase}/hakuvahti/confirm?subscription=${response.insertedId}&hash=${hash}`,
+          search_description: subscriptionData.search_description,
         },
         siteConfig,
       );

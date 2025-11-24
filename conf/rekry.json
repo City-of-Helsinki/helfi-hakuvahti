@@ -26,25 +26,35 @@
       "en": "https://www.hel.fi/en",
       "sv": "https://www.hel.fi/ev"
     },
-    "email_confirmation_greeting": {
-      "fi": "Hei!",
-      "en": "Hi!",
-      "sv": "Hej!"
-    },
+    "email_confirmation_title": {
+      "fi": "Vahvista työpaikkojen hakuvahdin tilaus Helsingin kaupungilta",
+      "en": "Confirm your saved search for City of Helsinki jobs",
+      "sv": "Bekräfta beställningen av sökvakten för arbetsplatser från Helsingfors stad"
+    },    
     "email_confirmation_intro": {
-      "fi": "Tälle sähköpostille luotiin hakuvahti Helsingin kaupungin verkkosivustolla. Vahvista hakuvahdin tilaus klikkaamalla alla olevaa linkkiä:",
-      "en": "This email address was used to save a search on the City of Helsinki website. Please confirm the saved search to receive notifications. Click on the link below:",
-      "sv": "En sökvakt på Helsingfors stads webbplats har skapats för den här epostadressen. Bekräfta beställningen av sökvakten genom att klicka på länken nedan:"
+      "fi": "Tälle sähköpostille luotiin hakuvahti Helsingin kaupungin verkkosivustolla.",
+      "en": "This email address was used to save a search on the City of Helsinki website.",
+      "sv": "En sökvakt på Helsingfors stads webbplats har skapats för den här e-postadressen."
     },
+    "email_confirmation_search_description": {
+      "fi": "Hakuehdot",
+      "en": "Search criteria",
+      "sv": "Sökvillkor"
+    },    
     "email_confirmation_button": {
       "fi": "Vahvista hakuvahti",
       "en": "Confirm saved search",
       "sv": "Bekräfta sökvakten"
     },
     "email_confirmation_ignore": {
-      "fi": "Jos et tilannut hakuvahtia, voit jättää tämän sähköpostin huomioimatta.",
+      "fi": "Jos et tilannut hakuvahtia, voit jättää tämän sähköpostin huomiotta.",
       "en": "If you did not save a search, you can ignore this message.",
-      "sv": "Om du inte har beställt sökvakten, kan strunta i det här epostmeddelandet."
+      "sv": "Om du inte har beställt sökvakten, kan du strunta i det här e-postmeddelandet."
+    },
+    "email_generic_automatically_sent": {
+      "fi": "Tämä viesti on lähetetty automaattisesti, eikä siihen voi vastata.",
+      "en": "This message was sent automatically and cannot be replied to.",
+      "sv": "Detta meddelande har skickats automatiskt och kan inte besvaras."
     },
     "email_generic_kind_regards": {
       "fi": "Ystävällisin terveisin,",

@@ -55,7 +55,7 @@ export const wrapWithLayout = (
 // Subscription confirmation email
 export const confirmationEmail = async (
   lang: SubscriptionCollectionLanguageType,
-  data: { link: string },
+  data: { link: string, search_description: string | undefined },
   siteConfig: SiteConfigurationType,
 ) =>
   wrapWithLayout(
@@ -63,6 +63,7 @@ export const confirmationEmail = async (
     {
       lang,
       link: data.link,
+      search_description: data.search_description?.toLowerCase() ?? '',
     },
     lang,
     translate('email_subject_confirmation', lang, siteConfig),
