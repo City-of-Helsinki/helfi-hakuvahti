@@ -11,7 +11,7 @@ describe('/subscription/confirm', () => {
     const res = await app.inject({
       method: 'GET',
       url: `/subscription/confirm/${new ObjectId()}/invalid`,
-      headers: { token: 'test' },
+      headers: { Authorization: 'api-key test' },
     });
 
     assert.strictEqual(res.statusCode, 404);
@@ -26,7 +26,7 @@ describe('/subscription/confirm', () => {
     const res = await app.inject({
       method: 'GET',
       url: `/subscription/confirm/${subscriptionId}/invalid`,
-      headers: { token: 'test' },
+      headers: { Authorization: 'api-key test' },
     });
 
     assert.strictEqual(res.statusCode, 404);
@@ -46,7 +46,7 @@ describe('/subscription/confirm', () => {
     const res = await app.inject({
       method: 'GET',
       url: `/subscription/confirm/${subscriptionId}/${hash}`,
-      headers: { token: 'test' },
+      headers: { Authorization: 'api-key test' },
     });
 
     assert.strictEqual(res.statusCode, 200);

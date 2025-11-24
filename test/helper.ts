@@ -14,6 +14,8 @@ export type TestContext = {
   after: typeof test.after;
 };
 
+process.env.HAKUVAHTI_API_KEY = 'test';
+
 const AppPath = path.join(__dirname, '..', 'src', 'app.ts');
 
 // Fill in this config with all the configurations
