@@ -9,7 +9,7 @@ services:
       - internal
 
   app:
-    user: root
+    user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
     build:
       context: .
       dockerfile: openshift/Dockerfile
@@ -20,9 +20,6 @@ services:
       MONGODB: mongodb://mongodb:27017/hakuvahti
     volumes:
       - .:/app:delegated
-      - node_modules:/app/node_modules
-      - type: tmpfs
-        target: /app/dist
     ports:
       - "3000:3000"
     depends_on:
