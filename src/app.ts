@@ -55,12 +55,12 @@ const app: FastifyPluginAsync<AppOptions> = async (fastify, opts) => {
   fastify.register(AutoLoad, {
     dir: join(__dirname, 'plugins'),
     options: opts,
-    ignorePattern: /(^|\/|\\)(index|.d).*\.ts$/,
+    ignorePattern: /(^|\/|\\)(index|\.d).*\.ts$/,
   });
   fastify.register(AutoLoad, {
     dir: join(__dirname, 'routes'),
     options: opts,
-    ignorePattern: /(^|\/|\\)(index|.d).*\.ts$/,
+    ignorePattern: /(^|\/|\\)(index|\.d).*\.ts$/,
   });
 };
 
