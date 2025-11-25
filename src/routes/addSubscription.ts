@@ -42,24 +42,20 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
           500: Generic500Error,
         },
       },
-      preValidation: async (request: FastifyRequest<{ Body: SubscriptionRequestType }>, reply: FastifyReply) => {
+      preValidation: async (request, reply) => {
         // Validate email and SMS BEFORE ATV document creation
         // preValidation runs BEFORE preHandler (where ATV storage happens)
         const email = request.body.email?.trim();
         const sms = request.body.sms?.trim();
 
         if (!isValidEmail(email)) {
-          return reply
-            .code(400)
-            .header('Content-Type', 'application/json; charset=utf-8')
-            .send({ error: 'Invalid email format.' });
+          reply.code(400);
+          throw new Error('Invalid email format.');
         }
 
         if (sms && !isValidSms(sms)) {
-          return reply
-            .code(400)
-            .header('Content-Type', 'application/json; charset=utf-8')
-            .send({ error: 'Invalid SMS format. Use international format (e.g., +358451234567).' });
+          reply.code(400);
+          throw new Error('Invalid email format.');
         }
       },
     },
