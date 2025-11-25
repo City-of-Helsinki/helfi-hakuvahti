@@ -1,19 +1,13 @@
-<p>
+<p style="font-family: Arial, Helvetica, sans-serif; font-size: 18px; font-weight: 400; line-height: 28px; margin-top: 0; margin-right: 0; margin-bottom: 24px; margin-left: 0;">
   {{ email_expiry_intro_before_date }} {{ removal_date }}, {{ email_expiry_intro_after_date }}
   {{ email_expiry_intro_before_search_description }} {{ search_description }}{{ email_expiry_intro_after_search_description }}
 </p>
-<p></p>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0;">
-  <tr>
-    <td align="center" bgcolor="#000000" style="border-radius:0;">
-      <a href="{{ link }}"
-        style="display:inline-block;padding:12px 28px;font-size:16px;line-height:1.2;color:#ffffff;text-decoration:none;font-weight:600;font-family:Arial, Helvetica, sans-serif;background-color:#000000;border:1px solid #000000;">
-        {{ email_expiry_button }}
-      </a>
-    </td>
-  </tr>
-</table>
-<p></p>
-<p>{{ email_generic_kind_regards }}</p>
-<p>{{ email_generic_signature }}</p>
-<p><a href="{{ remove_link }}">{{ email_generic_remove_link }}</a></p>
+<a href="{{ link }}"
+  style="background-color: #000000; border-color: #000000; border-style: solid; border-width: 1px; color: #ffffff; display: inline-block; font-family: Arial, Helvetica, sans-serif; font-size: 16px; font-weight: 700; line-height: 24px; margin-bottom: 24px; margin-left: 0; margin-right: 0; margin-top: 0; padding-bottom: 15px; padding-left: 28px; padding-right: 28px; padding-top: 17px; text-decoration: none;">
+  {{ email_expiry_button }}
+</a>
+<p  style="font-family: Arial, Helvetica, sans-serif; font-size: 18px; font-weight: 400; line-height: 28px; margin-top: 0; margin-right: 0; margin-bottom: 24px; margin-left: 0;">{{ email_generic_kind_regards }}</p>
+<p  style="font-family: Arial, Helvetica, sans-serif; font-size: 18px; font-weight: 400; line-height: 28px; margin-top: 0; margin-right: 0; margin-bottom: 24px; margin-left: 0;">{{ email_generic_signature }}</p>
+<p  style="font-family: Arial, Helvetica, sans-serif; font-size: 18px; font-weight: 400; line-height: 28px; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0;">
+  <a href="{{ remove_link }}" style="color: #000000; text-decoration: underline;">{{ email_generic_remove_link }}</a
+</p>
