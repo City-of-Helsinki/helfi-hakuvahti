@@ -1,6 +1,9 @@
 NODE_FRESH_TARGETS := up post-install
 NODE_POST_INSTALL_TARGETS := dotenv npm-install hav-build hav-init-db
 
+export DOCKER_UID ?= $(shell id -u)
+export DOCKER_GID ?= $(shell id -g)
+
 PHONY += fresh
 fresh: ## Build fresh development environment and sync
 	@$(MAKE) $(NODE_FRESH_TARGETS)

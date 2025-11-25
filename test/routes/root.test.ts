@@ -7,9 +7,22 @@ test('default root route', async (t) => {
 
   const res = await app.inject({
     url: '/',
-    headers: { token: 'test' },
+    headers: { Authorization: 'api-key test' },
   });
+
+  assert.strictEqual(res.statusCode, 200);
   assert.deepStrictEqual(JSON.parse(res.payload), { root: true });
+});
+
+test('api key validation', async (t) => {
+  const app = await build(t);
+
+  const res = await app.inject({
+    url: '/',
+    headers: { Authorization: 'api-key invalid' },
+  });
+
+  assert.strictEqual(res.statusCode, 403);
 });
 
 test('/healthz', async (t) => {

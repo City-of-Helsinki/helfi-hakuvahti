@@ -9,14 +9,18 @@ export interface AppOptions extends FastifyPluginOptions, Partial<AutoloadPlugin
 // Pass --options via CLI arguments in command to enable these options.
 export const options: AppOptions = {};
 
+const requiredEnvironmentVariables = ['ENVIRONMENT', 'HAKUVAHTI_API_KEY'];
+
 const app: FastifyPluginAsync<AppOptions> = async (fastify, opts) => {
   // Skip override option breaks fastify encapsulation.
   // This is used by tests to get access to plugins
   // registered by application.
   delete opts.skipOverride;
 
-  if (process.env.ENVIRONMENT === undefined) {
-    throw new Error('ENVIRONMENT environment variable is not set');
+  for (const envVar of requiredEnvironmentVariables) {
+    if (process.env[envVar] === undefined) {
+      throw new Error(`${envVar} environment variable is not set`);
+    }
   }
 
   const env = process.env.ENVIRONMENT as Environment;
@@ -51,12 +55,12 @@ const app: FastifyPluginAsync<AppOptions> = async (fastify, opts) => {
   fastify.register(AutoLoad, {
     dir: join(__dirname, 'plugins'),
     options: opts,
-    ignorePattern: /(^|\/|\\)(index|.d).*\.ts$/,
+    ignorePattern: /(^|\/|\\)(index|\.d).*\.ts$/,
   });
   fastify.register(AutoLoad, {
     dir: join(__dirname, 'routes'),
     options: opts,
-    ignorePattern: /(^|\/|\\)(index|.d).*\.ts$/,
+    ignorePattern: /(^|\/|\\)(index|\.d).*\.ts$/,
   });
 };
 

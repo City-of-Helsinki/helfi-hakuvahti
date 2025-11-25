@@ -15,8 +15,8 @@ RUN \
 
 FROM registry.access.redhat.com/ubi9/nodejs-22 AS development
 
-ENV npm_config_cache="$HOME/.npm"
-ENV APP_NAME rekry-hakuvahti
+ENV npm_config_cache="/tmp/.npm"
+ENV APP_NAME hakuvahti
 
 WORKDIR /app
 

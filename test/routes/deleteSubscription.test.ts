@@ -10,7 +10,7 @@ describe('/subscription/delete', () => {
     const res = await app.inject({
       method: 'DELETE',
       url: `/subscription/delete/${new ObjectId()}/invalid`,
-      headers: { token: 'test' },
+      headers: { Authorization: 'api-key test' },
     });
 
     assert.strictEqual(res.statusCode, 404);
@@ -25,7 +25,7 @@ describe('/subscription/delete', () => {
     const res = await app.inject({
       method: 'DELETE',
       url: `/subscription/delete/${subscriptionId}/invalid`,
-      headers: { token: 'test' },
+      headers: { Authorization: 'api-key test' },
     });
 
     assert.strictEqual(res.statusCode, 404);
@@ -45,7 +45,7 @@ describe('/subscription/delete', () => {
     const res = await app.inject({
       method: 'DELETE',
       url: `/subscription/delete/${subscriptionId}/${hash}`,
-      headers: { token: 'test' },
+      headers: { Authorization: 'api-key test' },
     });
 
     assert.strictEqual(res.statusCode, 200);

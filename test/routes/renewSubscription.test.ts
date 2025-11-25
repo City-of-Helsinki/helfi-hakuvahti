@@ -11,7 +11,7 @@ describe('/subscription/renew', () => {
     const res = await app.inject({
       method: 'GET',
       url: `/subscription/renew/${new ObjectId()}/invalidhash`,
-      headers: { token: 'test' },
+      headers: { Authorization: 'api-key test' },
     });
 
     assert.strictEqual(res.statusCode, 404);
@@ -33,7 +33,7 @@ describe('/subscription/renew', () => {
     const res = await app.inject({
       method: 'GET',
       url: `/subscription/renew/${subscriptionId}/${hash}`,
-      headers: { token: 'test' },
+      headers: { Authorization: 'api-key test' },
     });
 
     assert.strictEqual(res.statusCode, 400);
@@ -70,7 +70,7 @@ describe('/subscription/renew', () => {
     const res = await app.inject({
       method: 'GET',
       url: `/subscription/renew/${subscriptionId}/${hash}`,
-      headers: { token: 'test' },
+      headers: { Authorization: 'api-key test' },
     });
 
     assert.strictEqual(res.statusCode, 200);
