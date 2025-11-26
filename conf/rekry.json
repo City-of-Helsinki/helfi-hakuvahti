@@ -101,6 +101,26 @@
       "en": "Save a new search",
       "sv": "Spara en ny sökvakt"
     },
+    "email_expiry_title_header": {
+      "fi": "Hakuvahtisi Helsingin kaupungin sivustolla on päättymässä",
+      "en": "Your saved search on the City of Helsinki website is about to expire on",
+      "sv": "Din sökvakt på Helsingfors stads webbplats kommer att gå ut den"
+    },
+    "email_expiry_prefix": {
+      "fi": "Hakuvahti on voimassa",
+      "en": "This saved search is valid until",
+      "sv": "Sökvakten är i kraft fram till"
+    },
+    "email_expiry_suffix": {
+      "fi": " saakka.",
+      "en": ".",
+      "sv": "."
+    },
+    "email_expiry_renewal_button": {
+      "fi": "Jatka hakuvahdin tilausta",
+      "en": "Renew saved search",
+      "sv": "Förnya sökvakt"
+    },
     "email_newhits_intro_prefix": {
       "fi": "Listauksessa näytetään enintään kymmenen uutta hakuvahtiosumaa.",
       "en": "The list shows up to ten new results corresponding to your saved search.",
