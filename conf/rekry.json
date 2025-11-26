@@ -7,14 +7,14 @@
       "sv": "Bekräfta beställningen av sökvakten för arbetsplatser"
     },
     "email_subject_expiry": {
-      "fi": "Hakuvahtisi on vanhentumassa",
-      "en": "Your saved search is about to expire",
-      "sv": "Tiden för din sökvakt håller på att gå ut"
+      "fi": "Työpaikkojen hakuvahtisi on vanhentumassa",
+      "en": "Your saved search for jobs is about to expire",
+      "sv": "Tiden för din sökvakt för arbetsplatser håller på att gå ut"
     },
     "email_subject_newhits": {
-      "fi": "Uusia hakuvahtiosumia",
-      "en": "New search matches",
-      "sv": "Nya träffar med sökvakten"
+      "fi": "Uusia osumia työpaikkojen hakuvahdillasi",
+      "en": "New jobs corresponding to your saved search",
+      "sv": "Nya träffar med din sökvakt för arbetsplatser"
     },
     "instructions_text": {
       "fi": "Työpaikkojen hakuvahdin käyttöohjeet",
