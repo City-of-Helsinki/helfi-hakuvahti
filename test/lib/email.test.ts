@@ -102,3 +102,22 @@ test('wrapWithLayout injects translations into inner template and layout', () =>
   assert.match(html, /<div class="inner">Hei<span>custom<\/span><\/div>/);
   assert.match(html, /<footer>Hei - Subject for fi<\/footer>/);
 });
+
+test('buildTranslationContext returns correct translations for all languages', () => {
+  const languages: SubscriptionCollectionLanguageType[] = ['fi', 'en', 'sv'];
+
+  for (const lang of languages) {
+    const ctx = buildTranslationContext(lang, baseConfig);
+    assert.equal(ctx.foo, baseConfig.translations!.foo[lang], `Should return correct translation for ${lang}`);
+    assert.equal(ctx.empty_value, baseConfig.translations!.empty_value[lang], `Should handle empty values for ${lang}`);
+    assert.equal(Object.keys(ctx).length, Object.keys(baseConfig.translations!).length);
+  }
+});
+
+test('wrapWithLayout includes layout variables and injects content correctly', () => {
+  const html = executeWrap('en', 'test-value');
+
+  assert.ok(html.includes('<body>'), 'Should include body tag');
+  assert.ok(html.includes('<div class="inner">'), 'Should include inner template structure');
+  assert.ok(html.includes(baseConfig.translations!.foo.en), 'Should include correct translation in layout');
+});
