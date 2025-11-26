@@ -65,7 +65,7 @@ command(
       throw new Error('--site parameter required');
     }
 
-    if (typeof server.mongo?.db === 'undefined') {
+    if (server.mongo?.db === undefined) {
       throw new Error('MongoDB unavailable');
     }
 
