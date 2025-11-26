@@ -46,7 +46,7 @@ export const wrapWithLayout = (
     lang,
     title,
     content: innerContent,
-    year
+    year,
   };
 
   return sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/index.html`, layoutData);
@@ -55,7 +55,7 @@ export const wrapWithLayout = (
 // Subscription confirmation email
 export const confirmationEmail = async (
   lang: SubscriptionCollectionLanguageType,
-  data: { link: string, search_description: string | undefined },
+  data: { link: string; search_description: string | undefined },
   siteConfig: SiteConfigurationType,
 ) =>
   wrapWithLayout(
