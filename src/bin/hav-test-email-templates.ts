@@ -19,6 +19,7 @@ const DUMMY_DATA = {
     search_description: 'IT-asiantuntija',
     removal_date: '31.12.2025',
     remove_link: 'https://dummyremove',
+    renewal_link: 'https://dummyrenew',
   },
   newhits: {
     hits: [
