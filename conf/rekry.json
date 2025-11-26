@@ -2,9 +2,9 @@
   "name": "rekry",
   "translations": {
     "email_subject_confirmation": {
-      "fi": "Vahvista hakuvahdin tilaus sivustolta hel.fi",
-      "en": "Confirm a saved search on hel.fi",
-      "sv": "Bekräfta beställningen av en sökvakt på webbplatsen till hel.fi"
+      "fi": "Vahvista työpaikkojen hakuvahdin tilaus",
+      "en": "Confirm your saved search for jobs",
+      "sv": "Bekräfta beställningen av sökvakten för arbetsplatser"
     },
     "email_subject_expiry": {
       "fi": "Hakuvahtisi on vanhentumassa",
@@ -71,6 +71,11 @@
       "en": "Delete saved search",
       "sv": "Radera sökvakten"
     },
+    "email_generic_your_search_terms": {
+      "fi": "Hakuehtosi",
+      "en": "Your search criteria",
+      "sv": "Dina sökvillkor"
+    },
     "email_expiry_intro_before_date": {
       "fi": "Hakuvahtisi Helsingin kaupungin sivustolla on päättymässä",
       "en": "Your saved search on the City of Helsinki website is about to expire on",
@@ -97,14 +102,34 @@
       "sv": "Spara en ny sökvakt"
     },
     "email_newhits_intro_prefix": {
-      "fi": "Löysimme uusia osumia hakuvahdillasi. Hakuehdot:",
-      "en": "We found new matches for your saved search. Search criteria:",
-      "sv": "Vi hittade nya träffar med din sökvakt. Sökvillkor:"
+      "fi": "Listauksessa näytetään enintään kymmenen uutta hakuvahtiosumaa.",
+      "en": "The list shows up to ten new results corresponding to your saved search.",
+      "sv": "I listan visas högst tio nya träffar med sökvakten."
     },
-    "email_newhits_button": {
+    "email_newhits_header": {
+      "fi": "Uusia työpaikkojen hakuvahtiosumia Helsingin kaupungilta",
+      "en": "The City of Helsinki has new job listings corresponding to your saved search",
+      "sv": "Nya träffar med sökvakten för arbetsplatser från Helsingfors stad"
+    },
+    "email_newhits_link_text": {
       "fi": "Katso kaikki hakuvahtitulokset",
-      "en": "See all results",
+      "en": "See all saved search results",
       "sv": "Se alla sökvaktens resultat"
+    },
+    "email_newhits_expiry_prefix": {
+      "fi": "Hakuvahti on voimassa",
+      "en": "This saved search is valid until",
+      "sv": "Sökvakten är i kraft fram till"
+    },
+    "email_newhits_expiry_suffix": {
+      "fi": " saakka.",
+      "en": ".",
+      "sv": "."
+    },
+    "email_newshits_expiry_instructions": {
+      "fi": "Sait tämän sähköpostin, koska olet tilannut Helsingin kaupungin hakuvahdin. Jos et enää halua saada ilmoituksia, voit lopettaa hakuvahdin tilauksen alla olevasta linkistä. Voit tilata hakuvahdin uudelleen milloin tahansa.",
+      "en": "You received this email because you have saved a search for City of Helsinki jobs. If you no longer wish to receive these alerts, you can unsubscribe by clicking the link below. You can save your search again at any time.",
+      "sv": "Du fick detta e-postmeddelande eftersom du har beställt Helsingfors stads sökvakt. Om du inte längre vill få meddelanden kan du radera sökvakten via länken nedan. Du kan beställa en ny sökvakt när som helst."
     },
     "email_newhits_do_not_reply": {
       "fi": "Tähän viestiin ei voi vastata.",
