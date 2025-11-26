@@ -175,6 +175,16 @@ const processSiteSubscriptions = async (
 
     const localizedBaseUrl = getLocalizedUrl(siteConfig, subscription.lang);
 
+    // Calculate subscription expiry date
+    const subscriptionValidForDays = siteConfig.subscription.maxAge;
+    const subscriptionExpiresAt =
+      new Date(subscription.created).getTime() + subscriptionValidForDays * 24 * 60 * 60 * 1000;
+    const subscriptionExpiresAtDate = new Date(subscriptionExpiresAt);
+    const day = String(subscriptionExpiresAtDate.getDate()).padStart(2, '0');
+    const month = String(subscriptionExpiresAtDate.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+    const year = subscriptionExpiresAtDate.getFullYear();
+    const formattedExpiryDate = `${day}.${month}.${year}`;
+
     // If subscription should expire soon, send an expiration email
     if (checkShouldSendExpiryNotification(subscription as Partial<SubscriptionCollectionType>, siteConfig)) {
       if (isDryRun) {
@@ -183,15 +193,6 @@ const processSiteSubscriptions = async (
       } else {
         await collection.updateOne({ _id: subscription._id }, { $set: { expiry_notification_sent: 1 } });
       }
-
-      const subscriptionValidForDays = siteConfig.subscription.maxAge;
-      const subscriptionExpiresAt =
-        new Date(subscription.created).getTime() + subscriptionValidForDays * 24 * 60 * 60 * 1000;
-      const subscriptionExpiresAtDate = new Date(subscriptionExpiresAt);
-      const day = String(subscriptionExpiresAtDate.getDate()).padStart(2, '0');
-      const month = String(subscriptionExpiresAtDate.getMonth() + 1).padStart(2, '0'); // Months are 0-based
-      const year = subscriptionExpiresAtDate.getFullYear();
-      const formattedExpiryDate = `${day}.${month}.${year}`;
 
       const expiryEmailContent = await expiryEmail(
         subscription.lang,
@@ -242,6 +243,7 @@ const processSiteSubscriptions = async (
       subscription.lang,
       {
         created_date: formattedCreatedDate,
+        expiry_date: formattedExpiryDate,
         search_description: subscription.search_description,
         search_link: subscription.query,
         remove_link: `${localizedBaseUrl}/hakuvahti/unsubscribe?subscription=${subscription._id}&hash=${subscription.hash}`,
