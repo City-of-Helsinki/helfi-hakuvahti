@@ -104,6 +104,7 @@ export const newHitsEmail = async (
     search_link: string;
     remove_link: string;
     created_date: string;
+    expiry_date: string;
   },
   siteConfig: SiteConfigurationType,
 ) => {
@@ -126,6 +127,7 @@ export const newHitsEmail = async (
         remove_link: data.remove_link,
         search_description: data.search_description,
         created_date: data.created_date,
+        expiry_date: data.expiry_date,
       },
       lang,
       translate('email_subject_newhits', lang, siteConfig),
