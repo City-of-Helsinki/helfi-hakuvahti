@@ -202,6 +202,7 @@ const processSiteSubscriptions = async (
           removal_date: formattedExpiryDate,
           remove_link: `${localizedBaseUrl}/hakuvahti/unsubscribe?subscription=${subscription._id}&hash=${subscription.hash}`,
           renewal_link: `${localizedBaseUrl}/hakuvahti/renew?subscription=${subscription._id}&hash=${subscription.hash}`,
+          search_link: subscription.query,
         },
         siteConfig,
       );

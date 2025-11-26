@@ -20,6 +20,7 @@ const DUMMY_DATA = {
     removal_date: '31.12.2025',
     remove_link: 'https://dummyremove',
     renewal_link: 'https://dummyrenew',
+    search_link: '/fi/avoimet-tyopaikat/etsi-avoimia-tyopaikkoja',
   },
   newhits: {
     hits: [

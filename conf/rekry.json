@@ -102,24 +102,29 @@
       "sv": "Spara en ny sökvakt"
     },
     "email_expiry_title_header": {
-      "fi": "Hakuvahtisi Helsingin kaupungin sivustolla on päättymässä",
-      "en": "Your saved search on the City of Helsinki website is about to expire on",
-      "sv": "Din sökvakt på Helsingfors stads webbplats kommer att gå ut den"
+      "fi": "Työpaikkojen hakuvahtisi Helsingin kaupungilta on vanhentumassa",
+      "en": "Your saved search for City of Helsinki jobs is about to expire",
+      "sv": "Tiden för din sökvakt för arbetsplatser från Helsingfors stad håller på att gå ut"
     },
     "email_expiry_prefix": {
-      "fi": "Hakuvahti on voimassa",
-      "en": "This saved search is valid until",
-      "sv": "Sökvakten är i kraft fram till"
+      "fi": "Hakuvahtisi Helsingin kaupungin verkkosivustolla päättyy",
+      "en": "Your saved search on the City of Helsinki website will expire on",
+      "sv": "Din sökvakt på Helsingfors stads webbplats upphör den"
     },
     "email_expiry_suffix": {
-      "fi": " saakka.",
-      "en": ".",
-      "sv": "."
+      "fi": ". Voit halutessasi jatkaa hakuvahdin tilausta niin kauan kuin se on voimassa. Hakuvahdin vanhenemisen jälkeen voit tehdä uuden hakuvahdin.",
+      "en": ". If you wish, you can extend the saved search during its period of validity. Once your saved search expires, you can save a new search.",
+      "sv": ". Du kan valfritt förlänga beställningen av sökvakten så länge den är i kraft. Efter att sökvakten gått ut kan du skapa en ny sökvakt."
     },
     "email_expiry_renewal_button": {
       "fi": "Jatka hakuvahdin tilausta",
-      "en": "Renew saved search",
-      "sv": "Förnya sökvakt"
+      "en": "Extend your saved search",
+      "sv": "Förläng beställningen av sökvakten"
+    },
+    "email_expiry_new_link": {
+      "fi": "Tee uusi hakuvahti",
+      "en": "Save a new search",
+      "sv": "Skapa en ny sökvakt"
     },
     "email_newhits_intro_prefix": {
       "fi": "Listauksessa näytetään enintään kymmenen uutta hakuvahtiosumaa.",
