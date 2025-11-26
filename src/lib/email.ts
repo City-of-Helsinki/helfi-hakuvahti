@@ -78,6 +78,7 @@ export const expiryEmail = async (
     search_description: string;
     removal_date: string;
     remove_link: string;
+    renewal_link: string;
   },
   siteConfig: SiteConfigurationType,
 ) =>
@@ -89,6 +90,7 @@ export const expiryEmail = async (
       search_description: data.search_description,
       remove_link: data.remove_link,
       removal_date: data.removal_date,
+      renewal_link: data.renewal_link,
     },
     lang,
     translate('email_subject_expiry', lang, siteConfig),
