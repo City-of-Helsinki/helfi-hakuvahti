@@ -51,6 +51,7 @@ const DUMMY_DATA = {
     search_link: '/fi/avoimet-tyopaikat/etsi-avoimia-tyopaikkoja',
     remove_link: 'https://dummy/remove/xyz789',
     created_date: '15.11.2025',
+    expiry_date: '15.02.2026',
   },
 };
 
