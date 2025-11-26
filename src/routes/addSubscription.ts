@@ -42,7 +42,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
           500: Generic500Error,
         },
       },
-      preValidation: async (request, reply) => {
+      preValidation: (request, reply, done) => {
         // Validate email and SMS BEFORE ATV document creation
         // preValidation runs BEFORE preHandler (where ATV storage happens)
         const email = request.body.email?.trim();
@@ -50,13 +50,15 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
 
         if (!isValidEmail(email)) {
           reply.code(400);
-          throw new Error('Invalid email format.');
+          return done(new Error('Invalid email format.'));
         }
 
         if (sms && !isValidSms(sms)) {
           reply.code(400);
-          throw new Error('Invalid email format.');
+          return done(new Error('Invalid email format.'));
         }
+
+        done();
       },
     },
     async (request: FastifyRequest<{ Body: SubscriptionRequestType }>, reply: FastifyReply) => {
