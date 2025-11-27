@@ -1,9 +1,11 @@
+import type { Collection } from 'mongodb';
 import command from '../lib/command';
 import { confirmationEmail, expiryEmail, newHitsEmail } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
 import mongodb from '../plugins/mongodb';
 import type { PartialDrupalNodeType } from '../types/elasticproxy';
 import type { QueueInsertDocumentType } from '../types/mailer';
+import type { SiteConfigurationType } from '../types/siteConfig';
 import type { SubscriptionCollectionLanguageType } from '../types/subscription';
 
 // npm run hav:test-email-templates -- --site=rekry
@@ -59,7 +61,11 @@ const DUMMY_DATA = {
 
 const LANGUAGES: SubscriptionCollectionLanguageType[] = ['fi', 'en', 'sv'];
 
-export async function generateTestEmails(queueCollection: any, testEmail: string, siteConfig: any): Promise<void> {
+export async function generateTestEmails(
+  queueCollection: Collection<QueueInsertDocumentType>,
+  testEmail: string,
+  siteConfig: SiteConfigurationType,
+): Promise<void> {
   for (const lang of LANGUAGES) {
     const confirmationHtml = await confirmationEmail(lang, DUMMY_DATA.confirmation, siteConfig);
     const confirmationEmailDoc: QueueInsertDocumentType = {
@@ -119,7 +125,7 @@ command(
 
     console.log(`Template path: ${siteConfig.mail.templatePath}`);
 
-    const queueCollection = server.mongo.db.collection('queue');
+    const queueCollection = server.mongo.db.collection<QueueInsertDocumentType>('queue');
 
     await generateTestEmails(queueCollection, testEmail, siteConfig);
 
