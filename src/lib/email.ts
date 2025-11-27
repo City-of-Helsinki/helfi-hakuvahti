@@ -3,16 +3,72 @@ import type { PartialDrupalNodeType } from '../types/elasticproxy';
 import type { SiteConfigurationType } from '../types/siteConfig';
 import type { SubscriptionCollectionLanguageType } from '../types/subscription';
 
+const TEMPLATE_BASE_PATH = 'dist/templates';
+
+export const translate = (
+  key: string,
+  lang: SubscriptionCollectionLanguageType,
+  siteConfig: SiteConfigurationType,
+): string => siteConfig.translations?.[key]?.[lang] ?? '';
+
+type SprightlyContext = Record<string, string>;
+
+export const buildTranslationContext = (
+  lang: SubscriptionCollectionLanguageType,
+  siteConfig: SiteConfigurationType,
+): SprightlyContext => {
+  const context: SprightlyContext = {};
+  const entries = siteConfig.translations ? Object.entries(siteConfig.translations) : [];
+  entries.forEach(([key, value]) => {
+    context[key] = value[lang] ?? '';
+  });
+  return context;
+};
+
+export const wrapWithLayout = (
+  innerTemplatePath: string,
+  innerTemplateData: SprightlyContext,
+  lang: SubscriptionCollectionLanguageType,
+  title: string,
+  siteConfig: SiteConfigurationType,
+) => {
+  const translations = buildTranslationContext(lang, siteConfig);
+  const templateData: SprightlyContext = {
+    ...translations,
+    ...innerTemplateData,
+  };
+  const innerContent = sprightly(innerTemplatePath, templateData);
+  const now = new Date();
+  const year = String(now.getFullYear());
+
+  const layoutData: SprightlyContext = {
+    ...translations,
+    lang,
+    title,
+    content: innerContent,
+    year,
+  };
+
+  return sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/index.html`, layoutData);
+};
+
 // Subscription confirmation email
 export const confirmationEmail = async (
   lang: SubscriptionCollectionLanguageType,
-  data: { link: string },
+  data: { link: string; search_description: string | undefined },
   siteConfig: SiteConfigurationType,
 ) =>
-  sprightly(`dist/templates/${siteConfig.mail.templatePath}/confirmation_${lang}.html`, {
+  wrapWithLayout(
+    `${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/confirmation.html`,
+    {
+      lang,
+      link: data.link,
+      search_description: data.search_description?.toLowerCase() ?? '',
+    },
     lang,
-    link: data.link,
-  });
+    translate('email_subject_confirmation', lang, siteConfig),
+    siteConfig,
+  );
 
 // Notification before subscription expires
 export const expiryEmail = async (
@@ -22,16 +78,26 @@ export const expiryEmail = async (
     search_description: string;
     removal_date: string;
     remove_link: string;
+    renewal_link: string;
+    search_link: string;
   },
   siteConfig: SiteConfigurationType,
 ) =>
-  sprightly(`dist/templates/${siteConfig.mail.templatePath}/expiry_notification_${lang}.html`, {
+  wrapWithLayout(
+    `${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/expiry_notification.html`,
+    {
+      lang,
+      link: data.link,
+      search_description: data.search_description,
+      remove_link: data.remove_link,
+      removal_date: data.removal_date,
+      renewal_link: data.renewal_link,
+      search_link: siteConfig.urls.base + data.search_link,
+    },
     lang,
-    link: data.link,
-    search_description: data.search_description,
-    remove_link: data.remove_link,
-    removal_date: data.removal_date,
-  });
+    translate('email_subject_expiry', lang, siteConfig),
+    siteConfig,
+  );
 
 // Email with list of new search monitor hits
 export const newHitsEmail = async (
@@ -42,6 +108,7 @@ export const newHitsEmail = async (
     search_link: string;
     remove_link: string;
     created_date: string;
+    expiry_date: string;
   },
   siteConfig: SiteConfigurationType,
 ) => {
@@ -55,14 +122,21 @@ export const newHitsEmail = async (
       )
       .join('');
 
-    return sprightly(`dist/templates/${siteConfig.mail.templatePath}/newhits_${lang}.html`, {
+    return wrapWithLayout(
+      `${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/newhits.html`,
+      {
+        lang,
+        hits: hitsContent,
+        search_link: siteConfig.urls.base + data.search_link,
+        remove_link: data.remove_link,
+        search_description: data.search_description,
+        created_date: data.created_date,
+        expiry_date: data.expiry_date,
+      },
       lang,
-      hits: hitsContent,
-      search_link: siteConfig.urls.base + data.search_link,
-      remove_link: data.remove_link,
-      search_description: data.search_description,
-      created_date: data.created_date,
-    });
+      translate('email_subject_newhits', lang, siteConfig),
+      siteConfig,
+    );
   } catch (error) {
     console.error(error);
     throw error;
@@ -78,7 +152,7 @@ export const newHitsSms = async (
   },
   siteConfig: SiteConfigurationType,
 ) =>
-  sprightly(`dist/templates/${siteConfig.mail.templatePath}/sms/sms-${lang}.html`, {
+  sprightly(`dist/templates/${siteConfig.mail.templatePath}/sms/sms.html`, {
     lang,
     search_description: data.search_description,
     search_link: siteConfig.urls.base + data.search_link,

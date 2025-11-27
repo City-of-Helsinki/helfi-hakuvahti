@@ -72,6 +72,8 @@ export class SiteConfigurationLoader {
           throw new Error(`Invalid environment configuration for '${environment}' in ${filePath}`);
         }
 
+        const translations = rawConfig.translations ?? undefined;
+
         // Flatten to runtime configuration
         this.configurations[siteId] = {
           id: siteId,
@@ -80,6 +82,7 @@ export class SiteConfigurationLoader {
           subscription: envConfig.subscription,
           mail: envConfig.mail,
           elasticProxyUrl: envConfig.elasticProxyUrl,
+          translations,
         };
       } catch (error) {
         throw new Error(`Failed to load configuration from ${filePath}: ${error}`);
