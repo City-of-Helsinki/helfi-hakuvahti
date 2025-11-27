@@ -59,68 +59,75 @@ const DUMMY_DATA = {
 
 const LANGUAGES: SubscriptionCollectionLanguageType[] = ['fi', 'en', 'sv'];
 
-command(
-  async (server, argv) => {
-    if (!argv.site) {
-      throw new Error('--site parameter required');
-    }
+export async function generateTestEmails(queueCollection: any, testEmail: string, siteConfig: any): Promise<void> {
+  for (const lang of LANGUAGES) {
+    const confirmationHtml = await confirmationEmail(lang, DUMMY_DATA.confirmation, siteConfig);
+    const confirmationEmailDoc: QueueInsertDocumentType = {
+      email: testEmail,
+      content: confirmationHtml,
+    };
+    await queueCollection.insertOne(confirmationEmailDoc);
 
-    if (server.mongo?.db === undefined) {
-      throw new Error('MongoDB unavailable');
-    }
+    const expiryHtml = await expiryEmail(lang, DUMMY_DATA.expiry, siteConfig);
+    const expiryEmailDoc: QueueInsertDocumentType = {
+      email: testEmail,
+      content: expiryHtml,
+    };
+    await queueCollection.insertOne(expiryEmailDoc);
 
-    const subscriptionCollection = server.mongo.db.collection('subscription');
-    const latestSubscription = await subscriptionCollection.findOne(
-      {},
-      { sort: { _id: -1 }, projection: { email: 1 } },
-    );
+    const newhitsHtml = await newHitsEmail(lang, DUMMY_DATA.newhits, siteConfig);
+    const newhitsEmailDoc: QueueInsertDocumentType = {
+      email: testEmail,
+      content: newhitsHtml,
+    };
+    await queueCollection.insertOne(newhitsEmailDoc);
+  }
+}
 
-    if (!latestSubscription?.email) {
-      throw new Error('Create test subscription first.');
-    }
+// Only run command if this file is executed directly (not imported for testing)
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+if (require.main === module) {
+  command(
+    async (server, argv) => {
+      if (!argv.site) {
+        throw new Error('--site parameter required');
+      }
 
-    const siteId = argv.site;
-    const testEmail = latestSubscription.email;
+      if (server.mongo?.db === undefined) {
+        throw new Error('MongoDB unavailable');
+      }
 
-    console.log(`Site: ${siteId}`);
+      const subscriptionCollection = server.mongo.db.collection('subscription');
+      const latestSubscription = await subscriptionCollection.findOne(
+        {},
+        { sort: { _id: -1 }, projection: { email: 1 } },
+      );
 
-    const configLoader = SiteConfigurationLoader.getInstance();
-    await configLoader.loadConfigurations();
-    const siteConfig = configLoader.getConfiguration(siteId);
+      if (!latestSubscription?.email) {
+        throw new Error('Create test subscription first.');
+      }
 
-    if (!siteConfig) {
-      throw new Error('Site configuration not found');
-    }
+      const siteId = argv.site;
+      const testEmail = latestSubscription.email;
 
-    console.log(`Template path: ${siteConfig.mail.templatePath}`);
+      console.log(`Site: ${siteId}`);
 
-    const queueCollection = server.mongo.db.collection('queue');
+      const configLoader = SiteConfigurationLoader.getInstance();
+      await configLoader.loadConfigurations();
+      const siteConfig = configLoader.getConfiguration(siteId);
 
-    for (const lang of LANGUAGES) {
-      const confirmationHtml = await confirmationEmail(lang, DUMMY_DATA.confirmation, siteConfig);
-      const confirmationEmailDoc: QueueInsertDocumentType = {
-        email: testEmail,
-        content: confirmationHtml,
-      };
-      await queueCollection.insertOne(confirmationEmailDoc);
-      console.log('Confirmation email queued');
+      if (!siteConfig) {
+        throw new Error('Site configuration not found');
+      }
 
-      const expiryHtml = await expiryEmail(lang, DUMMY_DATA.expiry, siteConfig);
-      const expiryEmailDoc: QueueInsertDocumentType = {
-        email: testEmail,
-        content: expiryHtml,
-      };
-      await queueCollection.insertOne(expiryEmailDoc);
-      console.log('Expiry notification queued');
+      console.log(`Template path: ${siteConfig.mail.templatePath}`);
 
-      const newhitsHtml = await newHitsEmail(lang, DUMMY_DATA.newhits, siteConfig);
-      const newhitsEmailDoc: QueueInsertDocumentType = {
-        email: testEmail,
-        content: newhitsHtml,
-      };
-      await queueCollection.insertOne(newhitsEmailDoc);
-      console.log('New hits email queued');
-    }
-  },
-  [mongodb],
-);
+      const queueCollection = server.mongo.db.collection('queue');
+
+      await generateTestEmails(queueCollection, testEmail, siteConfig);
+
+      console.log('Test emails generated. Run hav:send-emails-in-queue and check mailpit.');
+    },
+    [mongodb],
+  );
+}
