@@ -84,50 +84,46 @@ export async function generateTestEmails(queueCollection: any, testEmail: string
   }
 }
 
-// Only run command if this file is executed directly (not imported for testing)
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-if (require.main === module) {
-  command(
-    async (server, argv) => {
-      if (!argv.site) {
-        throw new Error('--site parameter required');
-      }
+command(
+  async (server, argv) => {
+    if (!argv.site) {
+      throw new Error('--site parameter required');
+    }
 
-      if (server.mongo?.db === undefined) {
-        throw new Error('MongoDB unavailable');
-      }
+    if (server.mongo?.db === undefined) {
+      throw new Error('MongoDB unavailable');
+    }
 
-      const subscriptionCollection = server.mongo.db.collection('subscription');
-      const latestSubscription = await subscriptionCollection.findOne(
-        {},
-        { sort: { _id: -1 }, projection: { email: 1 } },
-      );
+    const subscriptionCollection = server.mongo.db.collection('subscription');
+    const latestSubscription = await subscriptionCollection.findOne(
+      {},
+      { sort: { _id: -1 }, projection: { email: 1 } },
+    );
 
-      if (!latestSubscription?.email) {
-        throw new Error('Create test subscription first.');
-      }
+    if (!latestSubscription?.email) {
+      throw new Error('Create test subscription first.');
+    }
 
-      const siteId = argv.site;
-      const testEmail = latestSubscription.email;
+    const siteId = argv.site;
+    const testEmail = latestSubscription.email;
 
-      console.log(`Site: ${siteId}`);
+    console.log(`Site: ${siteId}`);
 
-      const configLoader = SiteConfigurationLoader.getInstance();
-      await configLoader.loadConfigurations();
-      const siteConfig = configLoader.getConfiguration(siteId);
+    const configLoader = SiteConfigurationLoader.getInstance();
+    await configLoader.loadConfigurations();
+    const siteConfig = configLoader.getConfiguration(siteId);
 
-      if (!siteConfig) {
-        throw new Error('Site configuration not found');
-      }
+    if (!siteConfig) {
+      throw new Error('Site configuration not found');
+    }
 
-      console.log(`Template path: ${siteConfig.mail.templatePath}`);
+    console.log(`Template path: ${siteConfig.mail.templatePath}`);
 
-      const queueCollection = server.mongo.db.collection('queue');
+    const queueCollection = server.mongo.db.collection('queue');
 
-      await generateTestEmails(queueCollection, testEmail, siteConfig);
+    await generateTestEmails(queueCollection, testEmail, siteConfig);
 
-      console.log('Test emails generated. Run hav:send-emails-in-queue and check mailpit.');
-    },
-    [mongodb],
-  );
-}
+    console.log('Test emails generated. Run hav:send-emails-in-queue and check mailpit.');
+  },
+  [mongodb],
+);
