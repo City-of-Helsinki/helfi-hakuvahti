@@ -1,6 +1,11 @@
 {
   "name": "rekry",
   "translations": {
+    "copyright_holder": {
+      "fi": "Helsingin kaupunki",
+      "en": "City of Helsinki",
+      "sv": "Helsingfors stad"
+    },
     "email_subject_confirmation": {
       "fi": "Vahvista työpaikkojen hakuvahdin tilaus",
       "en": "Confirm your saved search for jobs",
