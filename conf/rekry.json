@@ -216,9 +216,9 @@
       "sv": "https://www.stage.hel.ninja/sv/lediga-jobb"
     },
     "subscription": {
-      "maxAge": 90,
-      "unconfirmedMaxAge": 5,
-      "expiryNotificationDays": 3
+      "maxAge": 5,
+      "unconfirmedMaxAge": 2,
+      "expiryNotificationDays": 1
     },
     "mail": {
       "templatePath": "rekry",
