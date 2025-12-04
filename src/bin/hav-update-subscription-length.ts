@@ -31,7 +31,7 @@ export interface MigrationStats {
  */
 export const calculateDeleteAfterDate = (createdDate: Date, maxAge: number): Date => {
   const deleteAfter = new Date(createdDate);
-  // setDate handles day/month overflow automatically so we can just get 
+  // setDate handles day/month overflow automatically so we can just get
   // current date and add X days to it.
   deleteAfter.setDate(deleteAfter.getDate() + maxAge);
   return deleteAfter;

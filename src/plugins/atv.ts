@@ -251,6 +251,10 @@ declare module 'fastify' {
     atvQueryEmail(email: string): Promise<Partial<AtvDocumentType>>;
     atvCreateDocumentWithEmail: (email: string, sms?: string) => Promise<Partial<AtvDocumentType>>;
     atvGetDocumentBatch: (emails: string[]) => Promise<Partial<AtvDocumentType[]>>;
-    atvUpdateDocumentDeleteAfter: (atvDocumentId: string, maxAge?: number, fromDate?: Date) => Promise<Partial<AtvDocumentType>>;
+    atvUpdateDocumentDeleteAfter: (
+      atvDocumentId: string,
+      maxAge?: number,
+      fromDate?: Date,
+    ) => Promise<Partial<AtvDocumentType>>;
   }
 }
