@@ -23,6 +23,52 @@ export interface MigrationStats {
 }
 
 /**
+ * Formats a Date object to ISO date string (YYYY-MM-DD).
+ *
+ * @param date - The date to format
+ * @return ISO date string (YYYY-MM-DD)
+ */
+export const formatDateISO = (date: Date): string => {
+  return date.toISOString().substring(0, 10);
+};
+
+/**
+ * Formats a subscription update log message.
+ *
+ * @param index - The subscription index in the current batch
+ * @param subscriptionId - The MongoDB subscription ID
+ * @param createdDate - The subscription creation date
+ * @param deleteAfter - The calculated delete_after date
+ * @param isDryRun - Whether this is a dry run
+ * @return Formatted log message
+ */
+export const formatSubscriptionUpdateMessage = (
+  index: number,
+  subscriptionId: string,
+  createdDate: Date,
+  deleteAfter: Date,
+  isDryRun: boolean,
+): string => {
+  const action = isDryRun ? '[DRY RUN] Would update' : 'Updated';
+  const created = formatDateISO(createdDate);
+  const deleteAfterStr = formatDateISO(deleteAfter);
+  return `${index}. ${action}: ${subscriptionId} | Created: ${created} | New delete_after: ${deleteAfterStr}`;
+};
+
+/**
+ * Formats an error message for a failed subscription update.
+ *
+ * @param index - The subscription index in the current batch
+ * @param subscriptionId - The MongoDB subscription ID
+ * @param error - The error that occurred
+ * @return Formatted error message
+ */
+export const formatErrorMessage = (index: number, subscriptionId: string, error: unknown): string => {
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+  return `${index}. Failed: ${subscriptionId} | Error: ${errorMessage}`;
+};
+
+/**
  * Calculates the delete_after date for an ATV document based on subscription created date and maxAge.
  *
  * @param createdDate - The subscription creation date
@@ -113,24 +159,26 @@ export const updateSubscriptionLength = async (
           const createdDate = new Date(subscription.created);
           const deleteAfter = calculateDeleteAfterDate(createdDate, maxAge);
 
+          const message = formatSubscriptionUpdateMessage(
+            i + index + 1,
+            subscription._id.toString(),
+            createdDate,
+            deleteAfter,
+            dryRun,
+          );
+
           if (dryRun) {
-            console.log(
-              `${i + index + 1}. [DRY RUN] Would update: ${subscription._id} | Created: ${createdDate.toISOString().substring(0, 10)} | New delete_after: ${deleteAfter.toISOString().substring(0, 10)}`,
-            );
+            console.log(message);
             stats.updated += 1;
           } else {
             // Update ATV document with calculated delete_after
             await server.atvUpdateDocumentDeleteAfter(subscription.email, maxAge, createdDate);
-
-            console.log(
-              `${i + index + 1}. Updated: ${subscription._id} | Created: ${createdDate.toISOString().substring(0, 10)} | New delete_after: ${deleteAfter.toISOString().substring(0, 10)}`,
-            );
+            console.log(message);
             stats.updated += 1;
           }
         } catch (error) {
-          console.error(
-            `${i + index + 1}. Failed: ${subscription._id} | Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          );
+          const errorMessage = formatErrorMessage(i + index + 1, subscription._id.toString(), error);
+          console.error(errorMessage);
           stats.failed += 1;
         }
       }, Promise.resolve());
