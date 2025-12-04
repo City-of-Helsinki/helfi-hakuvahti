@@ -89,19 +89,13 @@ export const updateSubscriptionLength = async (
     }
 
     const maxAge = siteConfig.subscription.maxAge;
-    // eslint-disable-next-line no-console
     console.log(`Site configuration maxAge = ${maxAge} days`);
 
     // Get all subscriptions
     const subscriptions = await collection.find({ site_id: options.siteId }).toArray();
     stats.total = subscriptions.length;
 
-    // eslint-disable-next-line no-console
     console.log(`Found ${subscriptions.length} subscriptions for site: ${options.siteId}`);
-
-    if (subscriptions.length === 0) {
-      return { success: true, stats };
-    }
 
     // Process subscriptions in batches
     const { batchSize, dryRun } = options;
@@ -109,10 +103,8 @@ export const updateSubscriptionLength = async (
     for (let i = 0; i < subscriptions.length; i += batchSize) {
       const batch = subscriptions.slice(i, i + batchSize);
 
-      // eslint-disable-next-line no-console
       console.log(`\nbatch ${Math.floor(i / batchSize) + 1} (${batch.length} subscriptions):`);
 
-      // eslint-disable-next-line no-await-in-loop
       await batch.reduce(async (previousPromise, subscription, index) => {
         await previousPromise;
 
@@ -122,7 +114,6 @@ export const updateSubscriptionLength = async (
           const deleteAfter = calculateDeleteAfterDate(createdDate, maxAge);
 
           if (dryRun) {
-            // eslint-disable-next-line no-console
             console.log(
               `${i + index + 1}. [DRY RUN] Would update: ${subscription._id} | Created: ${createdDate.toISOString().substring(0, 10)} | New delete_after: ${deleteAfter.toISOString().substring(0, 10)}`,
             );
@@ -131,14 +122,12 @@ export const updateSubscriptionLength = async (
             // Update ATV document with calculated delete_after
             await server.atvUpdateDocumentDeleteAfter(subscription.email, maxAge, createdDate);
 
-            // eslint-disable-next-line no-console
             console.log(
               `${i + index + 1}. Updated: ${subscription._id} | Created: ${createdDate.toISOString().substring(0, 10)} | New delete_after: ${deleteAfter.toISOString().substring(0, 10)}`,
             );
             stats.updated += 1;
           }
         } catch (error) {
-          // eslint-disable-next-line no-console
           console.error(
             `${i + index + 1}. Failed: ${subscription._id} | Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
           );
@@ -147,13 +136,9 @@ export const updateSubscriptionLength = async (
       }, Promise.resolve());
     }
 
-    // eslint-disable-next-line no-console
     console.log(`Total: ${stats.total}`);
-    // eslint-disable-next-line no-console
     console.log(`Updated: ${stats.updated}`);
-    // eslint-disable-next-line no-console
     console.log(`Failed: ${stats.failed}`);
-    // eslint-disable-next-line no-console
     console.log(`Skipped: ${stats.skipped}`);
 
     return { success: true, stats };
@@ -164,25 +149,19 @@ export const updateSubscriptionLength = async (
 };
 
 command(
-  async (server) => {
-    const args = process.argv.slice(2);
-    const parsed = parseArguments(args);
-
+  async (server, argv) => {
     // Get site_id from --site parameter
-    if (!parsed.siteId) {
-      console.error('Error: --site parameter is required');
-      process.exit(1);
+    const siteId = argv.site as string;
+    if (!siteId) {
+      throw new Error('--site parameter is required');
     }
 
-    const { siteId, batchSize, dryRun } = parsed as MigrationOptions;
+    const batchSize = (argv['batch-size'] as number) || 100;
+    const dryRun = (argv['dry-run'] as boolean) || false;
 
-    // eslint-disable-next-line no-console
     console.log(`Target site_id: ${siteId}`);
-    // eslint-disable-next-line no-console
     console.log(`Batch size: ${batchSize}`);
-    // eslint-disable-next-line no-console
     console.log(`Dry run: ${dryRun}`);
-    // eslint-disable-next-line no-console
     console.log('');
 
     const result = await updateSubscriptionLength(server, {
@@ -192,8 +171,7 @@ command(
     });
 
     if (!result.success) {
-      console.error('Migration failed:', result.error);
-      process.exit(1);
+      throw result.error || new Error('Migration failed');
     }
   },
   [mongodb, atv],
