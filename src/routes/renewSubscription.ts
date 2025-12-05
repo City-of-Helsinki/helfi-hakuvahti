@@ -93,7 +93,7 @@ const renewSubscription: FastifyPluginAsync = async (fastify: FastifyInstance, _
 
       // Update ATV document's delete_after timestamp to match the new subscription expiry
       try {
-        await fastify.atvUpdateDocumentDeleteAfter(subscription.email, subscriptionValidForDays);
+        await fastify.atvUpdateDocumentDeleteAfter(subscription.email, subscriptionValidForDays, new Date());
       } catch (error) {
         fastify.log.error({
           level: 'error',

@@ -87,11 +87,13 @@ const atvCreateDocumentWithEmail = async (email: string, sms?: string): Promise<
  *
  * @param atvDocumentId - The id of the ATV document to update
  * @param maxAge - The number of days until deletion (defaults to SUBSCRIPTION_MAX_AGE env var or 90)
+ * @param fromDate - The date to calculate deletion from (defaults to current date)
  * @return The updated document
  */
 const atvUpdateDocumentDeleteAfter = async (
   atvDocumentId: string,
   maxAge?: number,
+  fromDate?: Date,
 ): Promise<Partial<AtvDocumentType>> => {
   try {
     // First, fetch the existing document to preserve all content
@@ -105,7 +107,7 @@ const atvUpdateDocumentDeleteAfter = async (
     );
 
     // Calculate new delete_after date
-    const deleteAfter = new Date();
+    const deleteAfter = fromDate ? new Date(fromDate) : new Date();
     const daysUntilDeletion: number = maxAge || Number(process.env.SUBSCRIPTION_MAX_AGE) || 90;
     deleteAfter.setDate(deleteAfter.getDate() + daysUntilDeletion);
 
@@ -234,8 +236,8 @@ export default fp(async (fastify, _opts) => {
   // Expose atvUpdateDocumentDeleteAfter function to global scope
   fastify.decorate(
     'atvUpdateDocumentDeleteAfter',
-    async function atvUpdateDocumentDeleteAfterHandler(atvDocumentId: string, maxAge?: number) {
-      return atvUpdateDocumentDeleteAfter(atvDocumentId, maxAge);
+    async function atvUpdateDocumentDeleteAfterHandler(atvDocumentId: string, maxAge?: number, fromDate?: Date) {
+      return atvUpdateDocumentDeleteAfter(atvDocumentId, maxAge, fromDate);
     },
   );
 });
@@ -249,6 +251,10 @@ declare module 'fastify' {
     atvQueryEmail(email: string): Promise<Partial<AtvDocumentType>>;
     atvCreateDocumentWithEmail: (email: string, sms?: string) => Promise<Partial<AtvDocumentType>>;
     atvGetDocumentBatch: (emails: string[]) => Promise<Partial<AtvDocumentType[]>>;
-    atvUpdateDocumentDeleteAfter: (atvDocumentId: string, maxAge?: number) => Promise<Partial<AtvDocumentType>>;
+    atvUpdateDocumentDeleteAfter: (
+      atvDocumentId: string,
+      maxAge?: number,
+      fromDate?: Date,
+    ) => Promise<Partial<AtvDocumentType>>;
   }
 }

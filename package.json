@@ -18,6 +18,7 @@
     "lint:check": "biome check src/",
     "hav:init-mongodb": "node dist/bin/hav-init-mongodb.js",
     "hav:migrate-site-id": "node dist/bin/hav-migrate-site-id.js",
+    "hav:update-subscription-length": "node dist/bin/hav-update-subscription-length.js",
     "hav:update-schema": "node dist/bin/hav-update-schema.js",
     "hav:populate-queue": "node dist/bin/hav-populate-queue.js",
     "hav:send-emails-in-queue": "node dist/bin/hav-send-emails-in-queue.js",
