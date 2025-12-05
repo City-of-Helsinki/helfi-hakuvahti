@@ -6,6 +6,11 @@
       "en": "City of Helsinki",
       "sv": "Helsingfors stad"
     },
+    "email_logo": {
+      "fi": "https://makasiini.hel.ninja/helsinki-logos/helsinki-logo-black.png",
+      "en": "https://makasiini.hel.ninja/helsinki-logos/helsinki-logo-black.png",
+      "sv": "https://makasiini.hel.ninja/helsinki-logos/helsinki-logo-black-sv.png"
+    },
     "email_subject_confirmation": {
       "fi": "Vahvista työpaikkojen hakuvahdin tilaus",
       "en": "Confirm your saved search for jobs",
