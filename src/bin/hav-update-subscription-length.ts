@@ -106,12 +106,9 @@ export const parseArguments = (args: string[]): Omit<MigrationOptions, 'siteId'>
  *
  * @param server - Fastify server instance
  * @param options - Migration options
- * @return Migration results with stats
+ * @return Migration statistics
  */
-export const updateSubscriptionLength = async (
-  server: Server,
-  options: MigrationOptions,
-): Promise<{ success: boolean; stats: MigrationStats; error?: unknown }> => {
+export const updateSubscriptionLength = async (server: Server, options: MigrationOptions): Promise<MigrationStats> => {
   const db = server.mongo.db;
   if (!db) {
     throw new Error('MongoDB connection not available');
@@ -124,76 +121,69 @@ export const updateSubscriptionLength = async (
     skipped: 0,
   };
 
-  try {
-    const collection = db.collection('subscription');
-    const configLoader = SiteConfigurationLoader.getInstance();
-    await configLoader.loadConfigurations();
-    const siteConfig = configLoader.getConfiguration(options.siteId);
+  const collection = db.collection('subscription');
+  const configLoader = SiteConfigurationLoader.getInstance();
+  await configLoader.loadConfigurations();
+  const siteConfig = configLoader.getConfiguration(options.siteId);
 
-    if (!siteConfig) {
-      throw new Error('Site configuration not found');
-    }
-
-    const maxAge = siteConfig.subscription.maxAge;
-    console.log(`Site configuration maxAge = ${maxAge} days`);
-
-    // Get all subscriptions
-    const subscriptions = await collection.find({ site_id: options.siteId }).toArray();
-    stats.total = subscriptions.length;
-
-    console.log(`Found ${subscriptions.length} subscriptions for site: ${options.siteId}`);
-
-    // Process subscriptions in batches
-    const { batchSize, dryRun } = options;
-
-    for (let i = 0; i < subscriptions.length; i += batchSize) {
-      const batch = subscriptions.slice(i, i + batchSize);
-
-      console.log(`\nbatch ${Math.floor(i / batchSize) + 1} (${batch.length} subscriptions):`);
-
-      await batch.reduce(async (previousPromise, subscription, index) => {
-        await previousPromise;
-
-        try {
-          // Calculate delete_after: subscription.created + maxAge days
-          const createdDate = new Date(subscription.created);
-          const deleteAfter = calculateDeleteAfterDate(createdDate, maxAge);
-
-          const message = formatSubscriptionUpdateMessage(
-            i + index + 1,
-            subscription._id.toString(),
-            createdDate,
-            deleteAfter,
-            dryRun,
-          );
-
-          if (dryRun) {
-            console.log(message);
-            stats.updated += 1;
-          } else {
-            // Update ATV document with calculated delete_after
-            await server.atvUpdateDocumentDeleteAfter(subscription.email, maxAge, createdDate);
-            console.log(message);
-            stats.updated += 1;
-          }
-        } catch (error) {
-          const errorMessage = formatErrorMessage(i + index + 1, subscription._id.toString(), error);
-          console.error(errorMessage);
-          stats.failed += 1;
-        }
-      }, Promise.resolve());
-    }
-
-    console.log(`Total: ${stats.total}`);
-    console.log(`Updated: ${stats.updated}`);
-    console.log(`Failed: ${stats.failed}`);
-    console.log(`Skipped: ${stats.skipped}`);
-
-    return { success: true, stats };
-  } catch (error) {
-    console.error('Error during migration:', error);
-    return { success: false, stats, error };
+  if (!siteConfig) {
+    throw new Error('Site configuration not found');
   }
+
+  const maxAge = siteConfig.subscription.maxAge;
+  console.log(`Site configuration maxAge = ${maxAge} days`);
+
+  // Get all subscriptions
+  const subscriptions = await collection.find({ site_id: options.siteId }).toArray();
+  stats.total = subscriptions.length;
+
+  console.log(`Found ${subscriptions.length} subscriptions for site: ${options.siteId}`);
+
+  // Process subscriptions in batches
+  const { batchSize, dryRun } = options;
+
+  for (let i = 0; i < subscriptions.length; i += batchSize) {
+    const batch = subscriptions.slice(i, i + batchSize);
+
+    console.log(`\nbatch ${Math.floor(i / batchSize) + 1} (${batch.length} subscriptions):`);
+
+    for (const [index, subscription] of batch.entries()) {
+      try {
+        // Calculate delete_after: subscription.created + maxAge days
+        const createdDate = new Date(subscription.created);
+        const deleteAfter = calculateDeleteAfterDate(createdDate, maxAge);
+
+        const message = formatSubscriptionUpdateMessage(
+          i + index + 1,
+          subscription._id.toString(),
+          createdDate,
+          deleteAfter,
+          dryRun,
+        );
+
+        if (dryRun) {
+          console.log(message);
+          stats.updated += 1;
+        } else {
+          // Update ATV document with calculated delete_after
+          await server.atvUpdateDocumentDeleteAfter(subscription.email, maxAge, createdDate);
+          console.log(message);
+          stats.updated += 1;
+        }
+      } catch (error) {
+        const errorMessage = formatErrorMessage(i + index + 1, subscription._id.toString(), error);
+        console.error(errorMessage);
+        stats.failed += 1;
+      }
+    }
+  }
+
+  console.log(`Total: ${stats.total}`);
+  console.log(`Updated: ${stats.updated}`);
+  console.log(`Failed: ${stats.failed}`);
+  console.log(`Skipped: ${stats.skipped}`);
+
+  return stats;
 };
 
 command(
@@ -212,15 +202,11 @@ command(
     console.log(`Dry run: ${dryRun}`);
     console.log('');
 
-    const result = await updateSubscriptionLength(server, {
+    await updateSubscriptionLength(server, {
       siteId,
       batchSize,
       dryRun,
     });
-
-    if (!result.success) {
-      throw result.error || new Error('Migration failed');
-    }
   },
   [mongodb, atv],
 );
