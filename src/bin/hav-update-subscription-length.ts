@@ -84,31 +84,12 @@ export const calculateDeleteAfterDate = (createdDate: Date, maxAge: number): Dat
 };
 
 /**
- * Parses command line arguments for the migration script.
- *
- * @param args - Command line arguments (process.argv.slice(2))
- * @return Parsed migration options
- */
-export const parseArguments = (args: string[]): Omit<MigrationOptions, 'siteId'> & { siteId: string | undefined } => {
-  const batchSize = Number.parseInt(args.find((arg) => arg.startsWith('--batch-size='))?.split('=')[1] || '100', 10);
-  const dryRun = args.includes('--dry-run');
-  const siteId = args.find((arg) => arg.startsWith('--site='))?.split('=')[1];
-
-  return {
-    siteId,
-    batchSize,
-    dryRun,
-  };
-};
-
-/**
  * Updates ATV document delete_after timestamps for all subscriptions of a given site.
  *
  * @param server - Fastify server instance
  * @param options - Migration options
- * @return Migration statistics
  */
-export const updateSubscriptionLength = async (server: Server, options: MigrationOptions): Promise<MigrationStats> => {
+export const updateSubscriptionLength = async (server: Server, options: MigrationOptions): Promise<void> => {
   const db = server.mongo.db;
   if (!db) {
     throw new Error('MongoDB connection not available');
@@ -161,15 +142,14 @@ export const updateSubscriptionLength = async (server: Server, options: Migratio
           dryRun,
         );
 
-        if (dryRun) {
-          console.log(message);
-          stats.updated += 1;
-        } else {
+        console.log(message);
+
+        if (!dryRun) {
           // Update ATV document with calculated delete_after
           await server.atvUpdateDocumentDeleteAfter(subscription.email, maxAge, createdDate);
-          console.log(message);
-          stats.updated += 1;
         }
+
+        stats.updated += 1;
       } catch (error) {
         const errorMessage = formatErrorMessage(i + index + 1, subscription._id.toString(), error);
         console.error(errorMessage);
@@ -182,8 +162,6 @@ export const updateSubscriptionLength = async (server: Server, options: Migratio
   console.log(`Updated: ${stats.updated}`);
   console.log(`Failed: ${stats.failed}`);
   console.log(`Skipped: ${stats.skipped}`);
-
-  return stats;
 };
 
 command(
