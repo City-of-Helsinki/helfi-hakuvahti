@@ -210,7 +210,7 @@
     "subscription": {
       "maxAge": 5,
       "unconfirmedMaxAge": 2,
-      "expiryNotificationDays": 1
+      "expiryNotificationDays": 4
     },
     "mail": {
       "templatePath": "rekry",
@@ -228,7 +228,7 @@
     "subscription": {
       "maxAge": 5,
       "unconfirmedMaxAge": 2,
-      "expiryNotificationDays": 1
+      "expiryNotificationDays": 4
     },
     "mail": {
       "templatePath": "rekry",
