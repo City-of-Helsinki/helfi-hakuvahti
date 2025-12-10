@@ -244,9 +244,9 @@
       "sv": "https://www.hel.fi/sv/lediga-jobb"
     },
     "subscription": {
-      "maxAge": 90,
+      "maxAge": 180,
       "unconfirmedMaxAge": 5,
-      "expiryNotificationDays": 3
+      "expiryNotificationDays": 5
     },
     "mail": {
       "templatePath": "rekry",
