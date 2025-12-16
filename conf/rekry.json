@@ -28,8 +28,8 @@
     },
     "instructions_text": {
       "fi": "Työpaikkojen hakuvahdin käyttöohjeet",
-      "en": "Job alert instructions",
-      "sv": "Anvisningar för jobbevakningen"
+      "en": "Instructions for using saved searches for jobs",
+      "sv": "Anvisning för användning av sökvakten för arbetsplatser"
     },
     "instructions_link": {
       "fi": "https://www.hel.fi/fi/avoimet-tyopaikat/nain-me-rekrytoimme/hakuvahdin-ohjeet",
@@ -40,7 +40,7 @@
       "fi": "Vahvista työpaikkojen hakuvahdin tilaus Helsingin kaupungilta",
       "en": "Confirm your saved search for City of Helsinki jobs",
       "sv": "Bekräfta beställningen av sökvakten för arbetsplatser från Helsingfors stad"
-    },    
+    },
     "email_confirmation_intro": {
       "fi": "Tälle sähköpostille luotiin hakuvahti Helsingin kaupungin verkkosivustolla.",
       "en": "This email address was used to save a search on the City of Helsinki website.",
@@ -50,7 +50,7 @@
       "fi": "Hakuehdot",
       "en": "Search criteria",
       "sv": "Sökvillkor"
-    },    
+    },
     "email_confirmation_button": {
       "fi": "Vahvista hakuvahti",
       "en": "Confirm saved search",
@@ -152,7 +152,7 @@
       "sv": "Se alla sökvaktens resultat"
     },
     "email_newhits_expiry_prefix": {
-      "fi": "Hakuvahti on voimassa",
+      "fi": "Hakuvahti on voimassa",
       "en": "This saved search is valid until",
       "sv": "Sökvakten är i kraft fram till"
     },
@@ -217,7 +217,7 @@
       "maxHitsInEmail": 10
     },
     "elasticProxyUrl": "https://rekry-elastic-proxy-test.agw.arodevtest.hel.fi/job_listings"
-  },  
+  },
   "staging": {
     "urls": {
       "base": "https://www.stage.hel.ninja",
@@ -253,5 +253,5 @@
       "maxHitsInEmail": 10
     },
     "elasticProxyUrl": "https://rekry-elastic-proxy.api.hel.ninja/job_listings"
-  }  
+  }
 }
