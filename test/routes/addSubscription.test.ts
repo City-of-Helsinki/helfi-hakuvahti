@@ -139,6 +139,13 @@ describe('/subscription', () => {
         assert.strictEqual(subscription.query, payload.query);
         assert.strictEqual(subscription.lang, payload.lang);
         assert.strictEqual(subscription.elastic_query, payload.elastic_query);
+
+        // Verify delete_after is set correctly (created + maxAge days)
+        assert.ok(subscription.delete_after, `${name}: delete_after should be set`);
+        assert.ok(
+          subscription.delete_after.getTime() > subscription.created.getTime(),
+          `${name}: delete_after should be after created date`,
+        );
       });
     }
   });
