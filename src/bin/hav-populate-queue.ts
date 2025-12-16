@@ -103,6 +103,37 @@ const checkShouldSendExpiryNotification = (
   return Date.now() >= subscriptionExpiryNotificationSentAt.getTime();
 };
 
+/**
+ * Calculates the expected delete_after date based on subscription created date and site config maxAge.
+ *
+ * @param createdDate - The subscription creation date
+ * @param maxAge - Number of days until deletion from site config
+ * @return The calculated delete_after date
+ */
+export const calculateExpectedDeleteAfter = (createdDate: Date, maxAge: number): Date => {
+  const deleteAfter = new Date(createdDate);
+  deleteAfter.setDate(deleteAfter.getDate() + maxAge);
+  return deleteAfter;
+};
+
+/**
+ * Checks if the subscription's delete_after needs to be synced with ATV.
+ * Compares stored delete_after with expected value based on current site config.
+ *
+ * @param storedDeleteAfter - The stored delete_after date from subscription (may be undefined)
+ * @param expectedDeleteAfter - The expected delete_after date based on current config
+ * @return True if sync is needed (missing or mismatched delete_after)
+ */
+export const needsDeleteAfterSync = (storedDeleteAfter: Date | undefined, expectedDeleteAfter: Date): boolean => {
+  if (!storedDeleteAfter) {
+    return true;
+  }
+
+  const storedDate = new Date(storedDeleteAfter);
+  // Compare dates by their date string (YYYY-MM-DD)
+  return storedDate.toISOString().substring(0, 10) !== expectedDeleteAfter.toISOString().substring(0, 10);
+};
+
 const getNewHitsFromElasticsearch = async (
   subscription: SubscriptionCollectionType & { _id: ObjectId },
   siteConfig: SiteConfigurationType,
@@ -177,6 +208,30 @@ const processSiteSubscriptions = async (
 
     // Calculate subscription expiry date
     const subscriptionValidForDays = siteConfig.subscription.maxAge;
+
+    // Sync ATV delete_after if needed (handles config changes and legacy subscriptions)
+    const expectedDeleteAfter = calculateExpectedDeleteAfter(new Date(subscription.created), subscriptionValidForDays);
+    if (needsDeleteAfterSync(subscription.delete_after, expectedDeleteAfter)) {
+      if (isDryRun) {
+        console.log(
+          `[DRY RUN] Would sync ATV delete_after for ${subscription._id} ` +
+            `(stored: ${subscription.delete_after?.toISOString().substring(0, 10) ?? 'none'}, ` +
+            `expected: ${expectedDeleteAfter.toISOString().substring(0, 10)})`,
+        );
+      } else {
+        try {
+          await server.atvUpdateDocumentDeleteAfter(
+            subscription.email,
+            subscriptionValidForDays,
+            new Date(subscription.created),
+          );
+          await collection.updateOne({ _id: subscription._id }, { $set: { delete_after: expectedDeleteAfter } });
+        } catch (error) {
+          console.error(`Failed to sync ATV delete_after for subscription ${subscription._id}:`, error);
+          server.Sentry?.captureException(error);
+        }
+      }
+    }
     const subscriptionExpiresAt =
       new Date(subscription.created).getTime() + subscriptionValidForDays * 24 * 60 * 60 * 1000;
     const subscriptionExpiresAtDate = new Date(subscriptionExpiresAt);
@@ -188,7 +243,6 @@ const processSiteSubscriptions = async (
     // If subscription should expire soon, send an expiration email
     if (checkShouldSendExpiryNotification(subscription as Partial<SubscriptionCollectionType>, siteConfig)) {
       if (isDryRun) {
-        // eslint-disable-next-line no-console
         console.log(`[DRY RUN] Would send expiry email to ${subscription.email} (site: ${siteConfig.id})`);
       } else {
         await collection.updateOne({ _id: subscription._id }, { $set: { expiry_notification_sent: 1 } });
@@ -260,7 +314,6 @@ const processSiteSubscriptions = async (
     };
 
     if (isDryRun) {
-      // eslint-disable-next-line no-console
       console.log(
         `[DRY RUN] Would queue email for ${subscription.email}: ${newHits.length} new result(s) (site: ${siteConfig.id})`,
       );
@@ -292,7 +345,6 @@ const processSiteSubscriptions = async (
         };
 
         if (isDryRun) {
-          // eslint-disable-next-line no-console
           console.log(`[DRY RUN] Would queue SMS for ${subscription._id}`);
         } else {
           await smsQueueCollection.insertOne(smsToQueue);
@@ -329,13 +381,10 @@ const app = async (targetSite: string | undefined, isDryRun: boolean, server: Se
   };
 
   try {
-    // eslint-disable-next-line no-console
     console.log('Environment:', process.env.ENVIRONMENT || 'dev');
     if (isDryRun) {
-      // eslint-disable-next-line no-console
       console.log('\n=== DRY RUN MODE - No changes will be made ===\n');
     }
-    // eslint-disable-next-line no-console
     console.log('Loading site configurations...');
 
     // Load site configurations
@@ -356,13 +405,11 @@ const app = async (targetSite: string | undefined, isDryRun: boolean, server: Se
     }
 
     const siteNames = siteConfigsToProcess.map(([siteId]) => siteId).join(', ');
-    // eslint-disable-next-line no-console
     console.log(`Processing ${siteConfigsToProcess.length} site(s): ${siteNames}\n`);
 
     // Process each site configuration
     await siteConfigsToProcess.reduce(async (previousPromise, [siteId, siteConfig]) => {
       await previousPromise;
-      // eslint-disable-next-line no-console
       console.log(`Processing subscriptions for site: ${siteId}`);
       await processSiteSubscriptions(server, siteConfig, stats, isDryRun);
       stats.sitesProcessed++;
@@ -370,20 +417,13 @@ const app = async (targetSite: string | undefined, isDryRun: boolean, server: Se
     }, Promise.resolve());
 
     // Print summary
-    // eslint-disable-next-line no-console
     console.log('\n=== Summary ===');
-    // eslint-disable-next-line no-console
     console.log(`Sites processed: ${stats.sitesProcessed}`);
-    // eslint-disable-next-line no-console
     console.log(`Subscriptions checked: ${stats.subscriptionsChecked}`);
-    // eslint-disable-next-line no-console
     console.log(`Expiry emails queued: ${stats.expiryEmailsQueued}`);
-    // eslint-disable-next-line no-console
     console.log(`New results emails queued: ${stats.newResultsEmailsQueued}`);
-    // eslint-disable-next-line no-console
     console.log(`SMS queued: ${stats.smsQueued}`);
     if (isDryRun) {
-      // eslint-disable-next-line no-console
       console.log('\n[DRY RUN] No changes were made to the database');
     }
   } catch (error) {
