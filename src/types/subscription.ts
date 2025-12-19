@@ -36,6 +36,7 @@ export const SubscriptionCollection = Type.Object({
   expiry_notification_sent: Type.Enum(SubscriptionStatus),
   status: Type.Enum(SubscriptionStatus),
   has_sms: Type.Optional(Type.Boolean()),
+  delete_after: Type.Optional(Type.Date()),
 });
 export type SubscriptionCollectionType = Static<typeof SubscriptionCollection>;
 

@@ -80,10 +80,15 @@ const renewSubscription: FastifyPluginAsync = async (fastify: FastifyInstance, _
       }
 
       // Archive the original created date if not already archived
+      const now = new Date();
+      const newDeleteAfter = new Date(now);
+      newDeleteAfter.setDate(newDeleteAfter.getDate() + subscriptionValidForDays);
+
       const updateFields: Record<string, unknown> = {
-        created: new Date(),
-        modified: new Date(),
+        created: now,
+        modified: now,
         expiry_notification_sent: SubscriptionStatus.INACTIVE,
+        delete_after: newDeleteAfter,
       };
 
       // Only set first_created if it doesn't exist yet (for multiple renewals)
@@ -93,7 +98,7 @@ const renewSubscription: FastifyPluginAsync = async (fastify: FastifyInstance, _
 
       // Update ATV document's delete_after timestamp to match the new subscription expiry
       try {
-        await fastify.atvUpdateDocumentDeleteAfter(subscription.email, subscriptionValidForDays, new Date());
+        await fastify.atvUpdateDocumentDeleteAfter(subscription.email, subscriptionValidForDays, now);
       } catch (error) {
         fastify.log.error({
           level: 'error',

@@ -87,6 +87,13 @@ describe('/subscription/renew', () => {
     assert.strictEqual(updated?.first_created.getTime(), oldDate.getTime(), 'Original date should be archived');
     assert.strictEqual(updated?.expiry_notification_sent, 0, 'Expiry notification should be reset');
 
+    // Verify delete_after is updated on renewal
+    assert.ok(updated?.delete_after, 'delete_after should be set after renewal');
+    assert.ok(
+      updated?.delete_after.getTime() > updated?.created.getTime(),
+      'delete_after should be after new created date',
+    );
+
     assert.ok(atvMock.mock.callCount() >= 1);
   });
 });
