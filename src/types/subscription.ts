@@ -25,6 +25,7 @@ export type SubscriptionCollectionLanguageType = Static<typeof SubscriptionColle
 export const SubscriptionCollection = Type.Object({
   email: Type.String(),
   elastic_query: Type.String(),
+  elastic_query_atv: Type.Optional(Type.Number()),
   search_description: Type.Optional(Type.String()),
   hash: Type.Optional(Type.String()),
   query: Type.String(),
@@ -53,6 +54,7 @@ export type SubscriptionResponseType = Static<typeof SubscriptionResponse>;
 export const SubscriptionRequest = Type.Object({
   email: Type.String(),
   elastic_query: Type.String(),
+  elastic_query_atv: Type.Optional(Type.Number()),
   query: Type.String(),
   search_description: Type.Optional(Type.String()),
   site_id: Type.String(),

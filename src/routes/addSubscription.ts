@@ -84,6 +84,24 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
           .send({ error: 'Could not find hashed email. Subscription not added.' });
       request.body.email = request.atvResponse.atvDocumentId;
 
+      const elasticQueryAtv = request.body.elastic_query_atv;
+      if (elasticQueryAtv) {
+        const atvDocument = await fastify.atvCreateDocument(
+          {
+            elastic_query: request.body.elastic_query,
+          },
+          'atvCreateDocumentWithQuery',
+        );
+        if (atvDocument.id) {
+          request.body.elastic_query = atvDocument.id;
+        } else {
+          return reply
+            .code(500)
+            .header('Content-Type', 'application/json; charset=utf-8')
+            .send({ error: 'Could not create ATV document for query. Subscription not added.' });
+        }
+      }
+
       // Load site configuration
       const configLoader = SiteConfigurationLoader.getInstance();
       await configLoader.loadConfigurations();
