@@ -22,14 +22,13 @@ const validateElasticQueryHook = async (request: FastifyRequest, fastify: Fastif
     const body: Partial<SubscriptionRequestType> = request.body as Partial<SubscriptionRequestType>;
     const siteId = body.site_id;
     const elasticQuery = body.elastic_query;
-    const elasticQueryAtv = body.elastic_query_atv;
 
     if (!siteId) {
       throw new Error('site_id is required');
     }
 
-    if (!elasticQuery && !elasticQueryAtv) {
-      throw new Error('elastic_query or elastic_query_atv is required');
+    if (!elasticQuery) {
+      throw new Error('elastic_query is required');
     }
 
     const configLoader = SiteConfigurationLoader.getInstance();
@@ -40,8 +39,8 @@ const validateElasticQueryHook = async (request: FastifyRequest, fastify: Fastif
       throw new Error(`Invalid site_id: ${siteId}`);
     }
 
-    // Decode query from elastic_query or elastic_query_atv
-    const decodedQuery = fastify.b64decode(elasticQueryAtv || elasticQuery || '');
+    // Decode elastic_query
+    const decodedQuery = fastify.b64decode(elasticQuery);
 
     // Validate the query by executing it against Elastic
     await fastify.queryElasticProxy(siteConfig.elasticProxyUrl, decodedQuery);
