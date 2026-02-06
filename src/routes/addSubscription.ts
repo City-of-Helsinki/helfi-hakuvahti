@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { confirmationEmail } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
+import { generateUniqueSmsCode } from '../lib/smsCode';
 import { Generic400Error, type Generic400ErrorType, Generic500Error, type Generic500ErrorType } from '../types/error';
 import type { QueueInsertDocumentType } from '../types/mailer';
 import {
@@ -112,6 +113,13 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         has_sms: !!request.atvResponse?.hasSms,
         delete_after: deleteAfter,
       };
+
+      // Generate SMS code if SMS is enabled for this subscription and site
+      if (subscriptionData.has_sms && siteConfig.subscription.enableSms) {
+        const smsCode = await generateUniqueSmsCode(collection);
+        subscriptionData.sms_code = smsCode;
+        subscriptionData.sms_code_created = now;
+      }
 
       // SMS is already stored in ATV document, no need to store in MongoDB
       // It was removed by the ATV hook after validation
