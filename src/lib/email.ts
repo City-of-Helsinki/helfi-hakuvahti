@@ -149,6 +149,7 @@ export const newHitsSms = async (
   data: {
     search_description: string;
     search_link: string;
+    sms_code?: string;
   },
   siteConfig: SiteConfigurationType,
 ) =>
@@ -156,4 +157,5 @@ export const newHitsSms = async (
     lang,
     search_description: data.search_description,
     search_link: siteConfig.urls.base + data.search_link,
+    sms_code: data.sms_code ?? '',
   });
