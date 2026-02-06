@@ -22,6 +22,9 @@ export const SiteSubscriptionSettings = Type.Object({
   maxAge: Type.Number(),
   unconfirmedMaxAge: Type.Number(),
   expiryNotificationDays: Type.Number(),
+  enableSms: Type.Optional(Type.Boolean()),
+  smsCodeExpireConfirmMinutes: Type.Optional(Type.Number()),
+  smsCodeExpireActionMinutes: Type.Optional(Type.Number()),
 });
 export type SiteSubscriptionSettingsType = Static<typeof SiteSubscriptionSettings>;
 
