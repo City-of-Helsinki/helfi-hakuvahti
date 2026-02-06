@@ -37,8 +37,18 @@ export const SubscriptionCollection = Type.Object({
   status: Type.Enum(SubscriptionStatus),
   has_sms: Type.Optional(Type.Boolean()),
   delete_after: Type.Optional(Type.Date()),
+  first_created: Type.Optional(Type.Date()),
+  sms_code: Type.Optional(Type.String()),
+  sms_code_created: Type.Optional(Type.Date()),
 });
 export type SubscriptionCollectionType = Static<typeof SubscriptionCollection>;
+
+// Subscription renewal - Pick needed fields for renewal action
+export const RenewalSubscription = Type.Intersect([
+  Type.Pick(SubscriptionCollection, ['email', 'site_id', 'status', 'created', 'first_created']),
+  Type.Object({ _id: Type.Unknown() }),
+]);
+export type RenewalSubscriptionType = Static<typeof RenewalSubscription>;
 
 // MongoDB response when inserting:
 export const SubscriptionResponse = Type.Object({
@@ -74,3 +84,18 @@ export const SubscriptionGenericPostResponse = Type.Object({
   statusMessage: Type.Optional(Type.String()),
 });
 export type SubscriptionGenericPostResponseType = Static<typeof SubscriptionGenericPostResponse>;
+
+// SMS verification request
+export const SmsVerificationRequest = Type.Object({
+  sms_code: Type.String(),
+  number: Type.String(),
+});
+export type SmsVerificationRequestType = Static<typeof SmsVerificationRequest>;
+
+// SMS verification response
+export const SmsVerificationResponse = Type.Object({
+  statusCode: Type.Number(),
+  statusMessage: Type.String(),
+  expiryDate: Type.Optional(Type.String()),
+});
+export type SmsVerificationResponseType = Static<typeof SmsVerificationResponse>;
