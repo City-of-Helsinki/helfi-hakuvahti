@@ -44,7 +44,7 @@ export const SubscriptionCollection = Type.Object({
 });
 export type SubscriptionCollectionType = Static<typeof SubscriptionCollection>;
 
-// Subscription renewal - Pick needed fields for renewal action
+// Subscription renewal
 export const RenewalSubscription = Type.Intersect([
   Type.Pick(SubscriptionCollection, ['email', 'site_id', 'status', 'created', 'first_created']),
   Type.Object({ _id: Type.Unknown() }),
@@ -101,3 +101,31 @@ export const SmsVerificationResponse = Type.Object({
   expiryDate: Type.Optional(Type.String()),
 });
 export type SmsVerificationResponseType = Static<typeof SmsVerificationResponse>;
+
+// Subscription document for SMS verification
+export const VerificationSubscription = Type.Intersect([
+  Type.Pick(SubscriptionCollection, [
+    'email',
+    'site_id',
+    'status',
+    'created',
+    'first_created',
+    'sms_code',
+    'sms_code_created',
+  ]),
+  Type.Object({ _id: Type.Unknown() }),
+]);
+export type VerificationSubscriptionType = Static<typeof VerificationSubscription>;
+
+// SMS verification result
+export const SmsVerificationResult = Type.Object({
+  success: Type.Boolean(),
+  subscription: Type.Optional(VerificationSubscription),
+  error: Type.Optional(
+    Type.Object({
+      statusCode: Type.Number(),
+      statusMessage: Type.String(),
+    }),
+  ),
+});
+export type SmsVerificationResultType = Static<typeof SmsVerificationResult>;
