@@ -1,0 +1,29 @@
+### SMS Confirm subscription
+POST https://hakuvahti.docker.so/subscription/confirm/sms HTTP/1.1
+Content-Type: application/json
+Authorization: api-key 123
+
+{
+    "sms_code": "123456",
+    "number": "567"
+}
+
+### SMS Delete subscription
+POST https://hakuvahti.docker.so/subscription/delete/sms HTTP/1.1
+Content-Type: application/json
+Authorization: api-key 123
+
+{
+    "sms_code": "123456",
+    "number": "567"
+}
+
+### SMS Renew subscription
+POST https://hakuvahti.docker.so/subscription/renew/sms HTTP/1.1
+Content-Type: application/json
+Authorization: api-key 123
+
+{
+    "sms_code": "123456",
+    "number": "567"
+}
