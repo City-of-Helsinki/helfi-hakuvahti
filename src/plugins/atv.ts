@@ -35,13 +35,13 @@ const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDo
 };
 
 /**
- * Create a document with the given email and optional SMS, return a partial AtvDocumentType.
+ * Create a document with the given content, return a partial AtvDocumentType.
  *
- * @param email - the email to be included in the document
- * @param sms - optional SMS to be included in the document
+ * @param content - the content object to be included in the document
+ * @param tosFunctionId - the TOS function ID for the document
  * @return the created document
  */
-const atvCreateDocumentWithEmail = async (email: string, sms?: string): Promise<Partial<AtvDocumentType>> => {
+const atvCreateDocument = async (content: object, tosFunctionId: string): Promise<Partial<AtvDocumentType>> => {
   try {
     const timestamp = Math.floor(Date.now() / 1000).toString();
 
@@ -53,13 +53,10 @@ const atvCreateDocumentWithEmail = async (email: string, sms?: string): Promise<
     // Minimal document required by ATV
     const documentObject: Partial<AtvDocumentType> = {
       draft: 'false',
-      tos_function_id: 'atvCreateDocumentWithEmail',
+      tos_function_id: tosFunctionId,
       tos_record_id: timestamp,
       delete_after: deleteAfter.toISOString().substring(0, 10),
-      content: JSON.stringify({
-        email: email,
-        ...(sms && { sms: sms }),
-      }),
+      content: JSON.stringify(content),
     };
 
     const response: AxiosResponse<Partial<AtvDocumentType>> = await axios.post(
@@ -189,7 +186,13 @@ const requestEmailHook = async (request: FastifyRequestType) => {
     const email: string = (body.email as string)?.trim();
     const sms: string | undefined = body.sms?.trim();
 
-    const atvDocument: Partial<AtvDocumentType> = await atvCreateDocumentWithEmail(email, sms);
+    const atvDocument: Partial<AtvDocumentType> = await atvCreateDocument(
+      {
+        email: email,
+        ...(sms && { sms: sms }),
+      },
+      'atvCreateDocumentWithEmail',
+    );
     const atvDocumentId: string | undefined = atvDocument.id;
 
     if (atvDocumentId) {
@@ -218,15 +221,18 @@ export default fp(async (fastify, _opts) => {
   // and sets the returned documentId to atvResponse.email variable
   fastify.addHook('preHandler', requestEmailHook);
 
-  // Expose atvQueryEmail function to global scope
-  fastify.decorate('atvQueryEmail', async function atvQueryEmail(atvDocumentId: string) {
+  // Expose atvGetDocument function to global scope
+  fastify.decorate('atvGetDocument', async function atvGetDocument(atvDocumentId: string) {
     return atvFetchContentById(atvDocumentId);
   });
 
-  // Expose atvCreateDocumentWithEmail function to global scope
-  fastify.decorate('atvCreateDocumentWithEmail', async function atvCreateDocumentWithEmailHandler(email: string) {
-    return atvCreateDocumentWithEmail(email);
-  });
+  // Expose atvCreateDocument function to global scope
+  fastify.decorate(
+    'atvCreateDocument',
+    async function atvCreateDocumentHandler(content: object, tosFunctionId: string) {
+      return atvCreateDocument(content, tosFunctionId);
+    },
+  );
 
   // Expose atvGetDocumentBatch function to global scope
   fastify.decorate('atvGetDocumentBatch', async function atvGetDocumentBatchHandler(emails: string[]) {
@@ -248,8 +254,8 @@ declare module 'fastify' {
   }
 
   export interface FastifyInstance {
-    atvQueryEmail(email: string): Promise<Partial<AtvDocumentType>>;
-    atvCreateDocumentWithEmail: (email: string, sms?: string) => Promise<Partial<AtvDocumentType>>;
+    atvGetDocument(email: string): Promise<Partial<AtvDocumentType>>;
+    atvCreateDocument: (content: object, tosFunctionId: string) => Promise<Partial<AtvDocumentType>>;
     atvGetDocumentBatch: (emails: string[]) => Promise<Partial<AtvDocumentType[]>>;
     atvUpdateDocumentDeleteAfter: (
       atvDocumentId: string,

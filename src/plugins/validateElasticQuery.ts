@@ -14,7 +14,6 @@ export type ValidateElasticQueryPluginOptions = Record<string, never>;
  */
 const validateElasticQueryHook = async (request: FastifyRequest, fastify: FastifyInstance) => {
   try {
-    // @fixme this plugin should only be added to addSubscription route, not globally.
     // Only run on POST requests to /subscription endpoint
     if (request.method !== 'POST' || request.url !== '/subscription') {
       return;
@@ -40,6 +39,7 @@ const validateElasticQueryHook = async (request: FastifyRequest, fastify: Fastif
       throw new Error(`Invalid site_id: ${siteId}`);
     }
 
+    // Decode elastic_query
     const decodedQuery = fastify.b64decode(elasticQuery);
 
     // Validate the query by executing it against Elastic

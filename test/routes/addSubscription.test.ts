@@ -110,9 +110,19 @@ describe('/subscription', () => {
         name: 'with search_description',
         payload: { ...validPayload, search_description: 'My saved search' },
       },
+      {
+        name: 'with elastic_query_atv',
+        payload: {
+          ...validPayload,
+          elastic_query_atv: 1,
+        },
+      },
     ];
 
-    for (const { name, payload } of testCases) {
+    for (const { name, payload } of testCases as {
+      name: string;
+      payload: typeof validPayload & { elastic_query_atv?: number };
+    }[]) {
       await t.test(name, async () => {
         const res = await app.inject({
           method: 'POST',
@@ -138,7 +148,18 @@ describe('/subscription', () => {
         assert.strictEqual(subscription.site_id, payload.site_id);
         assert.strictEqual(subscription.query, payload.query);
         assert.strictEqual(subscription.lang, payload.lang);
-        assert.strictEqual(subscription.elastic_query, payload.elastic_query);
+        assert.strictEqual(subscription.lang, payload.lang);
+
+        if (payload.elastic_query_atv) {
+          assert.strictEqual(
+            subscription.elastic_query,
+            'mock-atv-document-id',
+            `${name}: elastic_query should be ATV document ID`,
+          );
+          assert.strictEqual(subscription.elastic_query_atv, 1, `${name}: elastic_query_atv should be 1`);
+        } else {
+          assert.strictEqual(subscription.elastic_query, payload.elastic_query);
+        }
 
         // Verify delete_after is set correctly (created + maxAge days)
         assert.ok(subscription.delete_after, `${name}: delete_after should be set`);

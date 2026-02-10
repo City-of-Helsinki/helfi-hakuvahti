@@ -139,7 +139,24 @@ const getNewHitsFromElasticsearch = async (
   siteConfig: SiteConfigurationType,
   server: Server,
 ): Promise<PartialDrupalNodeType[]> => {
-  const elasticQuery: string = server.b64decode(subscription.elastic_query);
+  let elasticQuery: string;
+
+  if (subscription.elastic_query_atv) {
+    try {
+      const atvContent = await server.atvGetDocument(subscription.elastic_query as string);
+      const queryObj = typeof atvContent === 'string' ? JSON.parse(atvContent) : atvContent;
+      elasticQuery = server.b64decode(queryObj.elastic_query);
+    } catch (e) {
+      console.error(`Failed to load query from ATV for ${subscription._id}`, e);
+      return [];
+    }
+  } else if (subscription.elastic_query) {
+    elasticQuery = server.b64decode(subscription.elastic_query);
+  } else {
+    console.error(`Subscription ${subscription._id} has neither elastic_query nor elastic_query_atv`);
+    return [];
+  }
+
   const lastChecked: number = subscription.last_checked ? subscription.last_checked : Math.floor(Date.now() / 1000);
 
   try {
