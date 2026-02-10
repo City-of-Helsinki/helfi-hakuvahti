@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import type { Collection } from 'mongodb';
 
 /**
@@ -8,7 +9,7 @@ export async function generateUniqueSmsCode(collection: Collection | undefined):
   const maxAttempts = 10;
 
   for (let i = 0; i < maxAttempts; i++) {
-    const code = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+    const code = String(randomInt(1000000)).padStart(6, '0');
 
     // Check if code exists among active subscriptions
     const existing = await collection?.findOne({
