@@ -97,9 +97,9 @@ export async function verifySmsRequest(
   // Fetch phone number from ATV document content
   let storedPhone: string | undefined;
   try {
-    const atvDoc = await atvQueryFn(subscription.email);
-    // ATV stores the SMS in document.content.sms
-    const content = atvDoc?.content as { sms?: string } | undefined;
+    // atvGetDocument returns unwrapped content (response.data.content)
+    const atvContent = await atvQueryFn(subscription.email);
+    const content = atvContent as { sms?: string } | undefined;
     storedPhone = content?.sms;
   } catch (_error) {
     return {
