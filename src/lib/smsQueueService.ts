@@ -59,7 +59,12 @@ export class SmsQueueService extends BaseQueueService<SmsQueueItemType> {
     }, Promise.resolve());
   }
 
-  private async sendSms(phoneNumber: string | undefined, messageContent: string, atvId: string, item: SmsQueueItemType) {
+  private async sendSms(
+    phoneNumber: string | undefined,
+    messageContent: string,
+    atvId: string,
+    item: SmsQueueItemType,
+  ) {
     console.info('Processing SMS for ATV ID:', atvId);
 
     if (phoneNumber) {

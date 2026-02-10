@@ -80,60 +80,60 @@ const executeAction = async (
  */
 const createSmsHandler =
   (action: SmsAction, fastify: FastifyInstance) =>
-    async (request: FastifyRequest<{ Body: SmsVerificationRequestType }>, reply: FastifyReply) => {
-      const { sms_code, number } = request.body;
-      const collection = fastify.mongo.db?.collection('subscription');
+  async (request: FastifyRequest<{ Body: SmsVerificationRequestType }>, reply: FastifyReply) => {
+    const { sms_code, number } = request.body;
+    const collection = fastify.mongo.db?.collection('subscription');
 
-      if (!collection) {
-        return reply.code(500).send({ error: 'Database not available' });
-      }
+    if (!collection) {
+      return reply.code(500).send({ error: 'Database not available' });
+    }
 
-      // Find subscription by SMS code
-      const subscription = await findSubscriptionByCode(collection, sms_code);
-      if (!subscription) {
-        return reply.code(404).send({
-          statusCode: 404,
-          statusMessage: 'Invalid verification code.',
-        });
-      }
-
-      // Load site configuration and check enableSms
-      const configLoader = SiteConfigurationLoader.getInstance();
-      await configLoader.loadConfigurations();
-
-      const siteConfig = configLoader.getConfiguration(subscription.site_id);
-      if (!siteConfig?.subscription.enableSms) {
-        return reply.code(403).send({
-          statusCode: 403,
-          statusMessage: 'SMS verification is not enabled for this site.',
-        });
-      }
-
-      // Verify with correct expiry from config (check expiry + validate phone)
-      const expireMinutes = getExpireMinutes(action, siteConfig);
-      const verification = await verifySmsRequest(subscription, number, expireMinutes, fastify.atvGetDocument);
-
-      if (!verification.success) {
-        const error = verification.error || { statusCode: 500, statusMessage: 'Verification failed' };
-        return reply.code(error.statusCode).send(error);
-      }
-
-      // Execute action
-      const result = await executeAction(action, collection, subscription, siteConfig, fastify);
-
-      if (result.success) {
-        fastify.log.info({
-          level: 'info',
-          message: `Subscription ${subscription._id} ${action}ed via SMS`,
-        });
-      }
-
-      return reply.code(result.statusCode).send({
-        statusCode: result.statusCode,
-        statusMessage: result.statusMessage,
-        expiryDate: result.expiryDate,
+    // Find subscription by SMS code
+    const subscription = await findSubscriptionByCode(collection, sms_code);
+    if (!subscription) {
+      return reply.code(404).send({
+        statusCode: 404,
+        statusMessage: 'Invalid verification code.',
       });
-    };
+    }
+
+    // Load site configuration and check enableSms
+    const configLoader = SiteConfigurationLoader.getInstance();
+    await configLoader.loadConfigurations();
+
+    const siteConfig = configLoader.getConfiguration(subscription.site_id);
+    if (!siteConfig?.subscription.enableSms) {
+      return reply.code(403).send({
+        statusCode: 403,
+        statusMessage: 'SMS verification is not enabled for this site.',
+      });
+    }
+
+    // Verify with correct expiry from config (check expiry + validate phone)
+    const expireMinutes = getExpireMinutes(action, siteConfig);
+    const verification = await verifySmsRequest(subscription, number, expireMinutes, fastify.atvGetDocument);
+
+    if (!verification.success) {
+      const error = verification.error || { statusCode: 500, statusMessage: 'Verification failed' };
+      return reply.code(error.statusCode).send(error);
+    }
+
+    // Execute action
+    const result = await executeAction(action, collection, subscription, siteConfig, fastify);
+
+    if (result.success) {
+      fastify.log.info({
+        level: 'info',
+        message: `Subscription ${subscription._id} ${action}ed via SMS`,
+      });
+    }
+
+    return reply.code(result.statusCode).send({
+      statusCode: result.statusCode,
+      statusMessage: result.statusMessage,
+      expiryDate: result.expiryDate,
+    });
+  };
 
 /**
  * SMS-based subscription actions.
