@@ -7,38 +7,35 @@ import { isCodeExpired, validatePhoneSuffix } from './smsCode';
 export type AtvQueryFn = (docId: string) => Promise<Partial<AtvDocumentType>>;
 
 /**
+ * Find a subscription by its SMS verification code.
+ */
+export async function findSubscriptionByCode(
+  collection: Collection,
+  smsCode: string,
+): Promise<VerificationSubscriptionType | null> {
+  return (await collection.findOne({
+    sms_code: smsCode,
+    sms_code_created: { $exists: true },
+  })) as VerificationSubscriptionType | null;
+}
+
+/**
  * Validates an SMS verification request.
- * 1. Find subscription by sms_code
- * 2. Check code expiry
- * 3. Fetch phone from ATV and validate suffix
+ * 1. Check code expiry
+ * 2. Fetch phone from ATV and validate suffix
  *
- * @param collection - MongoDB subscription collection
- * @param smsCode - The 6-digit code from user
+ * @param subscription - The subscription found by sms_code
  * @param phoneSuffix - Last 3 digits of phone from user
  * @param expireMinutes - Minutes until code expires
  * @param atvQueryFn - Function to fetch ATV document content
  * @returns Verification result with subscription or error
  */
 export async function verifySmsRequest(
-  collection: Collection,
-  smsCode: string,
+  subscription: VerificationSubscriptionType,
   phoneSuffix: string,
   expireMinutes: number,
   atvQueryFn: AtvQueryFn,
 ): Promise<SmsVerificationResultType> {
-  // Find subscription by sms_code
-  const subscription = (await collection.findOne({
-    sms_code: smsCode,
-    sms_code_created: { $exists: true },
-  })) as VerificationSubscriptionType | null;
-
-  if (!subscription) {
-    return {
-      success: false,
-      error: { statusCode: 404, statusMessage: 'Invalid verification code.' },
-    };
-  }
-
   // Check code expiry
   if (!subscription.sms_code_created || isCodeExpired(new Date(subscription.sms_code_created), expireMinutes)) {
     return {

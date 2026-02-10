@@ -1,7 +1,7 @@
 import type { ObjectId } from '@fastify/mongodb';
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
-import { verifySmsRequest } from '../lib/smsVerification';
+import { findSubscriptionByCode, verifySmsRequest } from '../lib/smsVerification';
 import { confirmSubscription, deleteSubscription, renewSubscription } from '../lib/subscriptionActions';
 import { Generic500Error, type Generic500ErrorType } from '../types/error';
 import type { SiteConfigurationType } from '../types/siteConfig';
@@ -80,87 +80,73 @@ const executeAction = async (
  */
 const createSmsHandler =
   (action: SmsAction, fastify: FastifyInstance) =>
-  async (request: FastifyRequest<{ Body: SmsVerificationRequestType }>, reply: FastifyReply) => {
-    // Rate limit check
-    if (!fastify.checkRateLimit(`sms_verify:${request.ip}`)) {
-      return reply.code(429).send({
-        statusCode: 429,
-        statusMessage: 'Too many verification attempts. Please try again later.',
-      });
-    }
-
-    const { sms_code, number } = request.body;
-    const collection = fastify.mongo.db?.collection('subscription');
-
-    if (!collection) {
-      return reply.code(500).send({ error: 'Database not available' });
-    }
-
-    // Load site configuration
-    const configLoader = SiteConfigurationLoader.getInstance();
-    await configLoader.loadConfigurations();
-
-    // Verify SMS request (find by code, check expiry, validate phone)
-    const verification = await verifySmsRequest(
-      collection,
-      sms_code,
-      number,
-      action === 'confirm' ? 60 : 720, // Default expiry
-      fastify.atvQueryEmail,
-    );
-
-    if (!verification.success || !verification.subscription) {
-      const error = verification.error || { statusCode: 500, statusMessage: 'Verification failed' };
-      return reply.code(error.statusCode).send(error);
-    }
-
-    const subscription = verification.subscription;
-
-    // Get site config and check enableSms
-    const siteConfig = configLoader.getConfiguration(subscription.site_id);
-    if (!siteConfig?.subscription.enableSms) {
-      return reply.code(403).send({
-        statusCode: 403,
-        statusMessage: 'SMS verification is not enabled for this site.',
-      });
-    }
-
-    // Re-verify with correct expiry time from config
-    const expireMinutes = getExpireMinutes(action, siteConfig);
-    if (
-      subscription.sms_code_created &&
-      Date.now() > new Date(subscription.sms_code_created).getTime() + expireMinutes * 60 * 1000
-    ) {
-      return reply.code(400).send({
-        statusCode: 400,
-        statusMessage: 'Verification code has expired.',
-      });
-    }
-
-    // Execute action
-    const result = await executeAction(action, collection, subscription, siteConfig, fastify);
-
-    if (result.success) {
-      // Clear SMS code after successful action (except delete which removes the whole doc)
-      if (action !== 'delete') {
-        await collection.updateOne(
-          { _id: subscription._id as ObjectId },
-          { $unset: { sms_code: 1, sms_code_created: 1 } },
-        );
+    async (request: FastifyRequest<{ Body: SmsVerificationRequestType }>, reply: FastifyReply) => {
+      // Rate limit check
+      if (!fastify.checkRateLimit(`sms_verify:${request.ip}`)) {
+        return reply.code(429).send({
+          statusCode: 429,
+          statusMessage: 'Too many verification attempts. Please try again later.',
+        });
       }
 
-      fastify.log.info({
-        level: 'info',
-        message: `Subscription ${subscription._id} ${action}ed via SMS`,
-      });
-    }
+      const { sms_code, number } = request.body;
+      const collection = fastify.mongo.db?.collection('subscription');
 
-    return reply.code(result.statusCode).send({
-      statusCode: result.statusCode,
-      statusMessage: result.statusMessage,
-      expiryDate: result.expiryDate,
-    });
-  };
+      if (!collection) {
+        return reply.code(500).send({ error: 'Database not available' });
+      }
+
+      // Find subscription by SMS code
+      const subscription = await findSubscriptionByCode(collection, sms_code);
+      if (!subscription) {
+        return reply.code(404).send({
+          statusCode: 404,
+          statusMessage: 'Invalid verification code.',
+        });
+      }
+
+      // Load site configuration and check enableSms
+      const configLoader = SiteConfigurationLoader.getInstance();
+      await configLoader.loadConfigurations();
+
+      const siteConfig = configLoader.getConfiguration(subscription.site_id);
+      if (!siteConfig?.subscription.enableSms) {
+        return reply.code(403).send({
+          statusCode: 403,
+          statusMessage: 'SMS verification is not enabled for this site.',
+        });
+      }
+
+      // Verify with correct expiry from config (check expiry + validate phone)
+      const expireMinutes = getExpireMinutes(action, siteConfig);
+      const verification = await verifySmsRequest(
+        subscription,
+        number,
+        expireMinutes,
+        fastify.atvQueryEmail,
+      );
+
+      if (!verification.success) {
+        const error = verification.error || { statusCode: 500, statusMessage: 'Verification failed' };
+        return reply.code(error.statusCode).send(error);
+      }
+
+      // Execute action
+      const result = await executeAction(action, collection, subscription, siteConfig, fastify);
+
+      if (result.success) {
+        fastify.log.info({
+          level: 'info',
+          message: `Subscription ${subscription._id} ${action}ed via SMS`,
+        });
+      }
+
+      return reply.code(result.statusCode).send({
+        statusCode: result.statusCode,
+        statusMessage: result.statusMessage,
+        expiryDate: result.expiryDate,
+      });
+    };
 
 /**
  * SMS-based subscription actions.

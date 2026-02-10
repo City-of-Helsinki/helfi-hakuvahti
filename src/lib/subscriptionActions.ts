@@ -18,7 +18,10 @@ export type AtvUpdateFn = (docId: string, maxAge: number, fromDate: Date) => Pro
 export async function confirmSubscription(collection: Collection, subscriptionId: ObjectId): Promise<ActionResult> {
   const result = await collection.updateOne(
     { _id: subscriptionId, status: SubscriptionStatus.INACTIVE },
-    { $set: { status: SubscriptionStatus.ACTIVE } },
+    {
+      $set: { status: SubscriptionStatus.ACTIVE },
+      $unset: { sms_code: 1, sms_code_created: 1 },
+    },
   );
 
   if (result.modifiedCount === 0) {
@@ -121,7 +124,13 @@ export async function renewSubscription(
     updateFields.first_created = subscription.created;
   }
 
-  await collection.updateOne({ _id: subscription._id as ObjectId }, { $set: updateFields });
+  await collection.updateOne(
+    { _id: subscription._id as ObjectId },
+    {
+      $set: updateFields,
+      $unset: { sms_code: 1, sms_code_created: 1 },
+    },
+  );
 
   // Calculate new expiry date
   const newExpiryDate = new Date(Date.now() + maxAge * 24 * 60 * 60 * 1000);
