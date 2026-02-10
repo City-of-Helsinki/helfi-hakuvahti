@@ -81,14 +81,6 @@ const executeAction = async (
 const createSmsHandler =
   (action: SmsAction, fastify: FastifyInstance) =>
     async (request: FastifyRequest<{ Body: SmsVerificationRequestType }>, reply: FastifyReply) => {
-      // Rate limit check
-      if (!fastify.checkRateLimit(`sms_verify:${request.ip}`)) {
-        return reply.code(429).send({
-          statusCode: 429,
-          statusMessage: 'Too many verification attempts. Please try again later.',
-        });
-      }
-
       const { sms_code, number } = request.body;
       const collection = fastify.mongo.db?.collection('subscription');
 
@@ -119,7 +111,7 @@ const createSmsHandler =
 
       // Verify with correct expiry from config (check expiry + validate phone)
       const expireMinutes = getExpireMinutes(action, siteConfig);
-      const verification = await verifySmsRequest(subscription, number, expireMinutes, fastify.atvQueryEmail);
+      const verification = await verifySmsRequest(subscription, number, expireMinutes, fastify.atvGetDocument);
 
       if (!verification.success) {
         const error = verification.error || { statusCode: 500, statusMessage: 'Verification failed' };
