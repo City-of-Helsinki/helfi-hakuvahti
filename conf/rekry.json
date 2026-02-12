@@ -216,7 +216,7 @@
       "templatePath": "rekry",
       "maxHitsInEmail": 10
     },
-    "elasticProxyUrl": "https://rekry-elastic-proxy-test.agw.arodevtest.hel.fi/job_listings"
+    "elasticProxyUrl": "https://helfi-rekry-elastic-proxy.test.hel.ninja/job_listings"
   },
   "staging": {
     "urls": {
