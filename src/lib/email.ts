@@ -53,6 +53,19 @@ export const wrapWithLayout = (
 };
 
 // Subscription confirmation email
+export const confirmationSms= async (
+  lang: SubscriptionCollectionLanguageType,
+  data: { link: string; sms_code: string, search_description: string | undefined },
+  siteConfig: SiteConfigurationType,
+) =>
+  sprightly(`dist/templates/${siteConfig.mail.templatePath}/sms/confirmation.txt`, {
+    lang,
+    description: data.search_description || '',
+    link: siteConfig.urls.base + data.link,
+    code: data.sms_code ?? '',
+  });
+
+// Subscription confirmation email
 export const confirmationEmail = async (
   lang: SubscriptionCollectionLanguageType,
   data: { link: string; search_description: string | undefined },
@@ -153,7 +166,7 @@ export const newHitsSms = async (
   },
   siteConfig: SiteConfigurationType,
 ) =>
-  sprightly(`dist/templates/${siteConfig.mail.templatePath}/sms/sms.html`, {
+  sprightly(`dist/templates/${siteConfig.mail.templatePath}/sms/sms.txt`, {
     lang,
     search_description: data.search_description,
     search_link: siteConfig.urls.base + data.search_link,

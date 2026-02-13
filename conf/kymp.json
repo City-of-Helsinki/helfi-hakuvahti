@@ -198,7 +198,7 @@
       "smsCodeExpireActionMinutes": 720
     },
     "mail": {
-      "templatePath": "rekry",
+      "templatePath": "kymp",
       "maxHitsInEmail": 10
     },
     "elasticProxyUrl": "http://helfi-kymp-elastic-proxy:8080/mobilenote_data"

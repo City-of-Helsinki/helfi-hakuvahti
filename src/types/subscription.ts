@@ -37,6 +37,7 @@ export const SubscriptionCollection = Type.Object({
   expiry_notification_sent: Type.Enum(SubscriptionStatus),
   status: Type.Enum(SubscriptionStatus),
   has_sms: Type.Optional(Type.Boolean()),
+  has_email: Type.Optional(Type.Boolean()),
   delete_after: Type.Optional(Type.Date()),
   first_created: Type.Optional(Type.Date()),
   sms_code: Type.Optional(Type.String()),
@@ -60,17 +61,32 @@ export const SubscriptionResponse = Type.Object({
 });
 export type SubscriptionResponseType = Static<typeof SubscriptionResponse>;
 
-// Request to add new subscription:
-export const SubscriptionRequest = Type.Object({
-  email: Type.String(),
+// Request to add new subscription (either email or sms is required, both allowed):
+const SubscriptionRequestBase = Type.Object({
   elastic_query: Type.String(),
   elastic_query_atv: Type.Optional(Type.Number()),
   query: Type.String(),
   search_description: Type.Optional(Type.String()),
   site_id: Type.String(),
   lang: SubscriptionCollectionLanguage,
-  sms: Type.Optional(Type.String()),
 });
+
+export const SubscriptionRequest = Type.Union([
+  Type.Intersect([
+    SubscriptionRequestBase,
+    Type.Object({
+      email: Type.String(),
+      sms: Type.Optional(Type.String())
+    }),
+  ]),
+  Type.Intersect([
+    SubscriptionRequestBase,
+    Type.Object({
+      email: Type.Optional(Type.String()),
+      sms: Type.String()
+    }),
+  ]),
+]);
 export type SubscriptionRequestType = Static<typeof SubscriptionRequest>;
 
 // Generic request with SubscriptionId
