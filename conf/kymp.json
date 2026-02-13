@@ -201,6 +201,6 @@
       "templatePath": "rekry",
       "maxHitsInEmail": 10
     },
-    "elasticProxyUrl": "https://elastic-helfi-kymp.docker.so/mobilenote_data"
+    "elasticProxyUrl": "http://helfi-kymp-elastic-proxy:8080/mobilenote_data"
   }
 }

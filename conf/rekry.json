@@ -201,7 +201,7 @@
       "templatePath": "rekry",
       "maxHitsInEmail": 10
     },
-    "elasticProxyUrl": "https://elastic-helfi-rekry.docker.so/job_listings"
+    "elasticProxyUrl": "http://helfi-rekry-elastic-proxy:8080/job_listings"
   },
   "dev": {
     "urls": {
