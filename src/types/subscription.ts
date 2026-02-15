@@ -76,14 +76,14 @@ export const SubscriptionRequest = Type.Union([
     SubscriptionRequestBase,
     Type.Object({
       email: Type.String(),
-      sms: Type.Optional(Type.String())
+      sms: Type.Optional(Type.String()),
     }),
   ]),
   Type.Intersect([
     SubscriptionRequestBase,
     Type.Object({
       email: Type.Optional(Type.String()),
-      sms: Type.String()
+      sms: Type.String(),
     }),
   ]),
 ]);

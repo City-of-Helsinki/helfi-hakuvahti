@@ -1,9 +1,13 @@
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
-import {confirmationEmail, confirmationSms} from '../lib/email';
+import libphonenumber from 'google-libphonenumber';
+import { confirmationEmail, confirmationSms } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
 import { generateUniqueSmsCode } from '../lib/smsCode';
+import { atvCreateDocument } from '../plugins/atv';
+import type { AtvDocumentType } from '../types/atv';
 import { Generic400Error, type Generic400ErrorType, Generic500Error, type Generic500ErrorType } from '../types/error';
 import type { QueueInsertDocumentType } from '../types/mailer';
+import type { SmsQueueInsertDocumentType } from '../types/sms';
 import {
   type SubscriptionCollectionType,
   SubscriptionRequest,
@@ -12,10 +16,6 @@ import {
   type SubscriptionResponseType,
   SubscriptionStatus,
 } from '../types/subscription';
-import type { AtvDocumentType } from "../types/atv";
-import { atvCreateDocument } from "../plugins/atv";
-import { SmsQueueInsertDocumentType } from "../types/sms";
-import libphonenumber from 'google-libphonenumber'
 
 // Validation helpers
 const isValidEmail = (email: string): boolean => {
@@ -34,7 +34,6 @@ const parsePhoneNumber = (sms: string): string => {
   return phoneUtil.format(parsed, libphonenumber.PhoneNumberFormat.E164);
 };
 
-
 /**
  * Stores user data in ATV.
  */
@@ -45,7 +44,7 @@ async function storeUserData(body: SubscriptionRequestType) {
   let atvDocument: Partial<AtvDocumentType>;
 
   try {
-     atvDocument = await atvCreateDocument(
+    atvDocument = await atvCreateDocument(
       {
         ...(email && { email: email }),
         ...(phone && { sms: phone }),
@@ -135,12 +134,12 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
           .send({ error: 'Invalid site_id provided.' });
       }
 
-      const hasSms = !!siteConfig.subscription?.enableSms && !!request.body.sms
-      const hasEmail = !!request.body.email
+      const hasSms = !!siteConfig.subscription?.enableSms && !!request.body.sms;
+      const hasEmail = !!request.body.email;
 
       // Store user data in ATV.
       try {
-        const atvId = await storeUserData(request.body)
+        const atvId = await storeUserData(request.body);
 
         // Remove user data from request body.
         delete request.body.sms;
@@ -149,8 +148,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         // @fixme: email is confusing field name for ATV id.
         // Replace email in request with ATV id
         request.body.email = atvId;
-      }
-      catch (error) {
+      } catch {
         return reply
           .code(500)
           .header('Content-Type', 'application/json; charset=utf-8')
@@ -208,7 +206,8 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         throw new Error('Adding new subscription failed. See logs.');
       }
 
-      const subscribeLinkBase = request.body.lang in siteConfig.urls ? siteConfig.urls[request.body.lang] : siteConfig.urls.base;
+      const subscribeLinkBase =
+        request.body.lang in siteConfig.urls ? siteConfig.urls[request.body.lang] : siteConfig.urls.base;
 
       // @todo Should we do error handling for notifications?
       // What to do if sending notifications fails? At that point, all user
@@ -216,47 +215,45 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
       // the subscription.
       await Promise.all([
         // Queue email confirmation:
-        hasEmail && (async () => {
-          const document: QueueInsertDocumentType = {
-            // NOTE: email is replaced with ATV document id. Yes, this is confusing.
-            email: request.body.email!,
-            content:  await confirmationEmail(
-              request.body.lang,
-              {
-                link: `${subscribeLinkBase}/hakuvahti/confirm?subscription=${response.insertedId}&hash=${hash}`,
-                search_description: request.body.search_description,
-              },
-              siteConfig,
-            ),
-          };
+        hasEmail &&
+          (async () => {
+            const document: QueueInsertDocumentType = {
+              // NOTE: email is replaced with ATV document id. Yes, this is confusing.
+              email: request.body.email ?? '',
+              content: await confirmationEmail(
+                request.body.lang,
+                {
+                  link: `${subscribeLinkBase}/hakuvahti/confirm?subscription=${response.insertedId}&hash=${hash}`,
+                  search_description: request.body.search_description,
+                },
+                siteConfig,
+              ),
+            };
 
-          return mongodb.db
-            ?.collection('queue')
-            ?.insertOne(document);
-        })(),
+            return mongodb.db?.collection('queue')?.insertOne(document);
+          })(),
 
         // Queue sms confirmation:
-        hasSms && (async () => {
-          const document: SmsQueueInsertDocumentType = {
-            // NOTE: email is replaced with ATV document id. Yes, this is confusing.
-            sms: request.body.email!,
-            content: await confirmationSms(
-              request.body.lang,
-              {
-                // @todo: placeholder URL. See: https://helsinkisolutionoffice.atlassian.net/browse/UHF-12837.
-                link: `${subscribeLinkBase}/hakuvahti/confirm/phone`,
-                search_description: request.body.search_description,
-                sms_code: subscriptionData.sms_code!,
-              },
-              siteConfig,
-            ),
-          };
+        hasSms &&
+          (async () => {
+            const document: SmsQueueInsertDocumentType = {
+              // NOTE: email is replaced with ATV document id. Yes, this is confusing.
+              sms: request.body.email ?? '',
+              content: await confirmationSms(
+                request.body.lang,
+                {
+                  // @todo: placeholder URL. See: https://helsinkisolutionoffice.atlassian.net/browse/UHF-12837.
+                  link: `${subscribeLinkBase}/hakuvahti/confirm/phone`,
+                  search_description: request.body.search_description,
+                  sms_code: subscriptionData.sms_code ?? '',
+                },
+                siteConfig,
+              ),
+            };
 
-          return mongodb.db
-            ?.collection('smsqueue')
-            ?.insertOne(document);
-        })(),
-      ])
+            return mongodb.db?.collection('smsqueue')?.insertOne(document);
+          })(),
+      ]);
 
       return reply.code(200).header('Content-Type', 'application/json; charset=utf-8').send(response);
     },

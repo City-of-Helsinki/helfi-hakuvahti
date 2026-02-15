@@ -53,9 +53,9 @@ export const wrapWithLayout = (
 };
 
 // Subscription confirmation email
-export const confirmationSms= async (
+export const confirmationSms = async (
   lang: SubscriptionCollectionLanguageType,
-  data: { link: string; sms_code: string, search_description: string | undefined },
+  data: { link: string; sms_code: string; search_description: string | undefined },
   siteConfig: SiteConfigurationType,
 ) =>
   sprightly(`dist/templates/${siteConfig.mail.templatePath}/sms/confirmation.txt`, {
