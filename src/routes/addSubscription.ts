@@ -14,7 +14,8 @@ import {
 } from '../types/subscription';
 import type { AtvDocumentType } from "../types/atv";
 import { atvCreateDocument } from "../plugins/atv";
-import {SmsQueueInsertDocumentType} from "../types/sms";
+import { SmsQueueInsertDocumentType } from "../types/sms";
+import libphonenumber from 'google-libphonenumber'
 
 // Validation helpers
 const isValidEmail = (email: string): boolean => {
@@ -23,10 +24,14 @@ const isValidEmail = (email: string): boolean => {
   return re.test(String(email).toLowerCase());
 };
 
-const isValidSms = (sms: string): boolean => {
-  // E.164 international format: + followed by 1-15 digits
-  const re = /^\+[1-9]\d{1,14}$/;
-  return re.test(sms);
+const phoneUtil = libphonenumber.PhoneNumberUtil.getInstance();
+
+const parsePhoneNumber = (sms: string): string => {
+  const parsed = phoneUtil.parse(sms, 'FI');
+  if (!phoneUtil.isValidNumber(parsed)) {
+    throw new Error('Invalid phone number.');
+  }
+  return phoneUtil.format(parsed, libphonenumber.PhoneNumberFormat.E164);
 };
 
 
@@ -82,18 +87,20 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         const sms = request.body.sms?.trim();
 
         if (!email && !sms) {
-          reply.code(400);
-          return done(new Error('Either email or sms is required.'));
+          return reply.code(400).send({ error: 'Either email or sms is required.', field: 'email' });
         }
 
         if (email && !isValidEmail(email)) {
-          reply.code(400);
-          return done(new Error('Invalid email format.'));
+          return reply.code(400).send({ error: 'Invalid email format.', field: 'email' });
         }
 
-        if (sms && !isValidSms(sms)) {
-          reply.code(400);
-          return done(new Error('Invalid SMS number format.'));
+        if (sms) {
+          try {
+            // Normalize the phone number to E.164 format.
+            request.body.sms = parsePhoneNumber(sms);
+          } catch {
+            return reply.code(400).send({ error: 'Invalid phone number format.', field: 'sms' });
+          }
         }
 
         done();
