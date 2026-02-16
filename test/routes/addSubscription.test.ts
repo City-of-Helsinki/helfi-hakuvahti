@@ -45,12 +45,12 @@ describe('/subscription', () => {
       {
         name: 'invalid email format',
         payload: { ...validPayload, email: 'invalid-email' },
-        expectedError: 'Bad Request',
+        expectedError: 'Invalid email format',
       },
       {
         name: 'invalid SMS format',
-        payload: { ...validPayload, sms: '0451234567' },
-        expectedError: 'Bad Request',
+        payload: { ...validPayload, sms: 'not-a-number' },
+        expectedError: 'Invalid phone number format',
       },
       {
         name: 'invalid site_id',

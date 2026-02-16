@@ -79,18 +79,22 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
           500: Generic500Error,
         },
       },
-      preValidation: (request, reply, done) => {
+      preValidation: (request, reply, done): void => {
         // Validate email and SMS BEFORE ATV document creation
         // preValidation runs BEFORE preHandler (where ATV storage happens)
         const email = request.body.email?.trim();
         const sms = request.body.sms?.trim();
 
         if (!email && !sms) {
-          return reply.code(400).send({ error: 'Either email or sms is required.', field: 'email' });
+          reply.code(400).send({ error: 'Either email or sms is required.', field: 'email' });
+          done();
+          return;
         }
 
         if (email && !isValidEmail(email)) {
-          return reply.code(400).send({ error: 'Invalid email format.', field: 'email' });
+          reply.code(400).send({ error: 'Invalid email format.', field: 'email' });
+          done();
+          return;
         }
 
         if (sms) {
@@ -98,11 +102,14 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
             // Normalize the phone number to E.164 format.
             request.body.sms = parsePhoneNumber(sms);
           } catch {
-            return reply.code(400).send({ error: 'Invalid phone number format.', field: 'sms' });
+            reply.code(400).send({ error: 'Invalid phone number format.', field: 'sms' });
+            done();
+            return;
           }
         }
 
         done();
+        return;
       },
     },
     async (request: FastifyRequest<{ Body: SubscriptionRequestType }>, reply: FastifyReply) => {
