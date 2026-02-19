@@ -176,15 +176,75 @@
       "en": "Please do not reply to this message.",
       "sv": "Detta meddelande kan inte besvaras."
     },
-    "sms_newhits_intro": {
-      "fi": "Hakuvahti: Uusia tuloksia haulle",
-      "en": "Search alert: New results for",
-      "sv": "Sökbevakning: Nya resultat för sökningen"
+    "sms_confirmation_intro": {
+      "fi": "Vahvista ajoneuvojen siirtovahdin tilaus Helsingin kaupungilta",
+      "en": "Confirm your Vehicle Removal Alert Service subscription with the City of Helsinki",
+      "sv": "Bekräfta beställningen av flyttningsvakten för fordon från Helsingfors stad"
     },
-    "sms_newhits_cta": {
-      "fi": "Katso tulokset",
-      "en": "View results",
-      "sv": "Se resultat"
+    "sms_confirmation_code_label": {
+      "fi": "Vahvistuskoodi:",
+      "en": "Confirmation code:",
+      "sv": "Bekräftelsekod:"
+    },
+    "sms_confirmation_code_validity": {
+      "fi": "Vahvistuskoodi on voimassa 60 minuuttia",
+      "en": "The confirmation code will be valid for 60 minutes",
+      "sv": "Bekräftelsekoden är giltig i 60 minuter"
+    },
+    "sms_newhits_intro": {
+      "fi": "Uusia osumia ajoneuvojen siirtovahdillasi",
+      "en": "The Vehicle Removal Alert Service has found new matches for you",
+      "sv": "Nya träffar från din flyttningsvakt för fordon"
+    },
+    "sms_newhits_remove_text": {
+      "fi": "Poista hakuvahti osoitteessa",
+      "en": "Remove your search alert at",
+      "sv": "Radera sökvakten på adressen"
+    },
+    "sms_newhits_remove_link": {
+      "fi": "hel.fi/poista-siirtovahti",
+      "en": "hel.fi/remove-search-alert",
+      "sv": "hel.fi/redigera-sokvakten"
+    },
+    "sms_newhits_code_label": {
+      "fi": "Vahvistuskoodi:",
+      "en": "Confirmation code:",
+      "sv": "Bekräftelsekod:"
+    },
+    "sms_newhits_code_validity": {
+      "fi": "Vahvistuskoodi on voimassa 24 tuntia.",
+      "en": "The confirmation code will be valid for 24 hours.",
+      "sv": "Bekräftelsekoden är giltig i 24 timmar."
+    },
+    "sms_renewal_intro": {
+      "fi": "Ajoneuvojen siirtovahtisi Helsingin kaupungilta on vanhentumassa",
+      "en": "Your Vehicle Removal Alert Service subscription with the City of Helsinki will expire on",
+      "sv": "Din flyttningsvakt för fordon från Helsingfors stad går ut"
+    },
+    "sms_renewal_search_label": {
+      "fi": "Hakuehtosi:",
+      "en": "Your search criteria:",
+      "sv": "Dina sökvillkor:"
+    },
+    "sms_renewal_text": {
+      "fi": "Voit jatkaa hakuvahdin tilausta osoitteessa",
+      "en": "You can continue your search alert subscription at",
+      "sv": "Du kan fortsätta beställningen av sökvakten på adressen"
+    },
+    "sms_renewal_link": {
+      "fi": "hel.fi/vahvista-siirtovahti",
+      "en": "hel.fi/confirm-search-alert",
+      "sv": "hel.fi/bekrafta-flyttningsvakten"
+    },
+    "sms_renewal_code_label": {
+      "fi": "Vahvistuskoodi:",
+      "en": "Confirmation code:",
+      "sv": "Bekräftelsekod:"
+    },
+    "sms_renewal_code_validity": {
+      "fi": "Vahvistuskoodi on voimassa 24 tuntia.",
+      "en": "The confirmation code will be valid for 24 hours.",
+      "sv": "Bekräftelsekoden är giltig i 24 timmar."
     }
   },
   "local": {
