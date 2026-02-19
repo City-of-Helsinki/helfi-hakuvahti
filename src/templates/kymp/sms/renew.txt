@@ -1,0 +1,1 @@
+{{ sms_renewal_intro }} {{ expiry_date }}. {{ sms_renewal_search_label }} {{ search_description }} {{ sms_renewal_text }} {{ sms_renewal_link }} {{ sms_renewal_code_label }} {{ sms_code }} {{ sms_renewal_code_validity }}
