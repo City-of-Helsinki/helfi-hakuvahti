@@ -1,1 +1,0 @@
-Confirm sms at {{ link }} with {{ sms_code }}.
