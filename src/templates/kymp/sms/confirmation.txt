@@ -1,1 +1,1 @@
-{{ sms_newhits_intro }} "{{ search_description }}". {{ sms_newhits_cta }}: {{ search_link }}
+{{ sms_confirmation_intro }} {{ sms_confirmation_code_label }} {{ sms_code }} {{ sms_confirmation_code_validity }}
