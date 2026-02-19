@@ -233,8 +233,8 @@ const processSiteSubscriptions = async (
       if (isDryRun) {
         console.log(
           `[DRY RUN] Would sync ATV delete_after for ${subscription._id} ` +
-          `(stored: ${subscription.delete_after?.toISOString().substring(0, 10) ?? 'none'}, ` +
-          `expected: ${expectedDeleteAfter.toISOString().substring(0, 10)})`,
+            `(stored: ${subscription.delete_after?.toISOString().substring(0, 10) ?? 'none'}, ` +
+            `expected: ${expectedDeleteAfter.toISOString().substring(0, 10)})`,
         );
       } else {
         try {
@@ -298,7 +298,10 @@ const processSiteSubscriptions = async (
           const now = new Date();
 
           if (!isDryRun) {
-            await collection.updateOne({ _id: subscription._id }, { $set: { sms_code: smsCode, sms_code_created: now } });
+            await collection.updateOne(
+              { _id: subscription._id },
+              { $set: { sms_code: smsCode, sms_code_created: now } },
+            );
           }
 
           const smsContent = await renewalSms(

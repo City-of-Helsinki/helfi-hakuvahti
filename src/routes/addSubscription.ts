@@ -249,9 +249,6 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
               content: await confirmationSms(
                 request.body.lang,
                 {
-                  // @todo: placeholder URL. See: https://helsinkisolutionoffice.atlassian.net/browse/UHF-12837.
-                  link: `${subscribeLinkBase}/hakuvahti/confirm/phone`,
-                  search_description: request.body.search_description,
                   sms_code: subscriptionData.sms_code ?? '',
                 },
                 siteConfig,
