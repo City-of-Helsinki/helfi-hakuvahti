@@ -266,7 +266,7 @@
       "templatePath": "kymp",
       "maxHitsInEmail": 10
     },
-    "elasticProxyUrl": "https://elasticsearch-liikenne-managed-test-es-http:9200/mobilenote_data"
+    "elasticProxyUrl": "https://liikenne-elastic-proxy.test.hel.ninja/mobilenote_data"
   },
   "local": {
     "urls": {
