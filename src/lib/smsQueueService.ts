@@ -27,21 +27,16 @@ export class SmsQueueService extends BaseQueueService<SmsQueueItemType> {
     // Collect unique ATV document IDs
     const atvIds = [...new Set(batch.map((item) => item.sms))];
 
+    console.info('Sending SMS to atvIds', atvIds);
+
     // Get SMS phone numbers from ATV in batch
     const atvDocuments: Partial<AtvDocumentType[]> = await this.atvClient.atvGetDocumentBatch(atvIds);
 
     // Create map of ATV ID -> phone number
     const phoneNumberMap = new Map<string, string>();
     atvDocuments.forEach((doc) => {
-      if (doc?.id && doc?.content) {
-        try {
-          const content = JSON.parse(doc.content);
-          if (content.sms) {
-            phoneNumberMap.set(doc.id, content.sms);
-          }
-        } catch (error) {
-          console.error(`Failed to parse ATV document ${doc.id}:`, error);
-        }
+      if (doc?.id && doc?.content?.sms) {
+        phoneNumberMap.set(doc.id, doc.content.sms);
       }
     });
 

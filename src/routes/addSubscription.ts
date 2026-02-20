@@ -152,9 +152,17 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         delete request.body.sms;
         delete request.body.email;
 
-        // @fixme: email is confusing field name for ATV id.
-        // Replace email in request with ATV id
-        request.body.email = atvId;
+        // @fixme: these are confusing field names for ATV id.
+        if (hasEmail) {
+          request.body.email = atvId;
+        }
+
+        if (hasSms) {
+          // Email is required field and saving the subscription fails if it is null.
+          request.body.email = '';
+
+          request.body.sms = atvId;
+        }
       } catch {
         return reply
           .code(500)
@@ -237,6 +245,8 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
               ),
             };
 
+            console.info('Sending email confirmation message to', response.insertedId, document);
+
             return mongodb.db?.collection('queue')?.insertOne(document);
           })(),
 
@@ -244,8 +254,8 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         hasSms &&
           (async () => {
             const document: SmsQueueInsertDocumentType = {
-              // NOTE: email is replaced with ATV document id. Yes, this is confusing.
-              sms: request.body.email ?? '',
+              // NOTE: sms is replaced with ATV document id. Yes, this is confusing.
+              sms: request.body.sms ?? '',
               content: await confirmationSms(
                 request.body.lang,
                 {
@@ -254,6 +264,8 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
                 siteConfig,
               ),
             };
+
+            console.info('Sending sms confirmation message to', response.insertedId, document);
 
             return mongodb.db?.collection('smsqueue')?.insertOne(document);
           })(),
