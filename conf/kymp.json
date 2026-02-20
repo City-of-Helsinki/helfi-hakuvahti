@@ -1,5 +1,5 @@
 {
-  "name": "rekry",
+  "name": "kymp",
   "translations": {
     "copyright_holder": {
       "fi": "Helsingin kaupunki",
@@ -246,6 +246,27 @@
       "en": "The confirmation code will be valid for 24 hours.",
       "sv": "Bekräftelsekoden är giltig i 24 timmar."
     }
+  },
+  "dev": {
+    "urls": {
+      "base": "https://www.test.hel.ninja/",
+      "en": "https://www.test.hel.ninja/en/urban-environment-and-traffic",
+      "fi": "https://www.test.hel.ninja/fi/kaupunkiymparisto-ja-liikenne",
+      "sv": "https://www.test.hel.ninja/sv/stadsmiljo-och-trafik"
+    },
+    "subscription": {
+      "maxAge": 365,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 5,
+      "enableSms": false,
+      "smsCodeExpireConfirmMinutes": 60,
+      "smsCodeExpireActionMinutes": 720
+    },
+    "mail": {
+      "templatePath": "kymp",
+      "maxHitsInEmail": 10
+    },
+    "elasticProxyUrl": "https://elasticsearch-liikenne-managed-test-es-http:9200/mobilenote_data"
   },
   "local": {
     "urls": {
