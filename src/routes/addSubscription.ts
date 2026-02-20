@@ -158,8 +158,10 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         }
 
         if (hasSms) {
-          // Email is required field and saving the subscription fails if it is null.
-          request.body.email = '';
+          if (!hasEmail) {
+            // Email is required field and saving the subscription fails if it is null.
+            request.body.email = '';
+          }
 
           request.body.sms = atvId;
         }

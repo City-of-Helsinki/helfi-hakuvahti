@@ -49,9 +49,9 @@ describe('SmsQueueService', () => {
           id: '123',
           tos_function_id: 'a',
           tos_record_id: 'b',
-          content: JSON.stringify({
+          content: {
             sms: '+358401234567',
-          }),
+          },
         },
       ]),
     );

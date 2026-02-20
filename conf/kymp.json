@@ -258,7 +258,7 @@
       "maxAge": 365,
       "unconfirmedMaxAge": 5,
       "expiryNotificationDays": 5,
-      "enableSms": false,
+      "enableSms": true,
       "smsCodeExpireConfirmMinutes": 60,
       "smsCodeExpireActionMinutes": 720
     },
