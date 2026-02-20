@@ -43,6 +43,10 @@ PHONY += test
 test: ## Run tests
 	$(call npm,run test)
 
+PHONY += test-ci
+test-ci: ## Run tests
+	$(call npm,run test:ci)
+
 
 ifeq ($(RUN_ON),docker)
 define npm

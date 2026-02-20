@@ -7,7 +7,8 @@
     "test": "test"
   },
   "scripts": {
-    "test": "npm run build:ts && c8 --exclude-node-modules --reporter lcov --reporter text node --test --test-force-exit -r ts-node/register test/**/*.test.ts",
+    "test": "npm run build:ts && node --test --test-reporter=tap --experimental-test-coverage --test-force-exit -r ts-node/register test/**/*.test.ts",
+    "test:ci": "mkdir -p coverage && node --test --test-reporter=lcov --experimental-test-coverage --test-reporter-destination coverage/lcov.info --test-force-exit -r ts-node/register test/**/*.test.ts",
     "start": "npm run build:ts && fastify start -l info dist/app.js",
     "build:ts": "npm run copy:assets; tsc",
     "copy:assets": "mkdir -p dist; cp -R src/templates dist/",
@@ -54,7 +55,6 @@
     "@types/minimist": "^1.2.5",
     "@types/node": "^22.19.1",
     "@types/nodemailer": "^6.4.14",
-    "c8": "^10.1.3",
     "concurrently": "^8.2.2",
     "fastify-tsconfig": "^3.0.0",
     "ts-node": "^10.4.0",
