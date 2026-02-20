@@ -8,6 +8,7 @@ export type GenericResponseType = Static<typeof GenericResponse>;
 
 export const Generic400Error = Type.Object({
   error: Type.String(),
+  field: Type.Optional(Type.String()),
 });
 
 export type Generic400ErrorType = Static<typeof Generic400Error>;

@@ -1,8 +1,6 @@
 import axios, { type AxiosResponse } from 'axios';
-import type { FastifyRequest as FastifyRequestType } from 'fastify';
 import fp from 'fastify-plugin';
-import type { AtvDocumentBatchType, AtvDocumentType, AtvResponseType } from '../types/atv';
-import type { SubscriptionRequestType } from '../types/subscription';
+import type { AtvDocumentBatchType, AtvDocumentType } from '../types/atv';
 
 export type AtvPluginOptions = Record<string, never>;
 
@@ -41,7 +39,7 @@ const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDo
  * @param tosFunctionId - the TOS function ID for the document
  * @return the created document
  */
-const atvCreateDocument = async (content: object, tosFunctionId: string): Promise<Partial<AtvDocumentType>> => {
+export const atvCreateDocument = async (content: object, tosFunctionId: string): Promise<Partial<AtvDocumentType>> => {
   try {
     const timestamp = Math.floor(Date.now() / 1000).toString();
 
@@ -166,61 +164,11 @@ const atvGetDocumentBatch = async (emails: string[]): Promise<Partial<AtvDocumen
   }
 };
 
-/**
- * Request email hook function.
- * This is a pure storage layer - validation should happen in route handlers.
- *
- * @param request - the request object
- */
-const requestEmailHook = async (request: FastifyRequestType) => {
-  try {
-    // @fixme this should not affect all post requests.
-    // Hook only runs on POST requests
-    if (request.method !== 'POST') {
-      return;
-    }
-
-    // If the POST request has 'email' variable, automatically create ATV document
-    // and store email and optional SMS there. Only the ATV document Id gets saved in HAV database.
-    const body: Partial<SubscriptionRequestType> = request.body as Partial<SubscriptionRequestType>;
-    const email: string = (body.email as string)?.trim();
-    const sms: string | undefined = body.sms?.trim();
-
-    const atvDocument: Partial<AtvDocumentType> = await atvCreateDocument(
-      {
-        email: email,
-        ...(sms && { sms: sms }),
-      },
-      'atvCreateDocumentWithEmail',
-    );
-    const atvDocumentId: string | undefined = atvDocument.id;
-
-    if (atvDocumentId) {
-      request.atvResponse = {
-        atvDocumentId,
-        hasSms: !!sms,
-      };
-    }
-
-    // Remove SMS from request body after ATV storage (it shouldn't go to MongoDB)
-    if (body.sms) {
-      delete body.sms;
-    }
-  } catch (error) {
-    console.error('An error occurred:', error);
-    throw new Error('Could not create document to ATV. Cannot subscribe.');
-  }
-};
-
 // @todo: Exposing separate functions that handle ATV
 // communication is not the best approach. We should
 // create ATV class in src/lib that abstract the API,
 // and expose the class as a plugin.
 export default fp(async (fastify, _opts) => {
-  // Hook handler automatically creates ATV document for the email
-  // and sets the returned documentId to atvResponse.email variable
-  fastify.addHook('preHandler', requestEmailHook);
-
   // Expose atvGetDocument function to global scope
   fastify.decorate('atvGetDocument', async function atvGetDocument(atvDocumentId: string) {
     return atvFetchContentById(atvDocumentId);
@@ -249,10 +197,6 @@ export default fp(async (fastify, _opts) => {
 });
 
 declare module 'fastify' {
-  export interface FastifyRequest {
-    atvResponse?: AtvResponseType;
-  }
-
   export interface FastifyInstance {
     atvGetDocument(email: string): Promise<Partial<AtvDocumentType>>;
     atvCreateDocument: (content: object, tosFunctionId: string) => Promise<Partial<AtvDocumentType>>;

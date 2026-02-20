@@ -1,7 +1,8 @@
 import type { ObjectId } from '@fastify/mongodb';
 import command, { type Server } from '../lib/command';
-import { expiryEmail, newHitsEmail, newHitsSms } from '../lib/email';
+import { expiryEmail, newHitsEmail, newHitsSms, renewalSms } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
+import { generateUniqueSmsCode } from '../lib/smsCode';
 import atv from '../plugins/atv';
 import base64Plugin from '../plugins/base64';
 import elasticproxy from '../plugins/elasticproxy';
@@ -289,6 +290,45 @@ const processSiteSubscriptions = async (
         await queueCollection.insertOne(expiryEmailToQueue);
       }
       stats.expiryEmailsQueued++;
+
+      // Queue renewal SMS if subscription has SMS and site supports it
+      if (subscription.has_sms && siteConfig.subscription.enableSms) {
+        try {
+          const smsCode = await generateUniqueSmsCode(collection);
+          const now = new Date();
+
+          if (!isDryRun) {
+            await collection.updateOne(
+              { _id: subscription._id },
+              { $set: { sms_code: smsCode, sms_code_created: now } },
+            );
+          }
+
+          const smsContent = await renewalSms(
+            subscription.lang,
+            {
+              expiry_date: formattedExpiryDate,
+              search_description: subscription.search_description,
+              sms_code: smsCode,
+            },
+            siteConfig,
+          );
+
+          const smsToQueue: SmsQueueInsertDocumentType = {
+            sms: subscription.email, // atvDocumentId
+            content: smsContent,
+          };
+
+          if (isDryRun) {
+            console.log(`[DRY RUN] Would queue renewal SMS for ${subscription._id} with code ${smsCode}`);
+          } else {
+            await smsQueueCollection.insertOne(smsToQueue);
+          }
+          stats.smsQueued++;
+        } catch (error) {
+          console.error(`Error queueing renewal SMS for subscription ${subscription._id}:`, error);
+        }
+      }
     }
 
     const newHits = await getNewHitsFromElasticsearch(
@@ -344,14 +384,23 @@ const processSiteSubscriptions = async (
     }
     stats.newResultsEmailsQueued++;
 
-    // Queue SMS if subscription has SMS flag
-    if (subscription.has_sms) {
+    // Queue SMS if subscription has SMS flag and SMS is enabled for site
+    if (subscription.has_sms && siteConfig.subscription.enableSms) {
       try {
+        // Regenerate SMS code for this notification
+        const smsCode = await generateUniqueSmsCode(collection);
+        const now = new Date();
+
+        // Update subscription with new SMS code
+        if (!isDryRun) {
+          await collection.updateOne({ _id: subscription._id }, { $set: { sms_code: smsCode, sms_code_created: now } });
+        }
+
         const smsContent = await newHitsSms(
           subscription.lang,
           {
             search_description: subscription.search_description,
-            search_link: subscription.query,
+            sms_code: smsCode,
           },
           siteConfig,
         );
@@ -362,7 +411,7 @@ const processSiteSubscriptions = async (
         };
 
         if (isDryRun) {
-          console.log(`[DRY RUN] Would queue SMS for ${subscription._id}`);
+          console.log(`[DRY RUN] Would queue SMS for ${subscription._id} with code ${smsCode}`);
         } else {
           await smsQueueCollection.insertOne(smsToQueue);
         }

@@ -1,8 +1,13 @@
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
-import { confirmationEmail } from '../lib/email';
+import libphonenumber from 'google-libphonenumber';
+import { confirmationEmail, confirmationSms } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
+import { generateUniqueSmsCode } from '../lib/smsCode';
+import { atvCreateDocument } from '../plugins/atv';
+import type { AtvDocumentType } from '../types/atv';
 import { Generic400Error, type Generic400ErrorType, Generic500Error, type Generic500ErrorType } from '../types/error';
 import type { QueueInsertDocumentType } from '../types/mailer';
+import type { SmsQueueInsertDocumentType } from '../types/sms';
 import {
   type SubscriptionCollectionType,
   SubscriptionRequest,
@@ -19,13 +24,45 @@ const isValidEmail = (email: string): boolean => {
   return re.test(String(email).toLowerCase());
 };
 
-const isValidSms = (sms: string): boolean => {
-  // E.164 international format: + followed by 1-15 digits
-  const re = /^\+[1-9]\d{1,14}$/;
-  return re.test(sms);
+const phoneUtil = libphonenumber.PhoneNumberUtil.getInstance();
+
+const parsePhoneNumber = (sms: string): string => {
+  const parsed = phoneUtil.parse(sms, 'FI');
+  if (!phoneUtil.isValidNumber(parsed)) {
+    throw new Error('Invalid phone number.');
+  }
+  return phoneUtil.format(parsed, libphonenumber.PhoneNumberFormat.E164);
 };
 
-// Add subscription to given query parameters
+/**
+ * Stores user data in ATV.
+ */
+async function storeUserData(body: SubscriptionRequestType) {
+  const email = body.email?.trim();
+  const phone = body.sms?.trim();
+
+  let atvDocument: Partial<AtvDocumentType>;
+
+  try {
+    atvDocument = await atvCreateDocument(
+      {
+        ...(email && { email: email }),
+        ...(phone && { sms: phone }),
+      },
+      'atvCreateDocumentWithEmail',
+    );
+  } catch (error) {
+    throw new Error('Could not create document to ATV.', {
+      cause: error,
+    });
+  }
+
+  if (!atvDocument || !atvDocument.id) {
+    throw new Error('Could not create document to ATV.');
+  }
+
+  return atvDocument.id;
+}
 
 const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts: object): Promise<void> => {
   fastify.post<{
@@ -42,23 +79,37 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
           500: Generic500Error,
         },
       },
-      preValidation: (request, reply, done) => {
+      preValidation: (request, reply, done): void => {
         // Validate email and SMS BEFORE ATV document creation
         // preValidation runs BEFORE preHandler (where ATV storage happens)
         const email = request.body.email?.trim();
         const sms = request.body.sms?.trim();
 
-        if (!isValidEmail(email)) {
-          reply.code(400);
-          return done(new Error('Invalid email format.'));
+        if (!email && !sms) {
+          reply.code(400).send({ error: 'Either email or sms is required.', field: 'email' });
+          done();
+          return;
         }
 
-        if (sms && !isValidSms(sms)) {
-          reply.code(400);
-          return done(new Error('Invalid email format.'));
+        if (email && !isValidEmail(email)) {
+          reply.code(400).send({ error: 'Invalid email format.', field: 'email' });
+          done();
+          return;
+        }
+
+        if (sms) {
+          try {
+            // Normalize the phone number to E.164 format.
+            request.body.sms = parsePhoneNumber(sms);
+          } catch {
+            reply.code(400).send({ error: 'Invalid phone number format.', field: 'sms' });
+            done();
+            return;
+          }
         }
 
         done();
+        return;
       },
     },
     async (request: FastifyRequest<{ Body: SubscriptionRequestType }>, reply: FastifyReply) => {
@@ -66,7 +117,9 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
       const collection = mongodb.db?.collection('subscription');
       const hash = fastify.getRandHash();
 
-      // Check if elastic query validation failed
+      // Check if elastic query validation failed.
+      // These checks are run in a plugin that writes
+      // results to request globals.
       if (request.elasticQueryValidation && !request.elasticQueryValidation.isValid) {
         return reply
           .code(400)
@@ -76,14 +129,41 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
           });
       }
 
-      // Replace email in request with ATV hashed email
-      if (!request?.atvResponse?.atvDocumentId)
+      // Load site configuration
+      const configLoader = SiteConfigurationLoader.getInstance();
+      await configLoader.loadConfigurations();
+      const siteConfig = configLoader.getConfiguration(request.body.site_id);
+
+      if (!siteConfig) {
+        return reply
+          .code(400)
+          .header('Content-Type', 'application/json; charset=utf-8')
+          .send({ error: 'Invalid site_id provided.' });
+      }
+
+      const hasSms = !!siteConfig.subscription?.enableSms && !!request.body.sms;
+      const hasEmail = !!request.body.email;
+
+      // Store user data in ATV.
+      try {
+        const atvId = await storeUserData(request.body);
+
+        // Remove user data from request body.
+        delete request.body.sms;
+        delete request.body.email;
+
+        // @fixme: email is confusing field name for ATV id.
+        // Replace email in request with ATV id
+        request.body.email = atvId;
+      } catch {
         return reply
           .code(500)
           .header('Content-Type', 'application/json; charset=utf-8')
           .send({ error: 'Could not find hashed email. Subscription not added.' });
-      request.body.email = request.atvResponse.atvDocumentId;
+      }
 
+      // Store user query to ATV on callee request.
+      // The query itself might contain user data that we must store in ATV.
       const elasticQueryAtv = request.body.elastic_query_atv;
       if (elasticQueryAtv) {
         const atvDocument = await fastify.atvCreateDocument(
@@ -102,19 +182,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         }
       }
 
-      // Load site configuration
-      const configLoader = SiteConfigurationLoader.getInstance();
-      await configLoader.loadConfigurations();
-      const siteConfig = configLoader.getConfiguration(request.body.site_id);
-
-      if (!siteConfig) {
-        return reply
-          .code(400)
-          .header('Content-Type', 'application/json; charset=utf-8')
-          .send({ error: 'Invalid site_id provided.' });
-      }
-
-      // Subscription data that goes to collection
+      // Subscription data that goes to collection.
       const now = new Date();
       const deleteAfter = new Date(now);
       deleteAfter.setDate(deleteAfter.getDate() + siteConfig.subscription.maxAge);
@@ -127,12 +195,16 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         last_checked: Math.floor(Date.now() / 1000),
         expiry_notification_sent: SubscriptionStatus.INACTIVE,
         status: SubscriptionStatus.INACTIVE,
-        has_sms: !!request.atvResponse?.hasSms,
+        has_sms: hasSms,
+        has_email: hasEmail,
         delete_after: deleteAfter,
       };
 
-      // SMS is already stored in ATV document, no need to store in MongoDB
-      // It was removed by the ATV hook after validation
+      // Generate SMS code if SMS is enabled for this subscription and site
+      if (hasSms) {
+        subscriptionData.sms_code = await generateUniqueSmsCode(collection);
+        subscriptionData.sms_code_created = now;
+      }
 
       const response = await collection?.insertOne(subscriptionData);
       if (!response) {
@@ -141,28 +213,51 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         throw new Error('Adding new subscription failed. See logs.');
       }
 
-      // Insert email in queue
-      const langKey = request.body.lang.toLowerCase() as keyof typeof siteConfig.urls;
-      const subscribeLinkBase = langKey in siteConfig.urls ? siteConfig.urls[langKey] : siteConfig.urls.base;
-      const emailContent = await confirmationEmail(
-        request.body.lang,
-        {
-          link: `${subscribeLinkBase}/hakuvahti/confirm?subscription=${response.insertedId}&hash=${hash}`,
-          search_description: subscriptionData.search_description,
-        },
-        siteConfig,
-      );
+      const subscribeLinkBase =
+        request.body.lang in siteConfig.urls ? siteConfig.urls[request.body.lang] : siteConfig.urls.base;
 
-      // Email data to queue
-      const email: QueueInsertDocumentType = {
-        email: request.body.email,
-        content: emailContent,
-      };
+      // @todo Should we do error handling for notifications?
+      // What to do if sending notifications fails? At that point, all user
+      // data is already stored in ATV, but the user has no way to enable
+      // the subscription.
+      await Promise.all([
+        // Queue email confirmation:
+        hasEmail &&
+          (async () => {
+            const document: QueueInsertDocumentType = {
+              // NOTE: email is replaced with ATV document id. Yes, this is confusing.
+              email: request.body.email ?? '',
+              content: await confirmationEmail(
+                request.body.lang,
+                {
+                  link: `${subscribeLinkBase}/hakuvahti/confirm?subscription=${response.insertedId}&hash=${hash}`,
+                  search_description: request.body.search_description,
+                },
+                siteConfig,
+              ),
+            };
 
-      const q = mongodb.db?.collection('queue');
-      await q?.insertOne(email);
+            return mongodb.db?.collection('queue')?.insertOne(document);
+          })(),
 
-      fastify.log.debug(emailContent);
+        // Queue sms confirmation:
+        hasSms &&
+          (async () => {
+            const document: SmsQueueInsertDocumentType = {
+              // NOTE: email is replaced with ATV document id. Yes, this is confusing.
+              sms: request.body.email ?? '',
+              content: await confirmationSms(
+                request.body.lang,
+                {
+                  sms_code: subscriptionData.sms_code ?? '',
+                },
+                siteConfig,
+              ),
+            };
+
+            return mongodb.db?.collection('smsqueue')?.insertOne(document);
+          })(),
+      ]);
 
       return reply.code(200).header('Content-Type', 'application/json; charset=utf-8').send(response);
     },

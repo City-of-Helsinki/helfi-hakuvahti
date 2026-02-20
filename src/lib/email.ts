@@ -52,6 +52,17 @@ export const wrapWithLayout = (
   return sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/index.html`, layoutData);
 };
 
+// Subscription confirmation SMS
+export const confirmationSms = async (
+  lang: SubscriptionCollectionLanguageType,
+  data: { sms_code: string },
+  siteConfig: SiteConfigurationType,
+) =>
+  sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/confirmation.txt`, {
+    ...buildTranslationContext(lang, siteConfig),
+    sms_code: data.sms_code ?? '',
+  });
+
 // Subscription confirmation email
 export const confirmationEmail = async (
   lang: SubscriptionCollectionLanguageType,
@@ -148,12 +159,29 @@ export const newHitsSms = async (
   lang: SubscriptionCollectionLanguageType,
   data: {
     search_description: string;
-    search_link: string;
+    sms_code?: string;
   },
   siteConfig: SiteConfigurationType,
 ) =>
-  sprightly(`dist/templates/${siteConfig.mail.templatePath}/sms/sms.html`, {
-    lang,
+  sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/newhits.txt`, {
+    ...buildTranslationContext(lang, siteConfig),
     search_description: data.search_description,
-    search_link: siteConfig.urls.base + data.search_link,
+    sms_code: data.sms_code ?? '',
+  });
+
+// SMS notification for subscription renewal
+export const renewalSms = async (
+  lang: SubscriptionCollectionLanguageType,
+  data: {
+    expiry_date: string;
+    search_description: string;
+    sms_code: string;
+  },
+  siteConfig: SiteConfigurationType,
+) =>
+  sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/renew.txt`, {
+    ...buildTranslationContext(lang, siteConfig),
+    expiry_date: data.expiry_date,
+    search_description: data.search_description,
+    sms_code: data.sms_code,
   });

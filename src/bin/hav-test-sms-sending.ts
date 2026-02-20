@@ -46,7 +46,6 @@ command(
           lang,
           {
             search_description: 'Test search: Open positions in Helsinki',
-            search_link: '/fi/avoimet-tyopaikat?search=test',
           },
           siteConfig,
         );

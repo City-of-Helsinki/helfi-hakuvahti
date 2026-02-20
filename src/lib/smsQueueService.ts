@@ -1,36 +1,19 @@
 import { ObjectId } from '@fastify/mongodb';
-import type * as Sentry from '@sentry/node';
-import type { FastifyInstance } from 'fastify';
-import type { Db } from 'mongodb';
-import type { DialogiClient } from '../plugins/dialogi';
 import type { AtvDocumentType } from '../types/atv';
-import { type BaseQueueItem, BaseQueueService } from './baseQueueService';
-
-export interface SmsQueueItem extends BaseQueueItem {
-  _id: ObjectId;
-  sms: string; // This is the ATV document ID
-  content: string; // SMS message content
-}
-
-export interface SmsQueueServiceDependencies {
-  db: Db;
-  atvClient: FastifyInstance;
-  smsSender: DialogiClient;
-  sentry?: typeof Sentry;
-  batchSize?: number;
-}
+import type { SmsQueueItemType, SmsQueueServiceDependenciesType } from '../types/sms';
+import { BaseQueueService } from './baseQueueService';
 
 /**
  * Service for processing SMS queue.
  * Handles fetching SMS from queue, retrieving phone numbers from ATV,
  * sending SMS, and removing processed items from queue.
  */
-export class SmsQueueService extends BaseQueueService<SmsQueueItem> {
-  private readonly smsSender: DialogiClient;
-  private readonly atvClient: FastifyInstance;
-  private readonly sentry?: typeof Sentry;
+export class SmsQueueService extends BaseQueueService<SmsQueueItemType> {
+  private readonly smsSender: SmsQueueServiceDependenciesType['smsSender'];
+  private readonly atvClient: SmsQueueServiceDependenciesType['atvClient'];
+  private readonly sentry?: SmsQueueServiceDependenciesType['sentry'];
 
-  constructor(dependencies: SmsQueueServiceDependencies) {
+  constructor(dependencies: SmsQueueServiceDependenciesType) {
     super(dependencies.db.collection('smsqueue'), dependencies.batchSize);
     this.atvClient = dependencies.atvClient;
     this.smsSender = dependencies.smsSender;
@@ -40,7 +23,7 @@ export class SmsQueueService extends BaseQueueService<SmsQueueItem> {
   /**
    * Process a batch of SMS messages.
    */
-  protected async processBatch(batch: SmsQueueItem[]): Promise<void> {
+  protected async processBatch(batch: SmsQueueItemType[]): Promise<void> {
     // Collect unique ATV document IDs
     const atvIds = [...new Set(batch.map((item) => item.sms))];
 
@@ -76,7 +59,12 @@ export class SmsQueueService extends BaseQueueService<SmsQueueItem> {
     }, Promise.resolve());
   }
 
-  private async sendSms(phoneNumber: string | undefined, messageContent: string, atvId: string, item: SmsQueueItem) {
+  private async sendSms(
+    phoneNumber: string | undefined,
+    messageContent: string,
+    atvId: string,
+    item: SmsQueueItemType,
+  ) {
     console.info('Processing SMS for ATV ID:', atvId);
 
     if (phoneNumber) {

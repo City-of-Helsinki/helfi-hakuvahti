@@ -192,13 +192,16 @@
     "subscription": {
       "maxAge": 90,
       "unconfirmedMaxAge": 5,
-      "expiryNotificationDays": 3
+      "expiryNotificationDays": 3,
+      "enableSms": true,
+      "smsCodeExpireConfirmMinutes": 60,
+      "smsCodeExpireActionMinutes": 720
     },
     "mail": {
       "templatePath": "rekry",
       "maxHitsInEmail": 10
     },
-    "elasticProxyUrl": "https://elastic-helfi-rekry.docker.so/job_listings"
+    "elasticProxyUrl": "http://helfi-rekry-elastic-proxy:8080/job_listings"
   },
   "dev": {
     "urls": {
@@ -210,7 +213,10 @@
     "subscription": {
       "maxAge": 5,
       "unconfirmedMaxAge": 2,
-      "expiryNotificationDays": 4
+      "expiryNotificationDays": 4,
+      "enableSms": false,
+      "smsCodeExpireConfirmMinutes": 60,
+      "smsCodeExpireActionMinutes": 720
     },
     "mail": {
       "templatePath": "rekry",
@@ -228,7 +234,10 @@
     "subscription": {
       "maxAge": 5,
       "unconfirmedMaxAge": 2,
-      "expiryNotificationDays": 4
+      "expiryNotificationDays": 4,
+      "enableSms": false,
+      "smsCodeExpireConfirmMinutes": 60,
+      "smsCodeExpireActionMinutes": 720
     },
     "mail": {
       "templatePath": "rekry",
@@ -246,7 +255,10 @@
     "subscription": {
       "maxAge": 180,
       "unconfirmedMaxAge": 5,
-      "expiryNotificationDays": 5
+      "expiryNotificationDays": 5,
+      "enableSms": false,
+      "smsCodeExpireConfirmMinutes": 60,
+      "smsCodeExpireActionMinutes": 720
     },
     "mail": {
       "templatePath": "rekry",

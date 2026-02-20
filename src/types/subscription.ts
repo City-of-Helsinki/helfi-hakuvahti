@@ -37,9 +37,20 @@ export const SubscriptionCollection = Type.Object({
   expiry_notification_sent: Type.Enum(SubscriptionStatus),
   status: Type.Enum(SubscriptionStatus),
   has_sms: Type.Optional(Type.Boolean()),
+  has_email: Type.Optional(Type.Boolean()),
   delete_after: Type.Optional(Type.Date()),
+  first_created: Type.Optional(Type.Date()),
+  sms_code: Type.Optional(Type.String()),
+  sms_code_created: Type.Optional(Type.Date()),
 });
 export type SubscriptionCollectionType = Static<typeof SubscriptionCollection>;
+
+// Subscription renewal
+export const RenewalSubscription = Type.Intersect([
+  Type.Pick(SubscriptionCollection, ['email', 'site_id', 'status', 'created', 'first_created']),
+  Type.Object({ _id: Type.Unknown() }),
+]);
+export type RenewalSubscriptionType = Static<typeof RenewalSubscription>;
 
 // MongoDB response when inserting:
 export const SubscriptionResponse = Type.Object({
@@ -50,17 +61,32 @@ export const SubscriptionResponse = Type.Object({
 });
 export type SubscriptionResponseType = Static<typeof SubscriptionResponse>;
 
-// Request to add new subscription:
-export const SubscriptionRequest = Type.Object({
-  email: Type.String(),
+// Request to add new subscription (either email or sms is required, both allowed):
+const SubscriptionRequestBase = Type.Object({
   elastic_query: Type.String(),
   elastic_query_atv: Type.Optional(Type.Number()),
   query: Type.String(),
   search_description: Type.Optional(Type.String()),
   site_id: Type.String(),
   lang: SubscriptionCollectionLanguage,
-  sms: Type.Optional(Type.String()),
 });
+
+export const SubscriptionRequest = Type.Union([
+  Type.Intersect([
+    SubscriptionRequestBase,
+    Type.Object({
+      email: Type.String(),
+      sms: Type.Optional(Type.String()),
+    }),
+  ]),
+  Type.Intersect([
+    SubscriptionRequestBase,
+    Type.Object({
+      email: Type.Optional(Type.String()),
+      sms: Type.String(),
+    }),
+  ]),
+]);
 export type SubscriptionRequestType = Static<typeof SubscriptionRequest>;
 
 // Generic request with SubscriptionId
@@ -76,3 +102,46 @@ export const SubscriptionGenericPostResponse = Type.Object({
   statusMessage: Type.Optional(Type.String()),
 });
 export type SubscriptionGenericPostResponseType = Static<typeof SubscriptionGenericPostResponse>;
+
+// SMS verification request
+export const SmsVerificationRequest = Type.Object({
+  sms_code: Type.String(),
+  number: Type.String(),
+});
+export type SmsVerificationRequestType = Static<typeof SmsVerificationRequest>;
+
+// SMS verification response
+export const SmsVerificationResponse = Type.Object({
+  statusCode: Type.Number(),
+  statusMessage: Type.String(),
+  expiryDate: Type.Optional(Type.String()),
+});
+export type SmsVerificationResponseType = Static<typeof SmsVerificationResponse>;
+
+// Subscription document for SMS verification
+export const VerificationSubscription = Type.Intersect([
+  Type.Pick(SubscriptionCollection, [
+    'email',
+    'site_id',
+    'status',
+    'created',
+    'first_created',
+    'sms_code',
+    'sms_code_created',
+  ]),
+  Type.Object({ _id: Type.Unknown() }),
+]);
+export type VerificationSubscriptionType = Static<typeof VerificationSubscription>;
+
+// SMS verification result
+export const SmsVerificationResult = Type.Object({
+  success: Type.Boolean(),
+  subscription: Type.Optional(VerificationSubscription),
+  error: Type.Optional(
+    Type.Object({
+      statusCode: Type.Number(),
+      statusMessage: Type.String(),
+    }),
+  ),
+});
+export type SmsVerificationResultType = Static<typeof SmsVerificationResult>;
