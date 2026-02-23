@@ -1,15 +1,16 @@
 import command from '../lib/command';
+import { QueueService } from '../lib/queueService';
 import atv from '../plugins/atv';
 import dialogi from '../plugins/dialogi';
+import mailer from '../plugins/mailer';
 import mongodb from '../plugins/mongodb';
 import '../plugins/sentry';
-import { SmsQueueService } from '../lib/smsQueueService';
 
-// Command line/cron application to send all SMS from queue collection
+// Command line/cron application to send all notifications from queue collection
 command(
   async (server) => {
     const checkInId = server.Sentry?.captureCheckIn({
-      monitorSlug: 'hav-send-sms-in-queue',
+      monitorSlug: 'hav-send-queue',
       status: 'in_progress',
     });
 
@@ -17,27 +18,21 @@ command(
       throw new Error('MongoDB connection not working');
     }
 
-    // Create SMS queue service with dependencies
-    const smsQueueService = new SmsQueueService({
+    const queueService = new QueueService({
       db: server.mongo.db,
       atvClient: server,
+      emailSender: server.mailer,
       smsSender: server.dialogi,
       sentry: server.Sentry,
     });
 
-    // Process the SMS queue
-    await smsQueueService.processQueue();
+    await queueService.processQueue();
 
     server.Sentry?.captureCheckIn({
       checkInId,
-      monitorSlug: 'hav-send-sms-in-queue',
+      monitorSlug: 'hav-send-queue',
       status: 'ok',
     });
   },
-  [
-    // Register only needed plugins
-    mongodb,
-    atv,
-    dialogi,
-  ],
+  [mailer, mongodb, atv, dialogi],
 );

@@ -6,8 +6,7 @@ import { generateUniqueSmsCode } from '../lib/smsCode';
 import { atvCreateDocument } from '../plugins/atv';
 import type { AtvDocumentType } from '../types/atv';
 import { Generic400Error, type Generic400ErrorType, Generic500Error, type Generic500ErrorType } from '../types/error';
-import type { QueueInsertDocumentType } from '../types/mailer';
-import type { SmsQueueInsertDocumentType } from '../types/sms';
+import type { QueueInsertDocument } from '../types/queue';
 import {
   type SubscriptionCollectionType,
   SubscriptionRequest,
@@ -152,9 +151,19 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         delete request.body.sms;
         delete request.body.email;
 
-        // @fixme: email is confusing field name for ATV id.
-        // Replace email in request with ATV id
-        request.body.email = atvId;
+        // @fixme: these are confusing field names for ATV id.
+        if (hasEmail) {
+          request.body.email = atvId;
+        }
+
+        if (hasSms) {
+          if (!hasEmail) {
+            // Email is required field and saving the subscription fails if it is null.
+            request.body.email = '';
+          }
+
+          request.body.sms = atvId;
+        }
       } catch {
         return reply
           .code(500)
@@ -224,9 +233,9 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         // Queue email confirmation:
         hasEmail &&
           (async () => {
-            const document: QueueInsertDocumentType = {
-              // NOTE: email is replaced with ATV document id. Yes, this is confusing.
-              email: request.body.email ?? '',
+            const document: QueueInsertDocument = {
+              type: 'email',
+              atv_id: request.body.email ?? '',
               content: await confirmationEmail(
                 request.body.lang,
                 {
@@ -237,15 +246,17 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
               ),
             };
 
+            console.info('Sending email confirmation message to', response.insertedId, document);
+
             return mongodb.db?.collection('queue')?.insertOne(document);
           })(),
 
         // Queue sms confirmation:
         hasSms &&
           (async () => {
-            const document: SmsQueueInsertDocumentType = {
-              // NOTE: email is replaced with ATV document id. Yes, this is confusing.
-              sms: request.body.email ?? '',
+            const document: QueueInsertDocument = {
+              type: 'sms',
+              atv_id: request.body.sms ?? '',
               content: await confirmationSms(
                 request.body.lang,
                 {
@@ -255,7 +266,9 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
               ),
             };
 
-            return mongodb.db?.collection('smsqueue')?.insertOne(document);
+            console.info('Sending sms confirmation message to', response.insertedId, document);
+
+            return mongodb.db?.collection('queue')?.insertOne(document);
           })(),
       ]);
 

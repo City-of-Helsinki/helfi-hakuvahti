@@ -4,7 +4,7 @@ import { confirmationEmail, expiryEmail, newHitsEmail } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
 import mongodb from '../plugins/mongodb';
 import type { PartialDrupalNodeType } from '../types/elasticproxy';
-import type { QueueInsertDocumentType } from '../types/mailer';
+import type { QueueInsertDocument } from '../types/queue';
 import type { SiteConfigurationType } from '../types/siteConfig';
 import type { SubscriptionCollectionLanguageType } from '../types/subscription';
 
@@ -62,28 +62,31 @@ const DUMMY_DATA = {
 const LANGUAGES: SubscriptionCollectionLanguageType[] = ['fi', 'en', 'sv'];
 
 export async function generateTestEmails(
-  queueCollection: Collection<QueueInsertDocumentType>,
+  queueCollection: Collection<QueueInsertDocument>,
   testEmail: string,
   siteConfig: SiteConfigurationType,
 ): Promise<void> {
   for (const lang of LANGUAGES) {
     const confirmationHtml = await confirmationEmail(lang, DUMMY_DATA.confirmation, siteConfig);
-    const confirmationEmailDoc: QueueInsertDocumentType = {
-      email: testEmail,
+    const confirmationEmailDoc: QueueInsertDocument = {
+      type: 'email',
+      atv_id: testEmail,
       content: confirmationHtml,
     };
     await queueCollection.insertOne(confirmationEmailDoc);
 
     const expiryHtml = await expiryEmail(lang, DUMMY_DATA.expiry, siteConfig);
-    const expiryEmailDoc: QueueInsertDocumentType = {
-      email: testEmail,
+    const expiryEmailDoc: QueueInsertDocument = {
+      type: 'email',
+      atv_id: testEmail,
       content: expiryHtml,
     };
     await queueCollection.insertOne(expiryEmailDoc);
 
     const newhitsHtml = await newHitsEmail(lang, DUMMY_DATA.newhits, siteConfig);
-    const newhitsEmailDoc: QueueInsertDocumentType = {
-      email: testEmail,
+    const newhitsEmailDoc: QueueInsertDocument = {
+      type: 'email',
+      atv_id: testEmail,
       content: newhitsHtml,
     };
     await queueCollection.insertOne(newhitsEmailDoc);
@@ -125,11 +128,11 @@ command(
 
     console.log(`Template path: ${siteConfig.mail.templatePath}`);
 
-    const queueCollection = server.mongo.db.collection<QueueInsertDocumentType>('queue');
+    const queueCollection = server.mongo.db.collection<QueueInsertDocument>('queue');
 
     await generateTestEmails(queueCollection, testEmail, siteConfig);
 
-    console.log('Test emails generated. Run hav:send-emails-in-queue and check mailpit.');
+    console.log('Test emails generated. Run hav:send-queue and check mailpit.');
   },
   [mongodb],
 );

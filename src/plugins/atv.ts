@@ -24,12 +24,13 @@ const atvFetchContentById = async (atvDocumentId: string): Promise<Partial<AtvDo
     if (response.data?.content) {
       return response.data.content;
     }
-    throw new Error('Empty content returned from API');
   } catch (error: unknown) {
-    console.error(error);
-
-    throw new Error('Error fetching Document by id');
+    throw new Error('Error fetching Document by id', {
+      cause: error,
+    });
   }
+
+  throw new Error('Empty content returned from API');
 };
 
 /**
@@ -70,9 +71,9 @@ export const atvCreateDocument = async (content: object, tosFunctionId: string):
 
     return response.data;
   } catch (error: unknown) {
-    console.error(error);
-
-    throw new Error('Failed to create document. See error log.');
+    throw new Error('Failed to create document', {
+      cause: error,
+    });
   }
 };
 
@@ -129,9 +130,9 @@ const atvUpdateDocumentDeleteAfter = async (
 
     return response.data;
   } catch (error: unknown) {
-    console.error(error);
-
-    throw new Error('Failed to update ATV document. See error log.');
+    throw new Error('Failed to update ATV document', {
+      cause: error,
+    });
   }
 };
 
@@ -159,8 +160,10 @@ const atvGetDocumentBatch = async (emails: string[]): Promise<Partial<AtvDocumen
     );
 
     return response.data;
-  } catch (_error: unknown) {
-    throw new Error('Failed to fetch document. See error log.');
+  } catch (error: unknown) {
+    throw new Error('Failed to fetch document', {
+      cause: error,
+    });
   }
 };
 
