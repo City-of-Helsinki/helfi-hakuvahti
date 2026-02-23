@@ -191,6 +191,11 @@
       "en": "The confirmation code will be valid for 60 minutes",
       "sv": "Bekräftelsekoden är giltig i 60 minuter"
     },
+    "sms_confirmation_link": {
+      "fi": "hel.fi/vahvista-siirtovahti",
+      "en": "hel.fi/en/confirm-saved-search",
+      "sv": "hel.fi/sv/bekrafta-sokvakten"
+    },
     "sms_newhits_intro": {
       "fi": "Uusia osumia ajoneuvojen siirtovahdillasi",
       "en": "The Vehicle Removal Alert Service has found new matches for you",
@@ -203,8 +208,8 @@
     },
     "sms_newhits_remove_link": {
       "fi": "hel.fi/poista-siirtovahti",
-      "en": "hel.fi/remove-search-alert",
-      "sv": "hel.fi/redigera-sokvakten"
+      "en": "hel.fi/en/delete-saved-search",
+      "sv": "hel.fi/sv/radera-sokvakten"
     },
     "sms_newhits_code_label": {
       "fi": "Vahvistuskoodi:",
@@ -232,9 +237,9 @@
       "sv": "Du kan fortsätta beställningen av sökvakten på adressen"
     },
     "sms_renewal_link": {
-      "fi": "hel.fi/vahvista-siirtovahti",
-      "en": "hel.fi/confirm-search-alert",
-      "sv": "hel.fi/bekrafta-flyttningsvakten"
+      "fi": "hel.fi/jatka-siirtovahti",
+      "en": "hel.fi/en/extend-saved-search",
+      "sv": "hel.fi/sv/forlang-sokvakten"
     },
     "sms_renewal_code_label": {
       "fi": "Vahvistuskoodi:",
@@ -260,13 +265,55 @@
       "expiryNotificationDays": 5,
       "enableSms": true,
       "smsCodeExpireConfirmMinutes": 60,
-      "smsCodeExpireActionMinutes": 720
+      "smsCodeExpireActionMinutes": 2440
     },
     "mail": {
       "templatePath": "kymp",
       "maxHitsInEmail": 10
     },
     "elasticProxyUrl": "https://liikenne-elastic-proxy.test.hel.ninja/mobilenote_data"
+  },
+  "staging": {
+    "urls": {
+      "base": "https://www.stage.hel.ninja",
+      "en": "https://www.stage.hel.ninja/en/urban-environment-and-traffic",
+      "fi": "https://www.stage.hel.ninja/fi/kaupunkiymparisto-ja-liikenne",
+      "sv": "https://www.stage.hel.ninja/sv/stadsmiljo-och-trafik"
+    },
+    "subscription": {
+      "maxAge": 365,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 5,
+      "enableSms": true,
+      "smsCodeExpireConfirmMinutes": 60,
+      "smsCodeExpireActionMinutes": 2440
+    },
+    "mail": {
+      "templatePath": "kymp",
+      "maxHitsInEmail": 10
+    },
+    "elasticProxyUrl": "https://liikenne-elastic-proxy.stage.hel.ninja/mobilenote_data"
+  },
+  "production": {
+    "urls": {
+      "base": "https://www.hel.fi",
+      "en": "https://www.hel.fi/en/urban-environment-and-traffic",
+      "fi": "https://www.hel.fi/fi/kaupunkiymparisto-ja-liikenne",
+      "sv": "https://www.hel.fi/sv/stadsmiljo-och-trafik"
+    },
+    "subscription": {
+      "maxAge": 365,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 5,
+      "enableSms": true,
+      "smsCodeExpireConfirmMinutes": 60,
+      "smsCodeExpireActionMinutes": 2440
+    },
+    "mail": {
+      "templatePath": "kymp",
+      "maxHitsInEmail": 10
+    },
+    "elasticProxyUrl": "https://liikenne-elastic-proxy.api.hel.ninja/mobilenote_data"
   },
   "local": {
     "urls": {
