@@ -20,8 +20,7 @@
     "hav:init-mongodb": "node dist/bin/hav-init-mongodb.js",
     "hav:update-subscription-length": "node dist/bin/hav-update-subscription-length.js",
     "hav:populate-queue": "node dist/bin/hav-populate-queue.js",
-    "hav:send-emails-in-queue": "node dist/bin/hav-send-emails-in-queue.js",
-    "hav:send-sms-in-queue": "node dist/bin/hav-send-sms-in-queue.js",
+    "hav:send-queue": "node dist/bin/hav-send-queue.js",
     "hav:test-sms-sending": "node dist/bin/hav-test-sms-sending.js",
     "hav:test-email-templates": "node dist/bin/hav-test-email-templates.js",
     "hav:run-dialogi-test-server": "node dist/bin/hav-dialogi-test-server.js"

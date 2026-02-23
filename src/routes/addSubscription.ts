@@ -6,8 +6,7 @@ import { generateUniqueSmsCode } from '../lib/smsCode';
 import { atvCreateDocument } from '../plugins/atv';
 import type { AtvDocumentType } from '../types/atv';
 import { Generic400Error, type Generic400ErrorType, Generic500Error, type Generic500ErrorType } from '../types/error';
-import type { QueueInsertDocumentType } from '../types/mailer';
-import type { SmsQueueInsertDocumentType } from '../types/sms';
+import type { QueueInsertDocument } from '../types/queue';
 import {
   type SubscriptionCollectionType,
   SubscriptionRequest,
@@ -234,9 +233,9 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         // Queue email confirmation:
         hasEmail &&
           (async () => {
-            const document: QueueInsertDocumentType = {
-              // NOTE: email is replaced with ATV document id. Yes, this is confusing.
-              email: request.body.email ?? '',
+            const document: QueueInsertDocument = {
+              type: 'email',
+              atv_id: request.body.email ?? '',
               content: await confirmationEmail(
                 request.body.lang,
                 {
@@ -255,9 +254,9 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         // Queue sms confirmation:
         hasSms &&
           (async () => {
-            const document: SmsQueueInsertDocumentType = {
-              // NOTE: sms is replaced with ATV document id. Yes, this is confusing.
-              sms: request.body.sms ?? '',
+            const document: QueueInsertDocument = {
+              type: 'sms',
+              atv_id: request.body.sms ?? '',
               content: await confirmationSms(
                 request.body.lang,
                 {
@@ -269,7 +268,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
 
             console.info('Sending sms confirmation message to', response.insertedId, document);
 
-            return mongodb.db?.collection('smsqueue')?.insertOne(document);
+            return mongodb.db?.collection('queue')?.insertOne(document);
           })(),
       ]);
 

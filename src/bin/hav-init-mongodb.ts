@@ -2,7 +2,7 @@
  * MongoDB Database Initialization Script
  *
  * Creates required collections with validation schemas for the Hakuvahti application:
- * - queue: Email queue for outbound notifications
+ * - queue: Queue for outbound notifications
  * - subscription: Search subscriptions with user preferences
  *
  * Must be run before starting the application to ensure proper database structure.
@@ -23,66 +23,44 @@ command(
     const existingCollections = collections.map((c) => c.name);
 
     let queueResult = null;
-    let smsQueueResult = null;
     let subscriptionResult = null;
 
-    // Email queue collection: stores pending notification emails
-    if (!existingCollections.includes('queue')) {
-      queueResult = await db.createCollection('queue', {
-        validator: {
-          $jsonSchema: {
-            bsonType: 'object',
-            title: 'Hakuvahti email queue',
-            required: ['email', 'content'],
-            properties: {
-              _id: {
-                bsonType: 'objectId',
-              },
-              email: {
-                bsonType: 'string',
-              },
-              content: {
-                bsonType: 'string',
-              },
-            },
+    // Queue collection: stores pending notifications
+    const queueValidator = {
+      $jsonSchema: {
+        bsonType: 'object',
+        title: 'Hakuvahti notification queue',
+        required: ['type', 'atv_id', 'content'],
+        properties: {
+          _id: {
+            bsonType: 'objectId',
+          },
+          type: {
+            bsonType: 'string',
+            enum: ['email', 'sms'],
+          },
+          atv_id: {
+            bsonType: 'string',
+          },
+          content: {
+            bsonType: 'string',
           },
         },
-      });
-      // eslint-disable-next-line no-console
-      console.log('Queue collection created:', queueResult?.collectionName);
+      },
+    };
+
+    if (!existingCollections.includes('queue')) {
+      queueResult = await db.createCollection('queue', { validator: queueValidator });
+      console.info('Queue collection created:', queueResult?.collectionName);
     } else {
-      // eslint-disable-next-line no-console
-      console.log('Queue collection already exists');
+      await db.command({ collMod: 'queue', validator: queueValidator });
+      console.info('Queue collection validator updated');
     }
 
-    // SMS queue collection: stores pending notification SMS messages
-    if (!existingCollections.includes('smsqueue')) {
-      smsQueueResult = await db.createCollection('smsqueue', {
-        validator: {
-          $jsonSchema: {
-            bsonType: 'object',
-            title: 'Hakuvahti SMS queue',
-            required: ['sms', 'content'],
-            properties: {
-              _id: {
-                bsonType: 'objectId',
-              },
-              sms: {
-                bsonType: 'string',
-              },
-              content: {
-                bsonType: 'string',
-              },
-            },
-          },
-        },
-      });
-
-      // eslint-disable-next-line no-console
-      console.log('SMS queue collection created:', smsQueueResult?.collectionName);
-    } else {
-      // eslint-disable-next-line no-console
-      console.log('SMS queue collection already exists');
+    // Drop legacy smsqueue collection if it exists
+    if (existingCollections.includes('smsqueue')) {
+      await db.collection('smsqueue').drop();
+      console.info('Dropped legacy smsqueue collection');
     }
 
     // Subscription collection: stores user search criteria and metadata
@@ -136,8 +114,7 @@ command(
         },
       });
 
-      // eslint-disable-next-line no-console
-      console.log('Subscription collection created:', subscriptionResult?.collectionName);
+      console.info('Subscription collection created:', subscriptionResult?.collectionName);
     }
   },
   [mongodb],

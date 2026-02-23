@@ -9,9 +9,8 @@ import elasticproxy from '../plugins/elasticproxy';
 import mongodb from '../plugins/mongodb';
 import '../plugins/sentry';
 import type { ElasticProxyJsonResponseType, PartialDrupalNodeType } from '../types/elasticproxy';
-import type { QueueInsertDocumentType } from '../types/mailer';
+import type { QueueInsertDocument } from '../types/queue';
 import type { SiteConfigurationType } from '../types/siteConfig';
-import type { SmsQueueInsertDocumentType } from '../types/sms';
 import {
   type SubscriptionCollectionLanguageType,
   type SubscriptionCollectionType,
@@ -202,9 +201,8 @@ const processSiteSubscriptions = async (
 ): Promise<void> => {
   const collection = server.mongo.db?.collection('subscription');
   const queueCollection = server.mongo.db?.collection('queue');
-  const smsQueueCollection = server.mongo.db?.collection('smsqueue');
 
-  if (!collection || !queueCollection || !smsQueueCollection) {
+  if (!collection || !queueCollection) {
     throw new Error('MongoDB collections not available');
   }
 
@@ -279,14 +277,14 @@ const processSiteSubscriptions = async (
         siteConfig,
       );
 
-      const expiryEmailToQueue: QueueInsertDocumentType = {
-        email: subscription.email,
+      const expiryEmailToQueue: QueueInsertDocument = {
+        type: 'email',
+        atv_id: subscription.email,
         content: expiryEmailContent,
       };
 
       // Add email to queue
       if (!isDryRun) {
-        // @todo: move email queue code to emailQueueService.
         await queueCollection.insertOne(expiryEmailToQueue);
       }
       stats.expiryEmailsQueued++;
@@ -314,15 +312,16 @@ const processSiteSubscriptions = async (
             siteConfig,
           );
 
-          const smsToQueue: SmsQueueInsertDocumentType = {
-            sms: subscription.email, // atvDocumentId
+          const smsToQueue: QueueInsertDocument = {
+            type: 'sms',
+            atv_id: subscription.email,
             content: smsContent,
           };
 
           if (isDryRun) {
             console.log(`[DRY RUN] Would queue renewal SMS for ${subscription._id} with code ${smsCode}`);
           } else {
-            await smsQueueCollection.insertOne(smsToQueue);
+            await queueCollection.insertOne(smsToQueue);
           }
           stats.smsQueued++;
         } catch (error) {
@@ -365,8 +364,9 @@ const processSiteSubscriptions = async (
       siteConfig,
     );
 
-    const email: QueueInsertDocumentType = {
-      email: subscription.email,
+    const email: QueueInsertDocument = {
+      type: 'email',
+      atv_id: subscription.email,
       content: emailContent,
     };
 
@@ -405,15 +405,16 @@ const processSiteSubscriptions = async (
           siteConfig,
         );
 
-        const smsToQueue: SmsQueueInsertDocumentType = {
-          sms: subscription.email, // atvDocumentId
+        const smsToQueue: QueueInsertDocument = {
+          type: 'sms',
+          atv_id: subscription.email,
           content: smsContent,
         };
 
         if (isDryRun) {
           console.log(`[DRY RUN] Would queue SMS for ${subscription._id} with code ${smsCode}`);
         } else {
-          await smsQueueCollection.insertOne(smsToQueue);
+          await queueCollection.insertOne(smsToQueue);
         }
         stats.smsQueued++;
       } catch (error) {
