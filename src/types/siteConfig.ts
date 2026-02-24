@@ -25,6 +25,7 @@ export const SiteSubscriptionSettings = Type.Object({
   enableSms: Type.Optional(Type.Boolean()),
   smsCodeExpireConfirmMinutes: Type.Optional(Type.Number()),
   smsCodeExpireActionMinutes: Type.Optional(Type.Number()),
+  matchField: Type.Optional(Type.String()),
 });
 export type SiteSubscriptionSettingsType = Static<typeof SiteSubscriptionSettings>;
 
