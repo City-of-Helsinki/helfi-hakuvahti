@@ -265,7 +265,8 @@
       "expiryNotificationDays": 5,
       "enableSms": true,
       "smsCodeExpireConfirmMinutes": 60,
-      "smsCodeExpireActionMinutes": 2440
+      "smsCodeExpireActionMinutes": 2440,
+      "matchField": "created_at"
     },
     "mail": {
       "templatePath": "kymp",
@@ -286,7 +287,8 @@
       "expiryNotificationDays": 5,
       "enableSms": true,
       "smsCodeExpireConfirmMinutes": 60,
-      "smsCodeExpireActionMinutes": 2440
+      "smsCodeExpireActionMinutes": 2440,
+      "matchField": "created_at"
     },
     "mail": {
       "templatePath": "kymp",
@@ -307,7 +309,8 @@
       "expiryNotificationDays": 5,
       "enableSms": true,
       "smsCodeExpireConfirmMinutes": 60,
-      "smsCodeExpireActionMinutes": 2440
+      "smsCodeExpireActionMinutes": 2440,
+      "matchField": "created_at"
     },
     "mail": {
       "templatePath": "kymp",
@@ -328,7 +331,8 @@
       "expiryNotificationDays": 3,
       "enableSms": true,
       "smsCodeExpireConfirmMinutes": 60,
-      "smsCodeExpireActionMinutes": 720
+      "smsCodeExpireActionMinutes": 720,
+      "matchField": "created_at"
     },
     "mail": {
       "templatePath": "kymp",
