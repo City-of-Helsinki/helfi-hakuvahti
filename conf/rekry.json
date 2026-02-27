@@ -199,7 +199,10 @@
     },
     "mail": {
       "templatePath": "rekry",
-      "maxHitsInEmail": 10
+      "maxHitsInEmail": 10,
+      "fieldFormats": {
+        "url": "url"
+      }
     },
     "elasticProxyUrl": "http://helfi-rekry-elastic-proxy:8080/job_listings"
   },
@@ -220,7 +223,10 @@
     },
     "mail": {
       "templatePath": "rekry",
-      "maxHitsInEmail": 10
+      "maxHitsInEmail": 10,
+      "fieldFormats": {
+        "url": "url"
+      }
     },
     "elasticProxyUrl": "https://helfi-rekry-elastic-proxy.test.hel.ninja/job_listings"
   },
@@ -241,7 +247,10 @@
     },
     "mail": {
       "templatePath": "rekry",
-      "maxHitsInEmail": 10
+      "maxHitsInEmail": 10,
+      "fieldFormats": {
+        "url": "url"
+      }
     },
     "elasticProxyUrl": "https://rekry-elastic-proxy-staging.api.hel.ninja/job_listings"
   },
@@ -262,7 +271,10 @@
     },
     "mail": {
       "templatePath": "rekry",
-      "maxHitsInEmail": 10
+      "maxHitsInEmail": 10,
+      "fieldFormats": {
+        "url": "url"
+      }
     },
     "elasticProxyUrl": "https://helfi-rekry-elastic-proxy.api.hel.ninja/job_listings"
   }

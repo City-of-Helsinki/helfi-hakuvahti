@@ -270,7 +270,11 @@
     },
     "mail": {
       "templatePath": "kymp",
-      "maxHitsInEmail": 10
+      "maxHitsInEmail": 10,
+      "fieldFormats": {
+        "valid_from": "date",
+        "valid_to": "date"
+      }
     },
     "elasticProxyUrl": "https://liikenne-elastic-proxy.test.hel.ninja/mobilenote_data"
   },
@@ -292,7 +296,11 @@
     },
     "mail": {
       "templatePath": "kymp",
-      "maxHitsInEmail": 10
+      "maxHitsInEmail": 10,
+      "fieldFormats": {
+        "valid_from": "date",
+        "valid_to": "date"
+      }
     },
     "elasticProxyUrl": "https://liikenne-elastic-proxy.stage.hel.ninja/mobilenote_data"
   },
@@ -314,7 +322,11 @@
     },
     "mail": {
       "templatePath": "kymp",
-      "maxHitsInEmail": 10
+      "maxHitsInEmail": 10,
+      "fieldFormats": {
+        "valid_from": "date",
+        "valid_to": "date"
+      }
     },
     "elasticProxyUrl": "https://liikenne-elastic-proxy.api.hel.ninja/mobilenote_data"
   },
@@ -336,7 +348,11 @@
     },
     "mail": {
       "templatePath": "kymp",
-      "maxHitsInEmail": 10
+      "maxHitsInEmail": 10,
+      "fieldFormats": {
+        "valid_from": "date",
+        "valid_to": "date"
+      }
     },
     "elasticProxyUrl": "http://helfi-kymp-elastic-proxy:8080/mobilenote_data"
   }
