@@ -3,7 +3,7 @@ import command from '../lib/command';
 import { confirmationEmail, expiryEmail, newHitsEmail } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
 import mongodb from '../plugins/mongodb';
-import type { PartialDrupalNodeType } from '../types/elasticproxy';
+
 import type { QueueInsertDocument } from '../types/queue';
 import type { SiteConfigurationType } from '../types/siteConfig';
 import type { SubscriptionCollectionLanguageType } from '../types/subscription';
@@ -33,7 +33,7 @@ const DUMMY_DATA = {
         langcode: ['fi'],
         title: 'IT-asiantuntija, Kaupunkiympäristön toimiala',
         field_publication_starts: [Date.now()],
-      } as unknown as PartialDrupalNodeType,
+      },
       {
         _language: 'fi',
         entity_type: ['node'],
@@ -41,7 +41,7 @@ const DUMMY_DATA = {
         langcode: ['fi'],
         title: 'Ohjelmistokehittäjä',
         field_publication_starts: [Date.now()],
-      } as unknown as PartialDrupalNodeType,
+      },
       {
         _language: 'fi',
         entity_type: ['node'],
@@ -49,7 +49,7 @@ const DUMMY_DATA = {
         langcode: ['fi'],
         title: 'Tietoturva-asiantuntija, Keskushallinto',
         field_publication_starts: [Date.now()],
-      } as unknown as PartialDrupalNodeType,
+      },
     ],
     search_description: 'IT-asiantuntija',
     search_link: '/fi/avoimet-tyopaikat/etsi-avoimia-tyopaikkoja',
