@@ -32,6 +32,7 @@ export type SiteSubscriptionSettingsType = Static<typeof SiteSubscriptionSetting
 export const SiteMailSettings = Type.Object({
   templatePath: Type.String(),
   maxHitsInEmail: Type.Optional(Type.Number()),
+  fieldFormats: Type.Optional(Type.Record(Type.String(), Type.String())),
 });
 export type SiteMailSettingsType = Static<typeof SiteMailSettings>;
 
