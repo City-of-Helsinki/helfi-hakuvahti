@@ -17,9 +17,9 @@ export type AtvUpdateFn = (docId: string, maxAge: number, fromDate: Date) => Pro
  */
 export async function confirmSubscription(collection: Collection, subscriptionId: ObjectId): Promise<ActionResult> {
   const result = await collection.updateOne(
-    { _id: subscriptionId, status: SubscriptionStatus.INACTIVE },
+    { _id: subscriptionId, sms_confirmed: false },
     {
-      $set: { status: SubscriptionStatus.ACTIVE },
+      $set: { status: SubscriptionStatus.ACTIVE, sms_confirmed: true },
       $unset: { sms_code: 1, sms_code_created: 1 },
     },
   );

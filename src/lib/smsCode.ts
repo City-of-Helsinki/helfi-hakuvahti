@@ -1,7 +1,10 @@
 import { randomInt } from 'node:crypto';
 import type { Collection } from 'mongodb';
 import type { AtvDocumentType } from '../types/atv';
+import type { SiteConfigurationType } from '../types/siteConfig';
 import type { SmsVerificationResultType, VerificationSubscriptionType } from '../types/subscription';
+
+export type SmsAction = 'confirm' | 'delete' | 'renew';
 
 // Type for ATV query function (matches Fastify decorator return type)
 export type AtvQueryFn = (docId: string) => Promise<Partial<AtvDocumentType>>;

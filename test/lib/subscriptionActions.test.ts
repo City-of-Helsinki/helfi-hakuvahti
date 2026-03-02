@@ -50,8 +50,8 @@ describe('subscriptionActions', () => {
   };
 
   describe('confirmSubscription', () => {
-    test('confirms INACTIVE subscription and clears SMS fields', async () => {
-      const id = await insertSubscription();
+    test('confirms subscription with sms_confirmed: false and clears SMS fields', async () => {
+      const id = await insertSubscription({ sms_confirmed: false });
       const collection = mongo.db().collection('subscription');
 
       const result = await confirmSubscription(collection, id);
@@ -62,16 +62,20 @@ describe('subscriptionActions', () => {
       const doc = await collection.findOne({ _id: id });
       assert.ok(doc);
       assert.strictEqual(doc.status, SubscriptionStatus.ACTIVE);
+      assert.strictEqual(doc.sms_confirmed, true);
       assert.strictEqual(doc.sms_code, undefined);
       assert.strictEqual(doc.sms_code_created, undefined);
     });
 
-    test('returns 404 when subscription cannot be confirmed', async () => {
+    test('returns 404 when subscription is already confirmed', async () => {
       const collection = mongo.db().collection('subscription');
 
-      // Already ACTIVE
-      const activeId = await insertSubscription({ status: new Int32(SubscriptionStatus.ACTIVE) });
-      const result1 = await confirmSubscription(collection, activeId);
+      // Already confirmed (sms_confirmed: true)
+      const confirmedId = await insertSubscription({
+        status: new Int32(SubscriptionStatus.ACTIVE),
+        sms_confirmed: true,
+      });
+      const result1 = await confirmSubscription(collection, confirmedId);
       assert.strictEqual(result1.success, false);
       assert.strictEqual(result1.statusCode, 404);
 
@@ -79,6 +83,20 @@ describe('subscriptionActions', () => {
       const result2 = await confirmSubscription(collection, new ObjectId());
       assert.strictEqual(result2.success, false);
       assert.strictEqual(result2.statusCode, 404);
+    });
+
+    test('confirming SMS does not set email_confirmed', async () => {
+      const id = await insertSubscription({ sms_confirmed: false, email_confirmed: false });
+      const collection = mongo.db().collection('subscription');
+
+      const result = await confirmSubscription(collection, id);
+
+      assert.strictEqual(result.success, true);
+
+      const doc = await collection.findOne({ _id: id });
+      assert.ok(doc);
+      assert.strictEqual(doc.sms_confirmed, true);
+      assert.strictEqual(doc.email_confirmed, false, 'email_confirmed should remain false');
     });
   });
 

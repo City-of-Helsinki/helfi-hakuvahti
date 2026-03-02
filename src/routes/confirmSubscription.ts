@@ -31,9 +31,9 @@ const confirmSubscription: FastifyPluginAsync = async (fastify, _opts) => {
         {
           _id: new ObjectId(id),
           hash,
-          status: SubscriptionStatus.INACTIVE,
+          email_confirmed: false,
         },
-        { $set: { status: SubscriptionStatus.ACTIVE } },
+        { $set: { status: SubscriptionStatus.ACTIVE, email_confirmed: true } },
       );
 
       if (response?.modifiedCount) {

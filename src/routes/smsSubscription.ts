@@ -13,6 +13,7 @@ import {
   type SubscriptionStatus,
   type VerificationSubscriptionType,
 } from '../types/subscription';
+import {Collection} from "mongodb";
 
 type SmsAction = 'confirm' | 'delete' | 'renew';
 
@@ -47,7 +48,7 @@ const getExpireMinutes = (action: SmsAction, siteConfig: SiteConfigurationType):
  */
 const executeAction = async (
   action: SmsAction,
-  collection: ReturnType<NonNullable<FastifyInstance['mongo']['db']>['collection']>,
+  collection: Collection,
   subscription: VerificationSubscriptionType,
   siteConfig: SiteConfigurationType,
   fastify: FastifyInstance,

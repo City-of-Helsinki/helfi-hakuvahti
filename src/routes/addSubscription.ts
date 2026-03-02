@@ -204,8 +204,8 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         last_checked: Math.floor(Date.now() / 1000),
         expiry_notification_sent: SubscriptionStatus.INACTIVE,
         status: SubscriptionStatus.INACTIVE,
-        has_sms: hasSms,
-        has_email: hasEmail,
+        email_confirmed: hasEmail ? false : undefined,
+        sms_confirmed: hasSms ? false : undefined,
         delete_after: deleteAfter,
       };
 

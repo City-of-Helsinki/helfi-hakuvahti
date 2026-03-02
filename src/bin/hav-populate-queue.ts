@@ -17,6 +17,11 @@ import {
   SubscriptionStatus,
 } from '../types/subscription';
 
+const isEmailActive = (sub: Partial<SubscriptionCollectionType>): boolean =>
+  sub.email_confirmed !== undefined ? sub.email_confirmed === true : sub.status === SubscriptionStatus.ACTIVE; // legacy fallback
+
+const isSmsActive = (sub: Partial<SubscriptionCollectionType>): boolean => sub.sms_confirmed === true;
+
 // Statistics tracking
 interface ProcessingStats {
   sitesProcessed: number;
@@ -277,20 +282,22 @@ const processSiteSubscriptions = async (
         siteConfig,
       );
 
-      const expiryEmailToQueue: QueueInsertDocument = {
-        type: 'email',
-        atv_id: subscription.email,
-        content: expiryEmailContent,
-      };
+      // Queue expiry email if email is active
+      if (isEmailActive(subscription as Partial<SubscriptionCollectionType>)) {
+        const expiryEmailToQueue: QueueInsertDocument = {
+          type: 'email',
+          atv_id: subscription.email,
+          content: expiryEmailContent,
+        };
 
-      // Add email to queue
-      if (!isDryRun) {
-        await queueCollection.insertOne(expiryEmailToQueue);
+        if (!isDryRun) {
+          await queueCollection.insertOne(expiryEmailToQueue);
+        }
+        stats.expiryEmailsQueued++;
       }
-      stats.expiryEmailsQueued++;
 
       // Queue renewal SMS if subscription has SMS and site supports it
-      if (subscription.has_sms && siteConfig.subscription.enableSms) {
+      if (isSmsActive(subscription as Partial<SubscriptionCollectionType>) && siteConfig.subscription.enableSms) {
         try {
           const smsCode = await generateUniqueSmsCode(collection);
           const now = new Date();
@@ -364,28 +371,32 @@ const processSiteSubscriptions = async (
       siteConfig,
     );
 
-    const email: QueueInsertDocument = {
-      type: 'email',
-      atv_id: subscription.email,
-      content: emailContent,
-    };
+    // Queue new hits email if email is active
+    if (isEmailActive(subscription as Partial<SubscriptionCollectionType>)) {
+      const email: QueueInsertDocument = {
+        type: 'email',
+        atv_id: subscription.email,
+        content: emailContent,
+      };
 
-    if (isDryRun) {
-      console.log(
-        `[DRY RUN] Would queue email for ${subscription.email}: ${newHits.length} new result(s) (site: ${siteConfig.id})`,
-      );
-    } else {
-      // Add email to queue
-      await queueCollection.insertOne(email);
+      if (isDryRun) {
+        console.log(
+          `[DRY RUN] Would queue email for ${subscription.email}: ${newHits.length} new result(s) (site: ${siteConfig.id})`,
+        );
+      } else {
+        await queueCollection.insertOne(email);
+      }
+      stats.newResultsEmailsQueued++;
+    }
 
-      // Set last checked timestamp to this moment
+    // Update last_checked regardless of channel
+    if (!isDryRun) {
       const dateUnixtime: number = Math.floor(Date.now() / 1000);
       await collection.updateOne({ _id: subscription._id }, { $set: { last_checked: dateUnixtime } });
     }
-    stats.newResultsEmailsQueued++;
 
-    // Queue SMS if subscription has SMS flag and SMS is enabled for site
-    if (subscription.has_sms && siteConfig.subscription.enableSms) {
+    // Queue SMS if subscription has SMS confirmed and SMS is enabled for site
+    if (isSmsActive(subscription as Partial<SubscriptionCollectionType>) && siteConfig.subscription.enableSms) {
       try {
         // Regenerate SMS code for this notification
         const smsCode = await generateUniqueSmsCode(collection);
