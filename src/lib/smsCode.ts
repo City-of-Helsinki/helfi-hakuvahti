@@ -3,6 +3,7 @@ import type { Collection } from 'mongodb';
 import type { AtvDocumentType } from '../types/atv';
 import type { SiteConfigurationType } from '../types/siteConfig';
 import type { VerificationSubscriptionType } from '../types/subscription';
+import { getAtvId } from './atvId';
 
 export type SmsAction = 'confirm' | 'delete' | 'renew';
 
@@ -93,7 +94,7 @@ export async function verifySmsRequest(
     return false;
   }
 
-  const atvContent = await atvQueryFn(subscription.email);
+  const atvContent = await atvQueryFn(getAtvId(subscription));
   const storedPhone = (atvContent as { sms?: string } | undefined)?.sms;
 
   return !!storedPhone && validatePhoneSuffix(storedPhone, phoneSuffix);

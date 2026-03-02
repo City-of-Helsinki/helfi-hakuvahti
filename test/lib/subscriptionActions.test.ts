@@ -34,6 +34,7 @@ describe('subscriptionActions', () => {
     await mongo.db().collection('subscription').insertOne({
       _id: id,
       email: 'test-atv-doc-id',
+      atv_id: 'test-atv-doc-id',
       elastic_query: 'test-query',
       query: '/search?q=test',
       site_id: 'rekry',
@@ -136,6 +137,7 @@ describe('subscriptionActions', () => {
       const inactiveSub = {
         _id: inactiveId,
         email: 'test-atv-doc-id',
+        atv_id: 'test-atv-doc-id',
         site_id: 'rekry',
         status: SubscriptionStatus.INACTIVE,
         created: new Date(),
@@ -149,6 +151,7 @@ describe('subscriptionActions', () => {
       const activeSub = {
         _id: activeId,
         email: 'test-atv-doc-id',
+        atv_id: 'test-atv-doc-id',
         site_id: 'rekry',
         status: SubscriptionStatus.ACTIVE,
         created: new Date(),
@@ -170,6 +173,7 @@ describe('subscriptionActions', () => {
       const subscription = {
         _id: id,
         email: 'test-atv-doc-id',
+        atv_id: 'test-atv-doc-id',
         site_id: 'rekry',
         status: SubscriptionStatus.ACTIVE,
         created,
@@ -194,6 +198,7 @@ describe('subscriptionActions', () => {
       const subscription = {
         _id: id,
         email: 'test-atv-doc-id',
+        atv_id: 'test-atv-doc-id',
         site_id: 'rekry',
         status: SubscriptionStatus.ACTIVE,
         created,

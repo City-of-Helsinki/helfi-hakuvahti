@@ -89,6 +89,7 @@ describe('smsCode', () => {
     const makeSubscription = (overrides: Partial<VerificationSubscriptionType> = {}): VerificationSubscriptionType => ({
       _id: 'test-id',
       email: 'test-atv-doc-id',
+      atv_id: 'test-atv-doc-id',
       site_id: 'rekry',
       status: 1,
       created: new Date(),

@@ -24,6 +24,7 @@ export type SubscriptionCollectionLanguageType = Static<typeof SubscriptionColle
 
 export const SubscriptionCollection = Type.Object({
   email: Type.String(),
+  atv_id: Type.Optional(Type.String()),
   elastic_query: Type.String(),
   elastic_query_atv: Type.Optional(Type.Number()),
   search_description: Type.Optional(Type.String()),
@@ -47,7 +48,7 @@ export type SubscriptionCollectionType = Static<typeof SubscriptionCollection>;
 
 // Subscription renewal
 export const RenewalSubscription = Type.Intersect([
-  Type.Pick(SubscriptionCollection, ['email', 'site_id', 'status', 'created', 'first_created']),
+  Type.Pick(SubscriptionCollection, ['email', 'atv_id', 'site_id', 'status', 'created', 'first_created']),
   Type.Object({ _id: Type.Unknown() }),
 ]);
 export type RenewalSubscriptionType = Static<typeof RenewalSubscription>;
@@ -122,6 +123,7 @@ export type SmsVerificationResponseType = Static<typeof SmsVerificationResponse>
 export const VerificationSubscription = Type.Intersect([
   Type.Pick(SubscriptionCollection, [
     'email',
+    'atv_id',
     'site_id',
     'status',
     'created',

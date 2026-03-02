@@ -1,4 +1,5 @@
 import type { Collection } from 'mongodb';
+import { getAtvId } from '../lib/atvId';
 import command from '../lib/command';
 import { confirmationEmail, expiryEmail, newHitsEmail } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
@@ -106,15 +107,15 @@ command(
     const subscriptionCollection = server.mongo.db.collection('subscription');
     const latestSubscription = await subscriptionCollection.findOne(
       {},
-      { sort: { _id: -1 }, projection: { email: 1 } },
+      { sort: { _id: -1 }, projection: { email: 1, atv_id: 1 } },
     );
 
-    if (!latestSubscription?.email) {
+    if (!latestSubscription) {
       throw new Error('Create test subscription first.');
     }
 
     const siteId = argv.site;
-    const testEmail = latestSubscription.email;
+    const testEmail = getAtvId(latestSubscription);
 
     console.log(`Site: ${siteId}`);
 

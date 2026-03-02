@@ -1,6 +1,7 @@
 import type { Collection, ObjectId } from 'mongodb';
 import type { SiteConfigurationType } from '../types/siteConfig';
 import { type RenewalSubscriptionType, SubscriptionStatus } from '../types/subscription';
+import { getAtvId } from './atvId';
 
 export interface ActionResult {
   success: boolean;
@@ -98,7 +99,7 @@ export async function renewSubscription(
   // Update ATV document delete_after
   const now = new Date();
   try {
-    await atvUpdateFn(subscription.email, maxAge, now);
+    await atvUpdateFn(getAtvId(subscription), maxAge, now);
   } catch (_error) {
     return {
       success: false,

@@ -144,6 +144,7 @@ describe('/subscription', () => {
         assert.ok(subscription, `${name}: subscription should exist in MongoDB`);
         assert.strictEqual(subscription.lang, payload.lang, `${name}: lang should match`);
         assert.strictEqual(subscription.email, 'mock-atv-document-id', `${name}: email should be ATV document ID`);
+        assert.strictEqual(subscription.atv_id, 'mock-atv-document-id', `${name}: atv_id should be ATV document ID`);
         assert.strictEqual(subscription.status, SubscriptionStatus.INACTIVE);
         assert.strictEqual(subscription.site_id, payload.site_id);
         assert.strictEqual(subscription.query, payload.query);

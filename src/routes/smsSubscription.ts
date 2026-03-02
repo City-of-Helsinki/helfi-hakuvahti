@@ -54,6 +54,7 @@ const executeAction = async (
       const subscriptionDoc = {
         _id: subscriptionId,
         email: subscription.email,
+        atv_id: subscription.atv_id,
         site_id: subscription.site_id,
         status: subscription.status as SubscriptionStatus,
         created: new Date(subscription.created as Date),

@@ -1,5 +1,6 @@
 import { ObjectId } from '@fastify/mongodb';
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
+import { getAtvId } from '../lib/atvId';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
 import { Generic500Error, type Generic500ErrorType } from '../types/error';
 
@@ -98,14 +99,14 @@ const renewSubscription: FastifyPluginAsync = async (fastify: FastifyInstance, _
 
       // Update ATV document's delete_after timestamp to match the new subscription expiry
       try {
-        await fastify.atvUpdateDocumentDeleteAfter(subscription.email, subscriptionValidForDays, now);
+        await fastify.atvUpdateDocumentDeleteAfter(getAtvId(subscription), subscriptionValidForDays, now);
       } catch (error) {
         fastify.log.error({
           level: 'error',
           message: 'Failed to update ATV document delete_after timestamp',
           error,
           subscriptionId: id,
-          atvDocumentId: subscription.email,
+          atvDocumentId: getAtvId(subscription),
         });
         return reply.code(500).send({
           statusCode: 500,

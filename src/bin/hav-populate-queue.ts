@@ -8,6 +8,7 @@ import base64Plugin from '../plugins/base64';
 import elasticproxy from '../plugins/elasticproxy';
 import mongodb from '../plugins/mongodb';
 import '../plugins/sentry';
+import { getAtvId } from '../lib/atvId';
 import type { ElasticProxyJsonResponseType, PartialDrupalNodeType } from '../types/elasticproxy';
 import type { QueueInsertDocument } from '../types/queue';
 import type { SiteConfigurationType } from '../types/siteConfig';
@@ -242,7 +243,7 @@ const processSiteSubscriptions = async (
       } else {
         try {
           await server.atvUpdateDocumentDeleteAfter(
-            subscription.email,
+            getAtvId(subscription),
             subscriptionValidForDays,
             new Date(subscription.created),
           );
@@ -264,7 +265,7 @@ const processSiteSubscriptions = async (
     // If subscription should expire soon, send an expiration email
     if (checkShouldSendExpiryNotification(subscription as Partial<SubscriptionCollectionType>, siteConfig)) {
       if (isDryRun) {
-        console.log(`[DRY RUN] Would send expiry email to ${subscription.email} (site: ${siteConfig.id})`);
+        console.log(`[DRY RUN] Would send expiry email to ${getAtvId(subscription)} (site: ${siteConfig.id})`);
       } else {
         await collection.updateOne({ _id: subscription._id }, { $set: { expiry_notification_sent: 1 } });
       }
@@ -286,7 +287,7 @@ const processSiteSubscriptions = async (
       if (isEmailActive(subscription as Partial<SubscriptionCollectionType>)) {
         const expiryEmailToQueue: QueueInsertDocument = {
           type: 'email',
-          atv_id: subscription.email,
+          atv_id: getAtvId(subscription),
           content: expiryEmailContent,
         };
 
@@ -321,7 +322,7 @@ const processSiteSubscriptions = async (
 
           const smsToQueue: QueueInsertDocument = {
             type: 'sms',
-            atv_id: subscription.email,
+            atv_id: getAtvId(subscription),
             content: smsContent,
           };
 
@@ -375,13 +376,13 @@ const processSiteSubscriptions = async (
     if (isEmailActive(subscription as Partial<SubscriptionCollectionType>)) {
       const email: QueueInsertDocument = {
         type: 'email',
-        atv_id: subscription.email,
+        atv_id: getAtvId(subscription),
         content: emailContent,
       };
 
       if (isDryRun) {
         console.log(
-          `[DRY RUN] Would queue email for ${subscription.email}: ${newHits.length} new result(s) (site: ${siteConfig.id})`,
+          `[DRY RUN] Would queue email for ${getAtvId(subscription)}: ${newHits.length} new result(s) (site: ${siteConfig.id})`,
         );
       } else {
         await queueCollection.insertOne(email);
@@ -418,7 +419,7 @@ const processSiteSubscriptions = async (
 
         const smsToQueue: QueueInsertDocument = {
           type: 'sms',
-          atv_id: subscription.email,
+          atv_id: getAtvId(subscription),
           content: smsContent,
         };
 

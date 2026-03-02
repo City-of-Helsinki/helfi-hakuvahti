@@ -54,6 +54,7 @@ export async function createSubscription(
     status: SubscriptionStatus.INACTIVE,
     site_id: 'test',
     email: 'test-atv-doc-id',
+    atv_id: 'test-atv-doc-id',
     elastic_query: 'test-query',
     query: '/search?q=test',
     ...subscriptionData, // Override defaults with provided data

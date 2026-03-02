@@ -144,26 +144,16 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
       const hasEmail = !!request.body.email;
 
       // Store user data in ATV.
+      let atvId: string;
       try {
-        const atvId = await storeUserData(request.body);
+        atvId = await storeUserData(request.body);
 
         // Remove user data from request body.
         delete request.body.sms;
         delete request.body.email;
 
-        // @fixme: these are confusing field names for ATV id.
-        if (hasEmail) {
-          request.body.email = atvId;
-        }
-
-        if (hasSms) {
-          if (!hasEmail) {
-            // Email is required field and saving the subscription fails if it is null.
-            request.body.email = '';
-          }
-
-          request.body.sms = atvId;
-        }
+        // email field is set for backward compatibility with legacy subscriptions.
+        request.body.email = hasEmail ? atvId : '';
       } catch {
         return reply
           .code(500)
@@ -198,6 +188,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
 
       const subscriptionData: Partial<SubscriptionCollectionType> = {
         ...request.body,
+        atv_id: atvId,
         hash,
         created: now,
         modified: now,
@@ -235,7 +226,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
           (async () => {
             const document: QueueInsertDocument = {
               type: 'email',
-              atv_id: request.body.email ?? '',
+              atv_id: atvId,
               content: await confirmationEmail(
                 request.body.lang,
                 {
@@ -256,7 +247,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
           (async () => {
             const document: QueueInsertDocument = {
               type: 'sms',
-              atv_id: request.body.sms ?? '',
+              atv_id: atvId,
               content: await confirmationSms(
                 request.body.lang,
                 {
