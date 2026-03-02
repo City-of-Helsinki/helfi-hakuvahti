@@ -1,7 +1,8 @@
 import type { ObjectId } from '@fastify/mongodb';
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
+import type { Collection } from 'mongodb';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
-import { findSubscriptionByCode, verifySmsRequest } from '../lib/smsCode';
+import { findSubscriptionByCode, type SmsAction, verifySmsRequest } from '../lib/smsCode';
 import { confirmSubscription, deleteSubscription, renewSubscription } from '../lib/subscriptionActions';
 import { Generic500Error, type Generic500ErrorType } from '../types/error';
 import type { SiteConfigurationType } from '../types/siteConfig';
@@ -13,9 +14,6 @@ import {
   type SubscriptionStatus,
   type VerificationSubscriptionType,
 } from '../types/subscription';
-import {Collection} from "mongodb";
-
-type SmsAction = 'confirm' | 'delete' | 'renew';
 
 /**
  * Shared schema for all SMS verification endpoints.
@@ -31,16 +29,6 @@ const smsSchema = {
     429: SmsVerificationResponse,
     500: Generic500Error,
   },
-};
-
-/**
- * Get expiry minutes based on action type.
- */
-const getExpireMinutes = (action: SmsAction, siteConfig: SiteConfigurationType): number => {
-  if (action === 'confirm') {
-    return siteConfig.subscription.smsCodeExpireConfirmMinutes ?? 60;
-  }
-  return siteConfig.subscription.smsCodeExpireActionMinutes ?? 720;
 };
 
 /**
@@ -110,9 +98,8 @@ const createSmsHandler =
       });
     }
 
-    // Verify with correct expiry from config (check expiry + validate phone)
-    const expireMinutes = getExpireMinutes(action, siteConfig);
-    const verification = await verifySmsRequest(subscription, number, expireMinutes, fastify.atvGetDocument);
+    // Verify SMS code (check expiry + validate phone)
+    const verification = await verifySmsRequest(subscription, number, siteConfig, action, fastify.atvGetDocument);
 
     if (!verification.success) {
       const error = verification.error || { statusCode: 500, statusMessage: 'Verification failed' };

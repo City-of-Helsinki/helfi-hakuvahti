@@ -79,16 +79,24 @@ export async function findSubscriptionByCode(
  *
  * @param subscription - The subscription found by sms_code
  * @param phoneSuffix - Last 3 digits of phone from user
- * @param expireMinutes - Minutes until code expires
+ * @param siteConfig - Site configuration (used to resolve code expiry)
+ * @param action - The SMS action type (affects expiry duration)
  * @param atvQueryFn - Function to fetch ATV document content
  * @returns Verification result with subscription or error
  */
 export async function verifySmsRequest(
   subscription: VerificationSubscriptionType,
   phoneSuffix: string,
-  expireMinutes: number,
+  siteConfig: SiteConfigurationType,
+  action: SmsAction,
   atvQueryFn: AtvQueryFn,
 ): Promise<SmsVerificationResultType> {
+  // Resolve expiry based on action type
+  const expireMinutes =
+    action === 'confirm'
+      ? (siteConfig.subscription.smsCodeExpireConfirmMinutes ?? 60)
+      : (siteConfig.subscription.smsCodeExpireActionMinutes ?? 720);
+
   // Check code expiry
   if (!subscription.sms_code_created || isCodeExpired(new Date(subscription.sms_code_created), expireMinutes)) {
     return {
