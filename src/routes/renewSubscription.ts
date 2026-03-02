@@ -52,9 +52,7 @@ const renewSubscription: FastifyPluginAsync = async (fastify: FastifyInstance, _
       }
 
       // Load site configuration to get maxAge and expiryNotificationDays
-      const configLoader = SiteConfigurationLoader.getInstance();
-      await configLoader.loadConfigurations();
-      const siteConfig = configLoader.getConfiguration(subscription.site_id);
+      const siteConfig = SiteConfigurationLoader.getConfiguration(subscription.site_id);
 
       if (!siteConfig) {
         return reply.code(500).send({

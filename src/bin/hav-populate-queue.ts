@@ -467,9 +467,7 @@ const app = async (targetSite: string | undefined, isDryRun: boolean, server: Se
     console.log('Loading site configurations...');
 
     // Load site configurations
-    const configLoader = SiteConfigurationLoader.getInstance();
-    await configLoader.loadConfigurations();
-    const allSiteConfigs = configLoader.getConfigurations();
+    const allSiteConfigs = SiteConfigurationLoader.getConfigurations();
 
     // Filter by --site parameter if provided
     let siteConfigsToProcess = Object.entries(allSiteConfigs);
@@ -525,9 +523,7 @@ command(
     const isDryRun: boolean = argv['dry-run'] === true;
 
     // Load site configurations
-    const configLoader = SiteConfigurationLoader.getInstance();
-    await configLoader.loadConfigurations();
-    const siteConfigs = configLoader.getConfigurations();
+    const siteConfigs = SiteConfigurationLoader.getConfigurations();
 
     // Clean up expired subscriptions for each site
     await Object.entries(siteConfigs).reduce(async (previousPromise, [siteId, siteConfig]) => {

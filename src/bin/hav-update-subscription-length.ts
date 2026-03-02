@@ -104,9 +104,7 @@ export const updateSubscriptionLength = async (server: Server, options: Migratio
   };
 
   const collection = db.collection('subscription');
-  const configLoader = SiteConfigurationLoader.getInstance();
-  await configLoader.loadConfigurations();
-  const siteConfig = configLoader.getConfiguration(options.siteId);
+  const siteConfig = SiteConfigurationLoader.getConfiguration(options.siteId);
 
   if (!siteConfig) {
     throw new Error('Site configuration not found');

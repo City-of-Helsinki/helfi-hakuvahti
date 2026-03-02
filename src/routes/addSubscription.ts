@@ -129,9 +129,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
       }
 
       // Load site configuration
-      const configLoader = SiteConfigurationLoader.getInstance();
-      await configLoader.loadConfigurations();
-      const siteConfig = configLoader.getConfiguration(request.body.site_id);
+      const siteConfig = SiteConfigurationLoader.getConfiguration(request.body.site_id);
 
       if (!siteConfig) {
         return reply

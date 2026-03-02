@@ -88,10 +88,7 @@ const createSmsHandler =
     }
 
     // Load site configuration and check enableSms
-    const configLoader = SiteConfigurationLoader.getInstance();
-    await configLoader.loadConfigurations();
-
-    const siteConfig = configLoader.getConfiguration(subscription.site_id);
+    const siteConfig = SiteConfigurationLoader.getConfiguration(subscription.site_id);
     if (!siteConfig?.subscription.enableSms) {
       return reply.code(403).send({
         statusCode: 403,

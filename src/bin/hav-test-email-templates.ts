@@ -119,9 +119,7 @@ command(
 
     console.log(`Site: ${siteId}`);
 
-    const configLoader = SiteConfigurationLoader.getInstance();
-    await configLoader.loadConfigurations();
-    const siteConfig = configLoader.getConfiguration(siteId);
+    const siteConfig = SiteConfigurationLoader.getConfiguration(siteId);
 
     if (!siteConfig) {
       throw new Error('Site configuration not found');
