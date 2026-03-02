@@ -2,7 +2,7 @@ import { randomInt } from 'node:crypto';
 import type { Collection } from 'mongodb';
 import type { AtvDocumentType } from '../types/atv';
 import type { SiteConfigurationType } from '../types/siteConfig';
-import type { SmsVerificationResultType, VerificationSubscriptionType } from '../types/subscription';
+import type { VerificationSubscriptionType } from '../types/subscription';
 
 export type SmsAction = 'confirm' | 'delete' | 'renew';
 
@@ -74,15 +74,8 @@ export async function findSubscriptionByCode(
 
 /**
  * Validates an SMS verification request.
- * 1. Check code expiry
- * 2. Fetch phone from ATV and validate suffix
- *
- * @param subscription - The subscription found by sms_code
- * @param phoneSuffix - Last 3 digits of phone from user
- * @param siteConfig - Site configuration (used to resolve code expiry)
- * @param action - The SMS action type (affects expiry duration)
- * @param atvQueryFn - Function to fetch ATV document content
- * @returns Verification result with subscription or error
+ * Checks code expiry, fetches the phone number from ATV, and validates the suffix.
+ * Throws on ATV errors (caller/framework handles 500).
  */
 export async function verifySmsRequest(
   subscription: VerificationSubscriptionType,
@@ -90,45 +83,18 @@ export async function verifySmsRequest(
   siteConfig: SiteConfigurationType,
   action: SmsAction,
   atvQueryFn: AtvQueryFn,
-): Promise<SmsVerificationResultType> {
-  // Resolve expiry based on action type
+): Promise<boolean> {
   const expireMinutes =
     action === 'confirm'
       ? (siteConfig.subscription.smsCodeExpireConfirmMinutes ?? 60)
       : (siteConfig.subscription.smsCodeExpireActionMinutes ?? 720);
 
-  // Check code expiry
   if (!subscription.sms_code_created || isCodeExpired(new Date(subscription.sms_code_created), expireMinutes)) {
-    return {
-      success: false,
-      error: { statusCode: 400, statusMessage: 'Verification code has expired.' },
-    };
+    return false;
   }
 
-  // Fetch phone number from ATV document content
-  let storedPhone: string | undefined;
-  try {
-    // atvGetDocument returns unwrapped content (response.data.content)
-    const atvContent = await atvQueryFn(subscription.email);
-    const content = atvContent as { sms?: string } | undefined;
-    storedPhone = content?.sms;
-  } catch (_error) {
-    return {
-      success: false,
-      error: { statusCode: 500, statusMessage: 'Failed to verify phone number.' },
-    };
-  }
+  const atvContent = await atvQueryFn(subscription.email);
+  const storedPhone = (atvContent as { sms?: string } | undefined)?.sms;
 
-  // Validate phone suffix
-  if (!storedPhone || !validatePhoneSuffix(storedPhone, phoneSuffix)) {
-    return {
-      success: false,
-      error: { statusCode: 401, statusMessage: 'Invalid verification.' },
-    };
-  }
-
-  return {
-    success: true,
-    subscription,
-  };
+  return !!storedPhone && validatePhoneSuffix(storedPhone, phoneSuffix);
 }

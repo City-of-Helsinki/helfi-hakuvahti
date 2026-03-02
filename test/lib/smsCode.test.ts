@@ -110,51 +110,53 @@ describe('smsCode', () => {
       };
     };
 
-    test('rejects expired or missing verification code', async () => {
+    test('returns false for expired or missing verification code', async () => {
       // Missing sms_code_created
       const noCreated = makeSubscription({ sms_code_created: undefined });
-      const result1 = await verifySmsRequest(noCreated, '567', siteConfig, 'confirm', makeAtvQueryFn('+358401234567'));
-      assert.strictEqual(result1.success, false);
-      assert.strictEqual(result1.error?.statusCode, 400);
+      assert.strictEqual(
+        await verifySmsRequest(noCreated, '567', siteConfig, 'confirm', makeAtvQueryFn('+358401234567')),
+        false,
+      );
 
       // Expired code
       const twoHoursAgo = new Date(Date.now() - 120 * 60 * 1000);
       const expired = makeSubscription({ sms_code_created: twoHoursAgo });
-      const result2 = await verifySmsRequest(expired, '567', siteConfig, 'confirm', makeAtvQueryFn('+358401234567'));
-      assert.strictEqual(result2.success, false);
-      assert.strictEqual(result2.error?.statusCode, 400);
+      assert.strictEqual(
+        await verifySmsRequest(expired, '567', siteConfig, 'confirm', makeAtvQueryFn('+358401234567')),
+        false,
+      );
     });
 
-    test('returns 500 when ATV query fails', async () => {
+    test('throws when ATV query fails', async () => {
       const subscription = makeSubscription();
-      const result = await verifySmsRequest(subscription, '567', siteConfig, 'confirm', makeAtvQueryFn(undefined, true));
-
-      assert.strictEqual(result.success, false);
-      assert.strictEqual(result.error?.statusCode, 500);
+      await assert.rejects(
+        () => verifySmsRequest(subscription, '567', siteConfig, 'confirm', makeAtvQueryFn(undefined, true)),
+        { message: 'ATV unavailable' },
+      );
     });
 
-    test('rejects invalid phone verification', async () => {
+    test('returns false for invalid phone verification', async () => {
       const subscription = makeSubscription();
 
       // Wrong suffix
-      const result1 = await verifySmsRequest(subscription, '999', siteConfig, 'confirm', makeAtvQueryFn('+358401234567'));
-      assert.strictEqual(result1.success, false);
-      assert.strictEqual(result1.error?.statusCode, 401);
+      assert.strictEqual(
+        await verifySmsRequest(subscription, '999', siteConfig, 'confirm', makeAtvQueryFn('+358401234567')),
+        false,
+      );
 
       // Missing phone in ATV
-      const result2 = await verifySmsRequest(subscription, '567', siteConfig, 'confirm', makeAtvQueryFn(undefined));
-      assert.strictEqual(result2.success, false);
-      assert.strictEqual(result2.error?.statusCode, 401);
+      assert.strictEqual(
+        await verifySmsRequest(subscription, '567', siteConfig, 'confirm', makeAtvQueryFn(undefined)),
+        false,
+      );
     });
 
-    test('returns success when everything validates', async () => {
+    test('returns true when everything validates', async () => {
       const subscription = makeSubscription();
-      const result = await verifySmsRequest(subscription, '567', siteConfig, 'confirm', makeAtvQueryFn('+358401234567'));
-
-      assert.strictEqual(result.success, true);
-      assert.ok(result.subscription);
-      assert.strictEqual(result.subscription._id, 'test-id');
-      assert.strictEqual(result.error, undefined);
+      assert.strictEqual(
+        await verifySmsRequest(subscription, '567', siteConfig, 'confirm', makeAtvQueryFn('+358401234567')),
+        true,
+      );
     });
   });
 });

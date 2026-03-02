@@ -132,16 +132,3 @@ export const VerificationSubscription = Type.Intersect([
   Type.Object({ _id: Type.Unknown() }),
 ]);
 export type VerificationSubscriptionType = Static<typeof VerificationSubscription>;
-
-// SMS verification result
-export const SmsVerificationResult = Type.Object({
-  success: Type.Boolean(),
-  subscription: Type.Optional(VerificationSubscription),
-  error: Type.Optional(
-    Type.Object({
-      statusCode: Type.Number(),
-      statusMessage: Type.String(),
-    }),
-  ),
-});
-export type SmsVerificationResultType = Static<typeof SmsVerificationResult>;

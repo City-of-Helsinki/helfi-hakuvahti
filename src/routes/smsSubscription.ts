@@ -99,11 +99,13 @@ const createSmsHandler =
     }
 
     // Verify SMS code (check expiry + validate phone)
-    const verification = await verifySmsRequest(subscription, number, siteConfig, action, fastify.atvGetDocument);
+    const verified = await verifySmsRequest(subscription, number, siteConfig, action, fastify.atvGetDocument);
 
-    if (!verification.success) {
-      const error = verification.error || { statusCode: 500, statusMessage: 'Verification failed' };
-      return reply.code(error.statusCode).send(error);
+    if (!verified) {
+      return reply.code(401).send({
+        statusCode: 401,
+        statusMessage: 'Verification failed.',
+      });
     }
 
     // Execute action
