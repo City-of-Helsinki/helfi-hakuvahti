@@ -4,6 +4,7 @@ import { confirmationEmail, confirmationSms } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
 import { generateUniqueSmsCode } from '../lib/smsCode';
 import { atvCreateDocument } from '../plugins/atv';
+import { getRandHash } from '../lib/randhash';
 import { Generic400Error, type Generic400ErrorType, Generic500Error, type Generic500ErrorType } from '../types/error';
 import type { QueueInsertDocument } from '../types/queue';
 import {
@@ -105,7 +106,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
     async (request: FastifyRequest<{ Body: SubscriptionRequestType }>, reply: FastifyReply) => {
       const mongodb = fastify.mongo;
       const collection = mongodb.db?.collection('subscription');
-      const hash = fastify.getRandHash();
+      const hash = getRandHash();
 
       // Check if elastic query validation failed.
       // These checks are run in a plugin that writes
