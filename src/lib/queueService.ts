@@ -1,18 +1,18 @@
 import { ObjectId } from '@fastify/mongodb';
 import type * as Sentry from '@sentry/node';
-import type { FastifyInstance } from 'fastify';
 import { JSDOM } from 'jsdom';
 import type { Db } from 'mongodb';
 import type { DialogiClient } from '../plugins/dialogi';
 import type { AtvDocumentType } from '../types/atv';
 import type { FastifyMailer } from '../types/mailer';
 import type { QueueItem, QueueItemType } from '../types/queue';
+import type { ATV } from './atv';
 
 export const BATCH_SIZE = 100;
 
 export interface QueueServiceDependencies {
   db: Db;
-  atvClient: FastifyInstance;
+  atvClient: ATV;
   emailSender: FastifyMailer;
   smsSender: DialogiClient;
   sentry?: typeof Sentry;
@@ -23,7 +23,7 @@ type NotificationHandlers = { [key in QueueItemType]: (item: QueueItem, atvDoc?:
 
 export class QueueService {
   private readonly queueCollection;
-  private readonly atvClient: FastifyInstance;
+  private readonly atvClient: ATV;
   private readonly emailSender: FastifyMailer;
   private readonly smsSender: DialogiClient;
   private readonly sentry?: typeof Sentry;
@@ -61,7 +61,7 @@ export class QueueService {
   private async processBatch(batch: QueueItem[]): Promise<void> {
     // Fetch all subscriber data from ATV in one call
     const atvIds = [...new Set(batch.map((item) => item.atv_id))];
-    const atvDocuments = await this.atvClient.atvGetDocumentBatch(atvIds);
+    const atvDocuments = await this.atvClient.getDocumentBatch(atvIds);
     const atvMap = new Map<string, AtvDocumentType>();
 
     atvDocuments.forEach((doc) => {

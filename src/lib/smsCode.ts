@@ -1,14 +1,10 @@
 import { randomInt } from 'node:crypto';
 import type { Collection } from 'mongodb';
-import type { AtvDocumentType } from '../types/atv';
 import type { SiteConfigurationType } from '../types/siteConfig';
 import type { VerificationSubscriptionType } from '../types/subscription';
-import { getAtvId } from './atvId';
+import { ATV } from './atv';
 
 export type SmsAction = 'confirm' | 'delete' | 'renew';
-
-// Type for ATV query function (matches Fastify decorator return type)
-export type AtvQueryFn = (docId: string) => Promise<Partial<AtvDocumentType>>;
 
 /**
  * Generates a unique 6-digit SMS verification code.
@@ -83,7 +79,7 @@ export async function verifySmsRequest(
   phoneSuffix: string,
   siteConfig: SiteConfigurationType,
   action: SmsAction,
-  atvQueryFn: AtvQueryFn,
+  atv: ATV,
 ): Promise<boolean> {
   const expireMinutes =
     action === 'confirm'
@@ -94,7 +90,7 @@ export async function verifySmsRequest(
     return false;
   }
 
-  const atvContent = await atvQueryFn(getAtvId(subscription));
+  const atvContent = await atv.getDocument(ATV.getAtvId(subscription));
   const storedPhone = (atvContent as { sms?: string } | undefined)?.sms;
 
   return !!storedPhone && validatePhoneSuffix(storedPhone, phoneSuffix);

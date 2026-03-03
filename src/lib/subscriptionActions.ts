@@ -1,7 +1,7 @@
 import type { Collection, ObjectId } from 'mongodb';
 import type { SiteConfigurationType } from '../types/siteConfig';
 import { type RenewalSubscriptionType, SubscriptionStatus } from '../types/subscription';
-import { getAtvId } from './atvId';
+import { ATV } from './atv';
 
 export interface ActionResult {
   success: boolean;
@@ -9,9 +9,6 @@ export interface ActionResult {
   statusMessage: string;
   expiryDate?: string;
 }
-
-// Type for ATV update function (injected from Fastify decorator)
-export type AtvUpdateFn = (docId: string, maxAge: number, fromDate: Date) => Promise<unknown>;
 
 /**
  * Confirms a subscription by setting status from INACTIVE to ACTIVE.
@@ -46,6 +43,8 @@ export async function confirmSubscription(collection: Collection, subscriptionId
 export async function deleteSubscription(collection: Collection, subscriptionId: ObjectId): Promise<ActionResult> {
   const result = await collection.deleteOne({ _id: subscriptionId });
 
+  // @fixme What if the user still has email subscription active?
+
   if (result.deletedCount === 0) {
     return {
       success: false,
@@ -72,7 +71,7 @@ export async function renewSubscription(
   collection: Collection,
   subscription: RenewalSubscriptionType,
   siteConfig: SiteConfigurationType,
-  atvUpdateFn: AtvUpdateFn,
+  atv: ATV,
 ): Promise<ActionResult> {
   // Check ACTIVE status
   if (subscription.status !== SubscriptionStatus.ACTIVE) {
@@ -99,7 +98,7 @@ export async function renewSubscription(
   // Update ATV document delete_after
   const now = new Date();
   try {
-    await atvUpdateFn(getAtvId(subscription), maxAge, now);
+    await atv.updateDocumentDeleteAfter(ATV.getAtvId(subscription), maxAge, now);
   } catch (_error) {
     return {
       success: false,

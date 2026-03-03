@@ -52,7 +52,7 @@ describe('/subscription/renew', () => {
     });
 
     // Mock ATV update to always succeed
-    (app as any).atvUpdateDocumentDeleteAfter = atvMock;
+    (app as any).atv.updateDocumentDeleteAfter = atvMock;
 
     // Create a subscription that's old enough to renew (87 days ago)
     const oldDate = new Date(Date.now() - 87 * 24 * 60 * 60 * 1000);

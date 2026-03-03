@@ -4,7 +4,7 @@
 // --dry-run to preview changes to delete_after
 // --batch-size to control batch size if ATV updates take longer than expected/crash
 
-import { getAtvId } from '../lib/atvId';
+import { ATV } from '../lib/atv';
 import command, { type Server } from '../lib/command';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
 import atv from '../plugins/atv';
@@ -145,7 +145,7 @@ export const updateSubscriptionLength = async (server: Server, options: Migratio
 
         if (!dryRun) {
           // Update ATV document with calculated delete_after
-          await server.atvUpdateDocumentDeleteAfter(getAtvId(subscription), maxAge, createdDate);
+          await server.atv.updateDocumentDeleteAfter(ATV.getAtvId(subscription), maxAge, createdDate);
         }
 
         stats.updated += 1;

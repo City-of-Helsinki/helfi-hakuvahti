@@ -2,8 +2,8 @@ import * as assert from 'node:assert';
 import { after, before, beforeEach, describe, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';
 import { Int32, MongoClient } from 'mongodb';
+import type { ATV } from '../../src/lib/atv';
 import {
-  type AtvUpdateFn,
   confirmSubscription,
   deleteSubscription,
   renewSubscription,
@@ -127,7 +127,7 @@ describe('subscriptionActions', () => {
       subscription: { maxAge: 90, expiryNotificationDays: 3 },
     } as SiteConfigurationType;
 
-    const noOpAtvFn: AtvUpdateFn = async () => ({}) as any;
+    const noOpAtv = { updateDocumentDeleteAfter: async () => ({}) } as unknown as ATV;
 
     test('rejects non-ACTIVE or not-yet-renewable subscriptions', async () => {
       const collection = mongo.db().collection('subscription');
@@ -142,7 +142,7 @@ describe('subscriptionActions', () => {
         status: SubscriptionStatus.INACTIVE,
         created: new Date(),
       };
-      const result1 = await renewSubscription(collection, inactiveSub, siteConfig, noOpAtvFn);
+      const result1 = await renewSubscription(collection, inactiveSub, siteConfig, noOpAtv);
       assert.strictEqual(result1.success, false);
       assert.strictEqual(result1.statusCode, 400);
 
@@ -156,7 +156,7 @@ describe('subscriptionActions', () => {
         status: SubscriptionStatus.ACTIVE,
         created: new Date(),
       };
-      const result2 = await renewSubscription(collection, activeSub, siteConfig, noOpAtvFn);
+      const result2 = await renewSubscription(collection, activeSub, siteConfig, noOpAtv);
       assert.strictEqual(result2.success, false);
       assert.strictEqual(result2.statusCode, 400);
     });
@@ -166,9 +166,9 @@ describe('subscriptionActions', () => {
       const id = await insertSubscription({ status: new Int32(SubscriptionStatus.ACTIVE), created });
       const collection = mongo.db().collection('subscription');
 
-      const failingAtvFn: AtvUpdateFn = async () => {
-        throw new Error('ATV unavailable');
-      };
+      const failingAtv = {
+        updateDocumentDeleteAfter: async () => { throw new Error('ATV unavailable'); },
+      } as unknown as ATV;
 
       const subscription = {
         _id: id,
@@ -179,7 +179,7 @@ describe('subscriptionActions', () => {
         created,
       };
 
-      const result = await renewSubscription(collection, subscription, siteConfig, failingAtvFn);
+      const result = await renewSubscription(collection, subscription, siteConfig, failingAtv);
       assert.strictEqual(result.success, false);
       assert.strictEqual(result.statusCode, 500);
     });
@@ -204,7 +204,7 @@ describe('subscriptionActions', () => {
         created,
       };
 
-      const result = await renewSubscription(collection, subscription, siteConfig, noOpAtvFn);
+      const result = await renewSubscription(collection, subscription, siteConfig, noOpAtv);
       assert.strictEqual(result.success, true);
       assert.strictEqual(result.statusCode, 200);
       assert.ok(result.expiryDate);

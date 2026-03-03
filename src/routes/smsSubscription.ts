@@ -60,7 +60,7 @@ const executeAction = async (
         created: new Date(subscription.created as Date),
         first_created: subscription.first_created ? new Date(subscription.first_created as Date) : undefined,
       };
-      return renewSubscription(collection, subscriptionDoc, siteConfig, fastify.atvUpdateDocumentDeleteAfter);
+      return renewSubscription(collection, subscriptionDoc, siteConfig, fastify.atv);
     }
   }
 };
@@ -97,7 +97,7 @@ const createSmsHandler =
     }
 
     // Verify SMS code (check expiry + validate phone)
-    const verified = await verifySmsRequest(subscription, number, siteConfig, action, fastify.atvGetDocument);
+    const verified = await verifySmsRequest(subscription, number, siteConfig, action, fastify.atv);
 
     if (!verified) {
       return reply.code(401).send({

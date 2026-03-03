@@ -3,7 +3,7 @@ import libphonenumber from 'google-libphonenumber';
 import { confirmationEmail, confirmationSms } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
 import { generateUniqueSmsCode } from '../lib/smsCode';
-import { atvCreateDocument } from '../plugins/atv';
+import type { ATV } from '../lib/atv';
 import { getRandHash } from '../lib/randhash';
 import { Generic400Error, type Generic400ErrorType, Generic500Error, type Generic500ErrorType } from '../types/error';
 import type { QueueInsertDocument } from '../types/queue';
@@ -36,7 +36,7 @@ const parsePhoneNumber = (sms: string): string => {
 /**
  * Stores user data in ATV and returns the document ID.
  */
-async function storeUserData(body: SubscriptionRequestType): Promise<string> {
+async function storeUserData(atv: ATV, body: SubscriptionRequestType): Promise<string> {
   const email = body.email?.trim();
   const phone = body.sms?.trim();
 
@@ -46,7 +46,7 @@ async function storeUserData(body: SubscriptionRequestType): Promise<string> {
     ...(body.elastic_query_atv && { elastic_query: body.elastic_query }),
   };
 
-  const atvDocument = await atvCreateDocument(content, 'atvCreateDocumentWithEmail');
+  const atvDocument = await atv.createDocument(content, 'atvCreateDocumentWithEmail');
 
   if (!atvDocument?.id) {
     throw new Error('Could not create document to ATV.');
@@ -136,7 +136,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
       // Store user data (and optionally the elastic query) in a single ATV document.
       let atvId: string;
       try {
-        atvId = await storeUserData(request.body);
+        atvId = await storeUserData(fastify.atv, request.body);
       } catch {
         return reply
           .code(500)

@@ -1,5 +1,5 @@
 import type { Collection } from 'mongodb';
-import { getAtvId } from '../lib/atvId';
+import { ATV } from '../lib/atv';
 import command from '../lib/command';
 import { confirmationEmail, expiryEmail, newHitsEmail } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
@@ -115,7 +115,7 @@ command(
     }
 
     const siteId = argv.site;
-    const testEmail = getAtvId(latestSubscription);
+    const testEmail = ATV.getAtvId(latestSubscription);
 
     console.log(`Site: ${siteId}`);
 

@@ -20,7 +20,7 @@ command(
 
     const queueService = new QueueService({
       db: server.mongo.db,
-      atvClient: server,
+      atvClient: server.atv,
       emailSender: server.mailer,
       smsSender: server.dialogi,
       sentry: server.Sentry,
