@@ -203,7 +203,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
               ),
             };
 
-            console.info('Sending email confirmation message to', response.insertedId, document);
+            console.info('Sending email confirmation message to', response.insertedId);
 
             return mongodb.db?.collection('queue')?.insertOne(document);
           })(),
@@ -223,7 +223,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
               ),
             };
 
-            console.info('Sending sms confirmation message to', response.insertedId, document);
+            console.info('Sending sms confirmation message to', response.insertedId);
 
             return mongodb.db?.collection('queue')?.insertOne(document);
           })(),
