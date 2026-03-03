@@ -151,10 +151,11 @@ describe('/subscription', () => {
         assert.strictEqual(subscription.lang, payload.lang);
         assert.strictEqual(subscription.lang, payload.lang);
 
-        assert.strictEqual(subscription.elastic_query, payload.elastic_query, `${name}: elastic_query should match`);
-
         if (payload.elastic_query_atv) {
+          assert.strictEqual(subscription.elastic_query, '', `${name}: elastic_query should be empty`);
           assert.strictEqual(subscription.elastic_query_atv, 1, `${name}: elastic_query_atv should be 1`);
+        } else {
+          assert.strictEqual(subscription.elastic_query, payload.elastic_query, `${name}: elastic_query should match`);
         }
 
         // Verify delete_after is set correctly (created + maxAge days)

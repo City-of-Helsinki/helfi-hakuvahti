@@ -4,7 +4,6 @@ import { confirmationEmail, confirmationSms } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
 import { generateUniqueSmsCode } from '../lib/smsCode';
 import { atvCreateDocument } from '../plugins/atv';
-import type { AtvDocumentType } from '../types/atv';
 import { Generic400Error, type Generic400ErrorType, Generic500Error, type Generic500ErrorType } from '../types/error';
 import type { QueueInsertDocument } from '../types/queue';
 import {
@@ -34,20 +33,21 @@ const parsePhoneNumber = (sms: string): string => {
 };
 
 /**
- * Stores user data in ATV.
+ * Stores user data in ATV and returns the document ID.
  */
-async function storeUserData(content: Record<string, string>) {
-  let atvDocument: Partial<AtvDocumentType>;
+async function storeUserData(body: SubscriptionRequestType): Promise<string> {
+  const email = body.email?.trim();
+  const phone = body.sms?.trim();
 
-  try {
-    atvDocument = await atvCreateDocument(content, 'atvCreateDocumentWithEmail');
-  } catch (error) {
-    throw new Error('Could not create document to ATV.', {
-      cause: error,
-    });
-  }
+  const content: Record<string, string> = {
+    ...(email && { email }),
+    ...(phone && { sms: phone }),
+    ...(body.elastic_query_atv && { elastic_query: body.elastic_query }),
+  };
 
-  if (!atvDocument || !atvDocument.id) {
+  const atvDocument = await atvCreateDocument(content, 'atvCreateDocumentWithEmail');
+
+  if (!atvDocument?.id) {
     throw new Error('Could not create document to ATV.');
   }
 
@@ -135,24 +135,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
       // Store user data (and optionally the elastic query) in a single ATV document.
       let atvId: string;
       try {
-        const email = request.body.email?.trim();
-        const phone = request.body.sms?.trim();
-        const elasticQueryAtv = request.body.elastic_query_atv;
-
-        const content: Record<string, string> = {
-          ...(email && { email }),
-          ...(phone && { sms: phone }),
-          ...(elasticQueryAtv && { elastic_query: request.body.elastic_query }),
-        };
-
-        atvId = await storeUserData(content);
-
-        // Remove user data from request body.
-        delete request.body.sms;
-        delete request.body.email;
-
-        // email field is set for backward compatibility with legacy subscriptions.
-        request.body.email = hasEmail ? atvId : '';
+        atvId = await storeUserData(request.body);
       } catch {
         return reply
           .code(500)
@@ -165,8 +148,14 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
       const deleteAfter = new Date(now);
       deleteAfter.setDate(deleteAfter.getDate() + siteConfig.subscription.maxAge);
 
-      const subscriptionData: Partial<SubscriptionCollectionType> = {
-        ...request.body,
+      const subscriptionData: SubscriptionCollectionType = {
+        email: hasEmail ? atvId : '',
+        elastic_query: request.body.elastic_query_atv ? '' : request.body.elastic_query,
+        elastic_query_atv: request.body.elastic_query_atv,
+        query: request.body.query,
+        search_description: request.body.search_description,
+        site_id: request.body.site_id,
+        lang: request.body.lang,
         atv_id: atvId,
         hash,
         created: now,
@@ -176,14 +165,11 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         status: SubscriptionStatus.INACTIVE,
         email_confirmed: hasEmail ? false : undefined,
         sms_confirmed: hasSms ? false : undefined,
+        // Generate SMS code if SMS is enabled for this subscription and site
+        sms_code: hasSms ? await generateUniqueSmsCode(collection) : undefined,
+        sms_code_created: hasSms ? now : undefined,
         delete_after: deleteAfter,
       };
-
-      // Generate SMS code if SMS is enabled for this subscription and site
-      if (hasSms) {
-        subscriptionData.sms_code = await generateUniqueSmsCode(collection);
-        subscriptionData.sms_code_created = now;
-      }
 
       const response = await collection?.insertOne(subscriptionData);
       if (!response) {
