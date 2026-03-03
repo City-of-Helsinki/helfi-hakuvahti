@@ -149,7 +149,7 @@ const getNewHitsFromElasticsearch = async (
 
   if (subscription.elastic_query_atv) {
     try {
-      const atvContent = await server.atvGetDocument(subscription.elastic_query as string);
+      const atvContent = await server.atvGetDocument(getAtvId(subscription));
       const queryObj = typeof atvContent === 'string' ? JSON.parse(atvContent) : atvContent;
       elasticQuery = server.b64decode(queryObj.elastic_query);
     } catch (e) {

@@ -36,20 +36,11 @@ const parsePhoneNumber = (sms: string): string => {
 /**
  * Stores user data in ATV.
  */
-async function storeUserData(body: SubscriptionRequestType) {
-  const email = body.email?.trim();
-  const phone = body.sms?.trim();
-
+async function storeUserData(content: Record<string, string>) {
   let atvDocument: Partial<AtvDocumentType>;
 
   try {
-    atvDocument = await atvCreateDocument(
-      {
-        ...(email && { email: email }),
-        ...(phone && { sms: phone }),
-      },
-      'atvCreateDocumentWithEmail',
-    );
+    atvDocument = await atvCreateDocument(content, 'atvCreateDocumentWithEmail');
   } catch (error) {
     throw new Error('Could not create document to ATV.', {
       cause: error,
@@ -141,10 +132,20 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
       const hasSms = !!siteConfig.subscription?.enableSms && !!request.body.sms;
       const hasEmail = !!request.body.email;
 
-      // Store user data in ATV.
+      // Store user data (and optionally the elastic query) in a single ATV document.
       let atvId: string;
       try {
-        atvId = await storeUserData(request.body);
+        const email = request.body.email?.trim();
+        const phone = request.body.sms?.trim();
+        const elasticQueryAtv = request.body.elastic_query_atv;
+
+        const content: Record<string, string> = {
+          ...(email && { email }),
+          ...(phone && { sms: phone }),
+          ...(elasticQueryAtv && { elastic_query: request.body.elastic_query }),
+        };
+
+        atvId = await storeUserData(content);
 
         // Remove user data from request body.
         delete request.body.sms;
@@ -157,26 +158,6 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
           .code(500)
           .header('Content-Type', 'application/json; charset=utf-8')
           .send({ error: 'Could not find hashed email. Subscription not added.' });
-      }
-
-      // Store user query to ATV on callee request.
-      // The query itself might contain user data that we must store in ATV.
-      const elasticQueryAtv = request.body.elastic_query_atv;
-      if (elasticQueryAtv) {
-        const atvDocument = await fastify.atvCreateDocument(
-          {
-            elastic_query: request.body.elastic_query,
-          },
-          'atvCreateDocumentWithQuery',
-        );
-        if (atvDocument.id) {
-          request.body.elastic_query = atvDocument.id;
-        } else {
-          return reply
-            .code(500)
-            .header('Content-Type', 'application/json; charset=utf-8')
-            .send({ error: 'Could not create ATV document for query. Subscription not added.' });
-        }
       }
 
       // Subscription data that goes to collection.
