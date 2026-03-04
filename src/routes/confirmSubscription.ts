@@ -1,11 +1,12 @@
 import { ObjectId } from '@fastify/mongodb';
 import type { FastifyPluginAsync } from 'fastify';
+import { ActionError, confirmSubscription as confirmAction } from '../lib/subscriptionActions';
 import { Generic500Error, type Generic500ErrorType } from '../types/error';
 
 import {
+  type SubscriptionCollectionType,
   SubscriptionGenericPostResponse,
   type SubscriptionGenericPostResponseType,
-  SubscriptionStatus,
 } from '../types/subscription';
 
 // Confirms subscription
@@ -25,33 +26,34 @@ const confirmSubscription: FastifyPluginAsync = async (fastify, _opts) => {
     },
     async (request, reply) => {
       const { id, hash } = request.params as { id: string; hash: string };
+      const collection = fastify.mongo.db?.collection<SubscriptionCollectionType>('subscription');
 
-      // Set status to active if the client known object id and hash value.
-      const response = await fastify.mongo.db?.collection('subscription')?.updateOne(
-        {
-          _id: new ObjectId(id),
-          hash,
-          email_confirmed: false,
-        },
-        { $set: { status: SubscriptionStatus.ACTIVE, email_confirmed: true } },
-      );
-
-      if (response?.modifiedCount) {
-        fastify.log.info({
-          level: 'info',
-          message: `Subscription ${id} confirmed`,
-        });
-
-        return reply.code(200).header('Content-Type', 'application/json; charset=utf-8').send({
-          statusCode: 200,
-          statusMessage: 'Subscription enabled.',
-        });
-      } else {
-        return reply.code(404).header('Content-Type', 'application/json; charset=utf-8').send({
-          statusCode: 404,
-          statusMessage: 'Subscription not found.',
-        });
+      if (!collection) {
+        return reply.code(500).send({ statusCode: 500, statusMessage: 'Database not available' });
       }
+
+      try {
+        await confirmAction(collection, { _id: new ObjectId(id), hash }, 'email');
+      } catch (error) {
+        if (error instanceof ActionError) {
+          return reply.code(error.statusCode).header('Content-Type', 'application/json; charset=utf-8').send({
+            statusCode: error.statusCode,
+            statusMessage: error.message,
+          });
+        }
+
+        throw error;
+      }
+
+      fastify.log.info({
+        level: 'info',
+        message: `Subscription ${id} confirmed`,
+      });
+
+      return reply.code(200).header('Content-Type', 'application/json; charset=utf-8').send({
+        statusCode: 200,
+        statusMessage: 'Subscription enabled.',
+      });
     },
   );
 };

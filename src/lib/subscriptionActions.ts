@@ -1,7 +1,10 @@
-import type { Collection, ObjectId } from 'mongodb';
-import type { SiteConfigurationType } from '../types/siteConfig';
-import { type RenewalSubscriptionType, SubscriptionStatus } from '../types/subscription';
+import type { Collection, Filter } from 'mongodb';
+import { type SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription';
 import { ATV } from './atv';
+import { SiteConfigurationLoader } from './siteConfigurationLoader';
+
+type SubscriptionCollection = Collection<SubscriptionCollectionType>;
+type SubscriptionFilter = Filter<SubscriptionCollectionType>;
 
 export class ActionError extends Error {
   statusCode: number;
@@ -14,13 +17,25 @@ export class ActionError extends Error {
 /**
  * Confirms a subscription by setting status from INACTIVE to ACTIVE.
  */
-export async function confirmSubscription(collection: Collection, subscriptionId: ObjectId): Promise<void> {
+export async function confirmSubscription(
+  collection: SubscriptionCollection,
+  filter: SubscriptionFilter,
+  channel: 'email' | 'sms',
+): Promise<void> {
+  const confirmedField = `${channel}_confirmed` as 'email_confirmed' | 'sms_confirmed';
+
+  const $set: Partial<SubscriptionCollectionType> = {
+    status: SubscriptionStatus.ACTIVE,
+    [confirmedField]: true,
+    modified: new Date(),
+  };
+
+  const $unset: Partial<Record<keyof SubscriptionCollectionType, 1>> | undefined =
+    channel === 'sms' ? { sms_code: 1, sms_code_created: 1 } : undefined;
+
   const result = await collection.updateOne(
-    { _id: subscriptionId, sms_confirmed: false },
-    {
-      $set: { status: SubscriptionStatus.ACTIVE, sms_confirmed: true },
-      $unset: { sms_code: 1, sms_code_created: 1 },
-    },
+    { [confirmedField]: false, ...filter },
+    $unset ? { $set, $unset } : { $set },
   );
 
   if (result.modifiedCount === 0) {
@@ -31,10 +46,11 @@ export async function confirmSubscription(collection: Collection, subscriptionId
 /**
  * Deletes a subscription.
  */
-export async function deleteSubscription(collection: Collection, subscriptionId: ObjectId): Promise<void> {
-  const result = await collection.deleteOne({ _id: subscriptionId });
-
-  // @fixme What if the user still has email subscription active?
+export async function deleteSubscription(
+  collection: SubscriptionCollection,
+  filter: SubscriptionFilter,
+): Promise<void> {
+  const result = await collection.deleteOne(filter);
 
   if (result.deletedCount === 0) {
     throw new ActionError(404, 'Subscription not found.');
@@ -43,20 +59,31 @@ export async function deleteSubscription(collection: Collection, subscriptionId:
 
 /**
  * Renews a subscription with full validation.
- * - Must be ACTIVE status
- * - Must be within renewal window (past expiry notification date)
- * - Updates ATV document delete_after
- * - Updates subscription timestamps
+ * Finds the subscription by filter, validates status and renewal window,
+ * updates ATV document, and resets subscription timestamps.
+ *
  */
 export async function renewSubscription(
-  collection: Collection,
-  subscription: RenewalSubscriptionType,
-  siteConfig: SiteConfigurationType,
+  collection: SubscriptionCollection,
+  filter: SubscriptionFilter,
   atv: ATV,
 ): Promise<void> {
+  const subscription = await collection.findOne(filter);
+
+  if (!subscription) {
+    throw new ActionError(404, 'Subscription not found.');
+  }
+
   // Check ACTIVE status
   if (subscription.status !== SubscriptionStatus.ACTIVE) {
     throw new ActionError(400, 'Only active subscriptions can be renewed.');
+  }
+
+  // Load site configuration
+  const siteConfig = SiteConfigurationLoader.getConfiguration(subscription.site_id);
+
+  if (!siteConfig) {
+    throw new ActionError(500, 'Site configuration not found.');
   }
 
   // Check renewal window
@@ -80,24 +107,16 @@ export async function renewSubscription(
   const newDeleteAfter = new Date(now);
   newDeleteAfter.setDate(newDeleteAfter.getDate() + maxAge);
 
-  // Build update fields
-  const updateFields: Record<string, unknown> = {
-    created: now,
+  const $set: Partial<SubscriptionCollectionType> = {
     modified: now,
     expiry_notification_sent: SubscriptionStatus.INACTIVE,
     delete_after: newDeleteAfter,
   };
 
-  // Preserve original created date on first renewal
-  if (!subscription.first_created) {
-    updateFields.first_created = subscription.created;
-  }
+  const $unset: Partial<Record<keyof SubscriptionCollectionType, 1>> = {
+    sms_code: 1,
+    sms_code_created: 1,
+  };
 
-  await collection.updateOne(
-    { _id: subscription._id as ObjectId },
-    {
-      $set: updateFields,
-      $unset: { sms_code: 1, sms_code_created: 1 },
-    },
-  );
+  await collection.updateOne({ _id: subscription._id }, { $set, $unset });
 }

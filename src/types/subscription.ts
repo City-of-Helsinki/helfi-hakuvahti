@@ -12,13 +12,6 @@ export const SubscriptionStatusResponse = Type.Object({
 });
 export type SubscriptionStatusResponseType = Static<typeof SubscriptionStatusResponse>;
 
-export const SubscriptionRenewResponse = Type.Object({
-  statusCode: Type.Number(),
-  statusMessage: Type.String(),
-  expiryDate: Type.String(), // ISO date string
-});
-export type SubscriptionRenewResponseType = Static<typeof SubscriptionRenewResponse>;
-
 export const SubscriptionCollectionLanguage = Type.Union([Type.Literal('en'), Type.Literal('fi'), Type.Literal('sv')]);
 export type SubscriptionCollectionLanguageType = Static<typeof SubscriptionCollectionLanguage>;
 
@@ -45,13 +38,6 @@ export const SubscriptionCollection = Type.Object({
   sms_code_created: Type.Optional(Type.Date()),
 });
 export type SubscriptionCollectionType = Static<typeof SubscriptionCollection>;
-
-// Subscription renewal
-export const RenewalSubscription = Type.Intersect([
-  Type.Pick(SubscriptionCollection, ['email', 'atv_id', 'site_id', 'status', 'created', 'first_created']),
-  Type.Object({ _id: Type.Unknown() }),
-]);
-export type RenewalSubscriptionType = Static<typeof RenewalSubscription>;
 
 // MongoDB response when inserting:
 export const SubscriptionResponse = Type.Object({
@@ -117,19 +103,3 @@ export const SmsVerificationResponse = Type.Object({
   statusMessage: Type.String(),
 });
 export type SmsVerificationResponseType = Static<typeof SmsVerificationResponse>;
-
-// Subscription document for SMS verification
-export const VerificationSubscription = Type.Intersect([
-  Type.Pick(SubscriptionCollection, [
-    'email',
-    'atv_id',
-    'site_id',
-    'status',
-    'created',
-    'first_created',
-    'sms_code',
-    'sms_code_created',
-  ]),
-  Type.Object({ _id: Type.Unknown() }),
-]);
-export type VerificationSubscriptionType = Static<typeof VerificationSubscription>;

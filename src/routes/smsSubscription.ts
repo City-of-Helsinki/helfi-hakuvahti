@@ -1,18 +1,15 @@
-import type { ObjectId } from '@fastify/mongodb';
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
-import type { Collection } from 'mongodb';
+import type { Collection, WithId } from 'mongodb';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
-import { findSubscriptionByCode, type SmsAction, verifySmsRequest } from '../lib/smsCode';
+import { type SmsAction, verifySmsRequest } from '../lib/smsCode';
 import { ActionError, confirmSubscription, deleteSubscription, renewSubscription } from '../lib/subscriptionActions';
 import { Generic500Error, type Generic500ErrorType } from '../types/error';
-import type { SiteConfigurationType } from '../types/siteConfig';
 import {
   SmsVerificationRequest,
   type SmsVerificationRequestType,
   SmsVerificationResponse,
   type SmsVerificationResponseType,
-  type SubscriptionStatus,
-  type VerificationSubscriptionType,
+  type SubscriptionCollectionType,
 } from '../types/subscription';
 
 /**
@@ -36,32 +33,21 @@ const smsSchema = {
  */
 const executeAction = async (
   action: SmsAction,
-  collection: Collection,
-  subscription: VerificationSubscriptionType,
-  siteConfig: SiteConfigurationType,
+  collection: Collection<SubscriptionCollectionType>,
+  subscription: WithId<SubscriptionCollectionType>,
   fastify: FastifyInstance,
 ) => {
-  const subscriptionId = subscription._id as ObjectId;
+  const subscriptionId = subscription._id;
 
   switch (action) {
     case 'confirm':
-      return confirmSubscription(collection, subscriptionId);
+      return confirmSubscription(collection, { _id: subscriptionId }, 'sms');
 
     case 'delete':
-      return deleteSubscription(collection, subscriptionId);
+      return deleteSubscription(collection, { _id: subscriptionId });
 
-    case 'renew': {
-      const subscriptionDoc = {
-        _id: subscriptionId,
-        email: subscription.email,
-        atv_id: subscription.atv_id,
-        site_id: subscription.site_id,
-        status: subscription.status as SubscriptionStatus,
-        created: new Date(subscription.created as Date),
-        first_created: subscription.first_created ? new Date(subscription.first_created as Date) : undefined,
-      };
-      return renewSubscription(collection, subscriptionDoc, siteConfig, fastify.atv);
-    }
+    case 'renew':
+      return renewSubscription(collection, { _id: subscriptionId }, fastify.atv);
   }
 };
 
@@ -72,14 +58,21 @@ const createSmsHandler =
   (action: SmsAction, fastify: FastifyInstance) =>
   async (request: FastifyRequest<{ Body: SmsVerificationRequestType }>, reply: FastifyReply) => {
     const { sms_code, number } = request.body;
-    const collection = fastify.mongo.db?.collection('subscription');
+    const collection = fastify.mongo.db?.collection<SubscriptionCollectionType>('subscription');
 
     if (!collection) {
       return reply.code(500).send({ error: 'Database not available' });
     }
 
-    // Find subscription by SMS code
-    const subscription = await findSubscriptionByCode(collection, sms_code);
+    // Find subscription by SMS code.
+    // @fixme: we rely on unique short code that is sent
+    //   to user as a sms message. This is quite fragile and
+    //   easy to enumerate. Be careful!
+    const subscription = await collection.findOne({
+      sms_code,
+      sms_code_created: { $exists: true },
+    });
+
     if (!subscription) {
       return reply.code(404).send({
         statusCode: 404,
@@ -108,7 +101,7 @@ const createSmsHandler =
 
     // Execute action
     try {
-      await executeAction(action, collection, subscription, siteConfig, fastify);
+      await executeAction(action, collection, subscription, fastify);
 
       fastify.log.info({
         level: 'info',

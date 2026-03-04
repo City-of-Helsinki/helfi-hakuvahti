@@ -8,7 +8,7 @@ import {
   verifySmsRequest,
 } from '../../src/lib/smsCode';
 import type { SiteConfigurationType } from '../../src/types/siteConfig';
-import type { VerificationSubscriptionType } from '../../src/types/subscription';
+import type { SubscriptionCollectionType } from '../../src/types/subscription';
 
 describe('smsCode', () => {
   describe('validatePhoneSuffix', () => {
@@ -86,13 +86,17 @@ describe('smsCode', () => {
   });
 
   describe('verifySmsRequest', () => {
-    const makeSubscription = (overrides: Partial<VerificationSubscriptionType> = {}): VerificationSubscriptionType => ({
-      _id: 'test-id',
+    const makeSubscription = (overrides: Partial<SubscriptionCollectionType> = {}): SubscriptionCollectionType => ({
       email: 'test-atv-doc-id',
       atv_id: 'test-atv-doc-id',
+      elastic_query: 'test-query',
+      query: '/search?q=test',
       site_id: 'rekry',
       status: 1,
       created: new Date(),
+      modified: new Date(),
+      lang: 'fi',
+      expiry_notification_sent: 0,
       sms_code: '123456',
       sms_code_created: new Date(),
       ...overrides,

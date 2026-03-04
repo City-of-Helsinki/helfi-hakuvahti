@@ -1,7 +1,7 @@
 import { randomInt } from 'node:crypto';
 import type { Collection } from 'mongodb';
 import type { SiteConfigurationType } from '../types/siteConfig';
-import type { VerificationSubscriptionType } from '../types/subscription';
+import type { SubscriptionCollectionType } from '../types/subscription';
 import { ATV } from './atv';
 
 export type SmsAction = 'confirm' | 'delete' | 'renew';
@@ -57,25 +57,12 @@ export function isCodeExpired(codeCreated: Date, expireMinutes: number): boolean
 }
 
 /**
- * Find a subscription by its SMS verification code.
- */
-export async function findSubscriptionByCode(
-  collection: Collection,
-  smsCode: string,
-): Promise<VerificationSubscriptionType | null> {
-  return (await collection.findOne({
-    sms_code: smsCode,
-    sms_code_created: { $exists: true },
-  })) as VerificationSubscriptionType | null;
-}
-
-/**
  * Validates an SMS verification request.
  * Checks code expiry, fetches the phone number from ATV, and validates the suffix.
  * Throws on ATV errors (caller/framework handles 500).
  */
 export async function verifySmsRequest(
-  subscription: VerificationSubscriptionType,
+  subscription: SubscriptionCollectionType,
   phoneSuffix: string,
   siteConfig: SiteConfigurationType,
   action: SmsAction,
