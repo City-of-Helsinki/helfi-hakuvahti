@@ -22,7 +22,7 @@ const flattenHitForTemplate = (
   siteConfig: SiteConfigurationType,
 ): Record<string, string> => {
   const vars: Record<string, string> = {};
-  const formats = siteConfig.mail.fieldFormats ?? {};
+  const formats = siteConfig.fieldFormats ?? {};
 
   Object.entries(item).forEach(([key, value]) => {
     const val = Array.isArray(value) ? value[0] : value;

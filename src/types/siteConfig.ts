@@ -25,14 +25,12 @@ export const SiteSubscriptionSettings = Type.Object({
   enableSms: Type.Optional(Type.Boolean()),
   smsCodeExpireConfirmMinutes: Type.Optional(Type.Number()),
   smsCodeExpireActionMinutes: Type.Optional(Type.Number()),
-  matchField: Type.Optional(Type.String()),
 });
 export type SiteSubscriptionSettingsType = Static<typeof SiteSubscriptionSettings>;
 
 export const SiteMailSettings = Type.Object({
   templatePath: Type.String(),
   maxHitsInEmail: Type.Optional(Type.Number()),
-  fieldFormats: Type.Optional(Type.Record(Type.String(), Type.String())),
 });
 export type SiteMailSettingsType = Static<typeof SiteMailSettings>;
 
@@ -48,6 +46,8 @@ export const SiteConfigurationFile = Type.Object(
   {
     name: Type.String(),
     translations: Type.Optional(TranslationMap),
+    matchField: Type.String(),
+    fieldFormats: Type.Optional(Type.Record(Type.String(), Type.String())),
   },
   { additionalProperties: SiteEnvironmentConfig },
 );
@@ -61,6 +61,8 @@ export const SiteConfiguration = Type.Object({
   mail: SiteMailSettings,
   elasticProxyUrl: Type.String(),
   translations: Type.Optional(TranslationMap),
+  matchField: Type.String(),
+  fieldFormats: Type.Optional(Type.Record(Type.String(), Type.String())),
 });
 export type SiteConfigurationType = Static<typeof SiteConfiguration>;
 export const SiteConfigurationMap = Type.Record(Type.String(), SiteConfiguration);
