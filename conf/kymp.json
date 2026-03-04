@@ -252,6 +252,11 @@
       "sv": "Bekräftelsekoden är giltig i 24 timmar."
     }
   },
+  "matchField": "created_at",
+  "fieldFormats": {
+    "valid_from": "date",
+    "valid_to": "date"
+  },
   "dev": {
     "urls": {
       "base": "https://www.test.hel.ninja/",
@@ -265,16 +270,11 @@
       "expiryNotificationDays": 5,
       "enableSms": true,
       "smsCodeExpireConfirmMinutes": 60,
-      "smsCodeExpireActionMinutes": 2440,
-      "matchField": "created_at"
+      "smsCodeExpireActionMinutes": 2440
     },
     "mail": {
       "templatePath": "kymp",
-      "maxHitsInEmail": 10,
-      "fieldFormats": {
-        "valid_from": "date",
-        "valid_to": "date"
-      }
+      "maxHitsInEmail": 10
     },
     "elasticProxyUrl": "https://liikenne-elastic-proxy.test.hel.ninja/mobilenote_data"
   },
@@ -291,16 +291,11 @@
       "expiryNotificationDays": 5,
       "enableSms": true,
       "smsCodeExpireConfirmMinutes": 60,
-      "smsCodeExpireActionMinutes": 2440,
-      "matchField": "created_at"
+      "smsCodeExpireActionMinutes": 2440
     },
     "mail": {
       "templatePath": "kymp",
-      "maxHitsInEmail": 10,
-      "fieldFormats": {
-        "valid_from": "date",
-        "valid_to": "date"
-      }
+      "maxHitsInEmail": 10
     },
     "elasticProxyUrl": "https://liikenne-elastic-proxy.stage.hel.ninja/mobilenote_data"
   },
@@ -317,16 +312,11 @@
       "expiryNotificationDays": 5,
       "enableSms": true,
       "smsCodeExpireConfirmMinutes": 60,
-      "smsCodeExpireActionMinutes": 2440,
-      "matchField": "created_at"
+      "smsCodeExpireActionMinutes": 2440
     },
     "mail": {
       "templatePath": "kymp",
-      "maxHitsInEmail": 10,
-      "fieldFormats": {
-        "valid_from": "date",
-        "valid_to": "date"
-      }
+      "maxHitsInEmail": 10
     },
     "elasticProxyUrl": "https://liikenne-elastic-proxy.api.hel.ninja/mobilenote_data"
   },
@@ -343,16 +333,11 @@
       "expiryNotificationDays": 3,
       "enableSms": true,
       "smsCodeExpireConfirmMinutes": 60,
-      "smsCodeExpireActionMinutes": 720,
-      "matchField": "created_at"
+      "smsCodeExpireActionMinutes": 720
     },
     "mail": {
       "templatePath": "kymp",
-      "maxHitsInEmail": 10,
-      "fieldFormats": {
-        "valid_from": "date",
-        "valid_to": "date"
-      }
+      "maxHitsInEmail": 10
     },
     "elasticProxyUrl": "http://helfi-kymp-elastic-proxy:8080/mobilenote_data"
   }

@@ -182,6 +182,10 @@
       "sv": "Se resultat"
     }
   },
+  "matchField": "field_publication_starts",
+  "fieldFormats": {
+    "url": "url"
+  },
   "local": {
     "urls": {
       "base": "https://helfi-rekry.docker.so",
@@ -199,10 +203,7 @@
     },
     "mail": {
       "templatePath": "rekry",
-      "maxHitsInEmail": 10,
-      "fieldFormats": {
-        "url": "url"
-      }
+      "maxHitsInEmail": 10
     },
     "elasticProxyUrl": "http://helfi-rekry-elastic-proxy:8080/job_listings"
   },
@@ -223,10 +224,7 @@
     },
     "mail": {
       "templatePath": "rekry",
-      "maxHitsInEmail": 10,
-      "fieldFormats": {
-        "url": "url"
-      }
+      "maxHitsInEmail": 10
     },
     "elasticProxyUrl": "https://helfi-rekry-elastic-proxy.test.hel.ninja/job_listings"
   },
@@ -247,10 +245,7 @@
     },
     "mail": {
       "templatePath": "rekry",
-      "maxHitsInEmail": 10,
-      "fieldFormats": {
-        "url": "url"
-      }
+      "maxHitsInEmail": 10
     },
     "elasticProxyUrl": "https://rekry-elastic-proxy-staging.api.hel.ninja/job_listings"
   },
@@ -271,10 +266,7 @@
     },
     "mail": {
       "templatePath": "rekry",
-      "maxHitsInEmail": 10,
-      "fieldFormats": {
-        "url": "url"
-      }
+      "maxHitsInEmail": 10
     },
     "elasticProxyUrl": "https://helfi-rekry-elastic-proxy.api.hel.ninja/job_listings"
   }
