@@ -144,22 +144,16 @@ const getNewHitsFromElasticsearch = async (
   subscription: SubscriptionCollectionType & { _id: ObjectId },
   siteConfig: SiteConfigurationType,
   server: Server,
+  resolvedElasticQuery?: string,
 ): Promise<PartialDrupalNodeType[]> => {
   let elasticQuery: string;
 
-  if (subscription.elastic_query_atv) {
-    try {
-      const atvContent = await server.atv.getDocument(ATV.getAtvId(subscription));
-      const queryObj = typeof atvContent === 'string' ? JSON.parse(atvContent) : atvContent;
-      elasticQuery = server.b64decode(queryObj.elastic_query);
-    } catch (e) {
-      console.error(`Failed to load query from ATV for ${subscription._id}`, e);
-      return [];
-    }
+  if (resolvedElasticQuery) {
+    elasticQuery = server.b64decode(resolvedElasticQuery);
   } else if (subscription.elastic_query) {
     elasticQuery = server.b64decode(subscription.elastic_query);
   } else {
-    console.error(`Subscription ${subscription._id} has neither elastic_query nor elastic_query_atv`);
+    console.error(`Subscription ${subscription._id} has no elastic_query`);
     return [];
   }
 
@@ -226,6 +220,23 @@ const processSiteSubscriptions = async (
   await result.reduce(async (previousPromise, subscription) => {
     await previousPromise;
 
+    // Resolve user data from ATV if stored there
+    let resolvedQuery: string = subscription.query;
+    let resolvedSearchDescription: string = subscription.search_description ?? '';
+    let resolvedElasticQuery: string | undefined;
+
+    if (subscription.user_data_in_atv) {
+      try {
+        const atvData = await server.atv.getDocument(ATV.getAtvId(subscription));
+        resolvedQuery = atvData.query ?? '';
+        resolvedSearchDescription = atvData.search_description ?? '';
+        resolvedElasticQuery = atvData.elastic_query;
+      } catch (e) {
+        console.error(`Failed to load user data from ATV for ${subscription._id}`, e);
+        return Promise.resolve();
+      }
+    }
+
     const localizedBaseUrl = getLocalizedUrl(siteConfig, subscription.lang);
 
     // Calculate subscription expiry date
@@ -273,12 +284,12 @@ const processSiteSubscriptions = async (
       const expiryEmailContent = await expiryEmail(
         subscription.lang,
         {
-          search_description: subscription.search_description,
-          link: siteConfig.urls.base + subscription.query,
+          search_description: resolvedSearchDescription,
+          link: siteConfig.urls.base + resolvedQuery,
           removal_date: formattedExpiryDate,
           remove_link: `${localizedBaseUrl}/hakuvahti/unsubscribe?subscription=${subscription._id}&hash=${subscription.hash}`,
           renewal_link: `${localizedBaseUrl}/hakuvahti/renew?subscription=${subscription._id}&hash=${subscription.hash}`,
-          search_link: subscription.query,
+          search_link: resolvedQuery,
         },
         siteConfig,
       );
@@ -314,7 +325,7 @@ const processSiteSubscriptions = async (
             subscription.lang,
             {
               expiry_date: formattedExpiryDate,
-              search_description: subscription.search_description,
+              search_description: resolvedSearchDescription,
               sms_code: smsCode,
             },
             siteConfig,
@@ -342,6 +353,7 @@ const processSiteSubscriptions = async (
       subscription as SubscriptionCollectionType & { _id: ObjectId },
       siteConfig,
       server,
+      resolvedElasticQuery,
     );
 
     // No new hits
@@ -364,8 +376,8 @@ const processSiteSubscriptions = async (
       {
         created_date: formattedCreatedDate,
         expiry_date: formattedExpiryDate,
-        search_description: subscription.search_description,
-        search_link: subscription.query,
+        search_description: resolvedSearchDescription,
+        search_link: resolvedQuery,
         remove_link: `${localizedBaseUrl}/hakuvahti/unsubscribe?subscription=${subscription._id}&hash=${subscription.hash}`,
         hits: hitsForEmail,
       },
@@ -411,7 +423,7 @@ const processSiteSubscriptions = async (
         const smsContent = await newHitsSms(
           subscription.lang,
           {
-            search_description: subscription.search_description,
+            search_description: resolvedSearchDescription,
             sms_code: smsCode,
           },
           siteConfig,

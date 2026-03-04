@@ -19,7 +19,7 @@ export const SubscriptionCollection = Type.Object({
   email: Type.String(),
   atv_id: Type.Optional(Type.String()),
   elastic_query: Type.String(),
-  elastic_query_atv: Type.Optional(Type.Number()),
+  user_data_in_atv: Type.Optional(Type.Number()),
   search_description: Type.Optional(Type.String()),
   hash: Type.Optional(Type.String()),
   query: Type.String(),
@@ -51,7 +51,7 @@ export type SubscriptionResponseType = Static<typeof SubscriptionResponse>;
 // Request to add new subscription (either email or sms is required, both allowed):
 const SubscriptionRequestBase = Type.Object({
   elastic_query: Type.String(),
-  elastic_query_atv: Type.Optional(Type.Number()),
+  user_data_in_atv: Type.Optional(Type.Number()),
   query: Type.String(),
   search_description: Type.Optional(Type.String()),
   site_id: Type.String(),

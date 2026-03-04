@@ -43,7 +43,11 @@ async function storeUserData(atv: ATV, body: SubscriptionRequestType): Promise<s
   const content: Record<string, string> = {
     ...(email && { email }),
     ...(phone && { sms: phone }),
-    ...(body.elastic_query_atv && { elastic_query: body.elastic_query }),
+    ...(body.user_data_in_atv && {
+      elastic_query: body.elastic_query,
+      query: body.query,
+      ...(body.search_description && { search_description: body.search_description }),
+    }),
   };
 
   const atvDocument = await atv.createDocument(content, 'atvCreateDocumentWithEmail');
@@ -151,10 +155,10 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
 
       const subscriptionData: SubscriptionCollectionType = {
         email: hasEmail ? atvId : '',
-        elastic_query: request.body.elastic_query_atv ? '' : request.body.elastic_query,
-        elastic_query_atv: request.body.elastic_query_atv,
-        query: request.body.query,
-        search_description: request.body.search_description,
+        elastic_query: request.body.user_data_in_atv ? '' : request.body.elastic_query,
+        user_data_in_atv: request.body.user_data_in_atv,
+        query: request.body.user_data_in_atv ? '' : request.body.query,
+        search_description: request.body.user_data_in_atv ? '' : request.body.search_description,
         site_id: request.body.site_id,
         lang: request.body.lang,
         atv_id: atvId,

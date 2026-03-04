@@ -1,5 +1,5 @@
 import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
-import type { AtvDocumentBatchType, AtvDocumentType } from '../types/atv';
+import type { AtvDocumentBatchType, AtvDocumentContentType, AtvDocumentType } from '../types/atv';
 
 export interface AtvConfig {
   apiUrl: string;
@@ -65,7 +65,7 @@ export class ATV {
    * @param tosFunctionId - the TOS function ID for the document
    * @return the created document
    */
-  async createDocument(content: object, tosFunctionId: string): Promise<Partial<AtvDocumentType>> {
+  async createDocument(content: AtvDocumentContentType, tosFunctionId: string): Promise<Partial<AtvDocumentType>> {
     const timestamp = Math.floor(Date.now() / 1000).toString();
 
     const deleteAfter = new Date();
@@ -76,7 +76,7 @@ export class ATV {
       tos_function_id: tosFunctionId,
       tos_record_id: timestamp,
       delete_after: deleteAfter.toISOString().substring(0, 10),
-      content: JSON.stringify(content),
+      content: JSON.stringify(content) as AtvDocumentContentType,
     };
 
     return await this.makeRequest('post', '/v1/documents/', documentObject, 'multipart/form-data');
@@ -88,7 +88,7 @@ export class ATV {
    * @param atvDocumentId - The id of the ATV document
    * @return The content of the document
    */
-  async getDocument(atvDocumentId: string): Promise<Partial<AtvDocumentType>> {
+  async getDocument(atvDocumentId: string): Promise<Partial<AtvDocumentContentType>> {
     const doc: Partial<AtvDocumentType> = await this.makeRequest('get', `/v1/documents/${atvDocumentId}`);
 
     if (doc?.content) {

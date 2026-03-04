@@ -114,17 +114,25 @@ describe('/subscription', () => {
         payload: { ...validPayload, search_description: 'My saved search' },
       },
       {
-        name: 'with elastic_query_atv',
+        name: 'with user_data_in_atv',
         payload: {
           ...validPayload,
-          elastic_query_atv: 1,
+          user_data_in_atv: 1,
+        },
+      },
+      {
+        name: 'with user_data_in_atv and search_description',
+        payload: {
+          ...validPayload,
+          user_data_in_atv: 1,
+          search_description: 'My saved search',
         },
       },
     ];
 
     for (const { name, payload } of testCases as {
       name: string;
-      payload: typeof validPayload & { elastic_query_atv?: number };
+      payload: typeof validPayload & { user_data_in_atv?: number; search_description?: string };
     }[]) {
       await t.test(name, async () => {
         const res = await app.inject({
@@ -150,15 +158,16 @@ describe('/subscription', () => {
         assert.strictEqual(subscription.atv_id, 'mock-atv-document-id', `${name}: atv_id should be ATV document ID`);
         assert.strictEqual(subscription.status, SubscriptionStatus.INACTIVE);
         assert.strictEqual(subscription.site_id, payload.site_id);
-        assert.strictEqual(subscription.query, payload.query);
-        assert.strictEqual(subscription.lang, payload.lang);
         assert.strictEqual(subscription.lang, payload.lang);
 
-        if (payload.elastic_query_atv) {
+        if (payload.user_data_in_atv) {
           assert.strictEqual(subscription.elastic_query, '', `${name}: elastic_query should be empty`);
-          assert.strictEqual(subscription.elastic_query_atv, 1, `${name}: elastic_query_atv should be 1`);
+          assert.strictEqual(subscription.query, '', `${name}: query should be empty`);
+          assert.strictEqual(subscription.search_description, '', `${name}: search_description should be empty`);
+          assert.strictEqual(subscription.user_data_in_atv, 1, `${name}: user_data_in_atv should be 1`);
         } else {
           assert.strictEqual(subscription.elastic_query, payload.elastic_query, `${name}: elastic_query should match`);
+          assert.strictEqual(subscription.query, payload.query, `${name}: query should match`);
         }
 
         // Verify delete_after is set correctly (created + maxAge days)
