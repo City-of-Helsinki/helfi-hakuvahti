@@ -23,13 +23,3 @@ export const ElasticProxyJsonResponse = Type.Object({
   responses: Type.Array(ElasticProxyResponseItem),
 });
 export type ElasticProxyJsonResponseType = Static<typeof ElasticProxyJsonResponse>;
-
-export const PartialDrupalNode = Type.Object({
-  _language: Type.String(),
-  entity_type: Type.Array(Type.String()),
-  url: Type.Array(Type.String()),
-  langcode: Type.Array(Type.String()),
-  title: Type.String(),
-  field_publication_starts: Type.Array(Type.Number()),
-});
-export type PartialDrupalNodeType = Static<typeof PartialDrupalNode>;

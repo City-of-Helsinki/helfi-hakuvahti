@@ -8,14 +8,10 @@ import base64Plugin from '../plugins/base64';
 import elasticproxy from '../plugins/elasticproxy';
 import mongodb from '../plugins/mongodb';
 import '../plugins/sentry';
-import type { ElasticProxyJsonResponseType, PartialDrupalNodeType } from '../types/elasticproxy';
+import type { ElasticProxyJsonResponseType } from '../types/elasticproxy';
 import type { QueueInsertDocument } from '../types/queue';
 import type { SiteConfigurationType } from '../types/siteConfig';
-import {
-  type SubscriptionCollectionLanguageType,
-  type SubscriptionCollectionType,
-  SubscriptionStatus,
-} from '../types/subscription';
+import { type SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription';
 
 // Statistics tracking
 interface ProcessingStats {
@@ -26,11 +22,8 @@ interface ProcessingStats {
   smsQueued: number;
 }
 
-export const getLocalizedUrl = (
-  siteConfig: SiteConfigurationType,
-  langCode: SubscriptionCollectionLanguageType,
-): string => {
-  const langKey = langCode.toLowerCase() as keyof typeof siteConfig.urls;
+export const getLocalizedUrl = (siteConfig: SiteConfigurationType, langCode?: string): string => {
+  const langKey = (langCode || 'fi').toLowerCase() as keyof typeof siteConfig.urls;
   if (langKey in siteConfig.urls) {
     return siteConfig.urls[langKey];
   }
@@ -138,7 +131,7 @@ const getNewHitsFromElasticsearch = async (
   subscription: SubscriptionCollectionType & { _id: ObjectId },
   siteConfig: SiteConfigurationType,
   server: Server,
-): Promise<PartialDrupalNodeType[]> => {
+): Promise<Record<string, unknown>[]> => {
   let elasticQuery: string;
 
   if (subscription.elastic_query_atv) {
@@ -166,16 +159,18 @@ const getNewHitsFromElasticsearch = async (
       elasticQuery,
     );
 
+    const matchField = siteConfig.matchField;
+
     // Filter out new hits:
     return (elasticResponse?.hits?.hits ?? [])
-      .filter((hit: { _source?: PartialDrupalNodeType }) => {
-        const publicationStarts = hit?._source?.field_publication_starts;
+      .filter((hit: { _source?: Record<string, unknown> }) => {
+        const publicationStarts = hit?._source?.[matchField];
         if (!Array.isArray(publicationStarts) || publicationStarts.length === 0) {
           return false;
         }
-        return publicationStarts[0] >= lastChecked;
+        return (publicationStarts[0] as number) >= lastChecked;
       })
-      .map((hit: { _source: PartialDrupalNodeType }) => hit._source);
+      .map((hit: { _source: Record<string, unknown> }) => hit._source);
   } catch (err) {
     console.error(`Query ${elasticQuery} for ${subscription._id} failed`);
     server.Sentry?.captureException(err);
@@ -399,6 +394,7 @@ const processSiteSubscriptions = async (
         const smsContent = await newHitsSms(
           subscription.lang,
           {
+            hits: hitsForEmail,
             search_description: subscription.search_description,
             sms_code: smsCode,
           },

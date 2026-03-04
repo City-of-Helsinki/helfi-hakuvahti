@@ -1,9 +1,38 @@
+import * as fs from 'node:fs';
 import { sprightly } from 'sprightly';
-import type { PartialDrupalNodeType } from '../types/elasticproxy';
+
 import type { SiteConfigurationType } from '../types/siteConfig';
 import type { SubscriptionCollectionLanguageType } from '../types/subscription';
 
 const TEMPLATE_BASE_PATH = 'dist/templates';
+
+// Formatter registry for converting elastic field values.
+const fieldFormatters: Record<string, (val: unknown, siteConfig: SiteConfigurationType) => string> = {
+  date: (val) => {
+    if (typeof val !== 'number') return '';
+    const d = new Date(val * 1000);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
+  },
+  url: (val, siteConfig) => siteConfig.urls.base + String(val ?? ''),
+};
+
+// Flatten elastic _source fields (arrays → first element) and apply configured formatters.
+const flattenHitForTemplate = (
+  item: Record<string, unknown>,
+  siteConfig: SiteConfigurationType,
+): Record<string, string> => {
+  const vars: Record<string, string> = {};
+  const formats = siteConfig.fieldFormats ?? {};
+
+  Object.entries(item).forEach(([key, value]) => {
+    const val = Array.isArray(value) ? value[0] : value;
+    const formatter = formats[key] ? fieldFormatters[formats[key]] : undefined;
+    vars[key] = formatter ? formatter(val, siteConfig) : String(val ?? '');
+  });
+
+  return vars;
+};
 
 export const translate = (
   key: string,
@@ -114,7 +143,7 @@ export const expiryEmail = async (
 export const newHitsEmail = async (
   lang: SubscriptionCollectionLanguageType,
   data: {
-    hits: PartialDrupalNodeType[];
+    hits: Record<string, unknown>[];
     search_description: string;
     search_link: string;
     remove_link: string;
@@ -126,10 +155,10 @@ export const newHitsEmail = async (
   try {
     const hitsContent = data.hits
       .map((item) =>
-        sprightly('dist/templates/link_text.html', {
-          link: siteConfig.urls.base + item.url,
-          content: item.title,
-        }),
+        sprightly(
+          `${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/hit_item.html`,
+          flattenHitForTemplate(item, siteConfig),
+        ),
       )
       .join('');
 
@@ -158,16 +187,24 @@ export const newHitsEmail = async (
 export const newHitsSms = async (
   lang: SubscriptionCollectionLanguageType,
   data: {
+    hits: Record<string, unknown>[];
     search_description: string;
     sms_code?: string;
   },
   siteConfig: SiteConfigurationType,
-) =>
-  sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/newhits.txt`, {
+) => {
+  const smsHitTemplate = `${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/hit_item.txt`;
+  const hitsContent = fs.existsSync(smsHitTemplate)
+    ? data.hits.map((item) => sprightly(smsHitTemplate, flattenHitForTemplate(item, siteConfig))).join('')
+    : '';
+
+  return sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/newhits.txt`, {
     ...buildTranslationContext(lang, siteConfig),
     search_description: data.search_description,
     sms_code: data.sms_code ?? '',
+    hits: hitsContent,
   });
+};
 
 // SMS notification for subscription renewal
 export const renewalSms = async (

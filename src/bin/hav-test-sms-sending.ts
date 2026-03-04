@@ -45,6 +45,7 @@ command(
         const smsContent = await newHitsSms(
           lang,
           {
+            hits: [],
             search_description: 'Test search: Open positions in Helsinki',
           },
           siteConfig,

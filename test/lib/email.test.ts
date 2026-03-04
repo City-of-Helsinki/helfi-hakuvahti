@@ -3,7 +3,7 @@ import { after, before, test } from 'node:test';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
-import { buildTranslationContext, translate, wrapWithLayout } from '../../src/lib/email';
+import { buildTranslationContext, newHitsSms, translate, wrapWithLayout } from '../../src/lib/email';
 import type { SiteConfigurationType } from '../../src/types/siteConfig';
 import type { SubscriptionCollectionLanguageType } from '../../src/types/subscription';
 
@@ -30,6 +30,7 @@ const baseConfig: SiteConfigurationType = {
     maxHitsInEmail: 10,
   },
   elasticProxyUrl: 'https://elastic.test',
+  matchField: 'field_publication_starts',
   translations: {
     foo: {
       fi: 'Hei',
@@ -44,8 +45,13 @@ const baseConfig: SiteConfigurationType = {
   },
 };
 
+const SMS_DIR = path.join(TEMPLATE_ROOT, 'sms');
+const SMS_NEWHITS_TEMPLATE = path.join(SMS_DIR, 'newhits.txt');
+const SMS_HIT_ITEM_TEMPLATE = path.join(SMS_DIR, 'hit_item.txt');
+
 const createTestTemplates = async () => {
   await fs.mkdir(TEMPLATE_ROOT, { recursive: true });
+  await fs.mkdir(SMS_DIR, { recursive: true });
   await fs.writeFile(
     INNER_TEMPLATE,
     '<div class="inner">{{ foo }}<span>{{ custom_value }}</span></div>',
@@ -54,6 +60,16 @@ const createTestTemplates = async () => {
   await fs.writeFile(
     LAYOUT_TEMPLATE,
     '<html><body><main>{{ content }}</main><footer>{{ foo }} - {{ title }}</footer></body></html>',
+    'utf-8',
+  );
+  await fs.writeFile(
+    SMS_NEWHITS_TEMPLATE,
+    'New results for {{ search_description }}: {{ hits }}',
+    'utf-8',
+  );
+  await fs.writeFile(
+    SMS_HIT_ITEM_TEMPLATE,
+    '{{ address }} ({{ valid_from }} - {{ valid_to }})\n',
     'utf-8',
   );
 };
@@ -120,4 +136,42 @@ test('wrapWithLayout includes layout variables and injects content correctly', (
   assert.ok(html.includes('<body>'), 'Should include body tag');
   assert.ok(html.includes('<div class="inner">'), 'Should include inner template structure');
   assert.ok(html.includes(baseConfig.translations!.foo.en), 'Should include correct translation in layout');
+});
+
+test('newHitsSms renders hits through hit_item template with field formatters', async () => {
+  const configWithFormats: SiteConfigurationType = {
+    ...baseConfig,
+    fieldFormats: {
+      valid_from: 'date',
+      valid_to: 'date',
+    },
+  };
+
+  const hits = [
+    {
+      address: ['Mannerheimintie 1'],
+      valid_from: [1709568000], // 2024-03-04 in epoch seconds
+      valid_to: [1712160000],   // 2024-04-03 in epoch seconds
+    },
+    {
+      address: ['Aleksanterinkatu 52'],
+      valid_from: [1709568000],
+      valid_to: [1714752000],   // 2024-05-03 in epoch seconds
+    },
+  ];
+
+  const result = await newHitsSms(
+    'fi',
+    {
+      hits,
+      search_description: 'Testihaku',
+      sms_code: '123456',
+    },
+    configWithFormats,
+  );
+
+  assert.ok(result.includes('Testihaku'), 'Should include search description');
+  assert.ok(result.includes('Mannerheimintie 1'), 'Should include first hit address');
+  assert.ok(result.includes('Aleksanterinkatu 52'), 'Should include second hit address');
+  assert.match(result, /\d{2}\.\d{2}\.\d{4}/, 'Should include formatted dates');
 });

@@ -46,6 +46,8 @@ export const SiteConfigurationFile = Type.Object(
   {
     name: Type.String(),
     translations: Type.Optional(TranslationMap),
+    matchField: Type.String(),
+    fieldFormats: Type.Optional(Type.Record(Type.String(), Type.String())),
   },
   { additionalProperties: SiteEnvironmentConfig },
 );
@@ -59,6 +61,8 @@ export const SiteConfiguration = Type.Object({
   mail: SiteMailSettings,
   elasticProxyUrl: Type.String(),
   translations: Type.Optional(TranslationMap),
+  matchField: Type.String(),
+  fieldFormats: Type.Optional(Type.Record(Type.String(), Type.String())),
 });
 export type SiteConfigurationType = Static<typeof SiteConfiguration>;
 export const SiteConfigurationMap = Type.Record(Type.String(), SiteConfiguration);
