@@ -3,17 +3,18 @@ import type { SiteConfigurationType } from '../types/siteConfig';
 import { type RenewalSubscriptionType, SubscriptionStatus } from '../types/subscription';
 import { ATV } from './atv';
 
-export interface ActionResult {
-  success: boolean;
+export class ActionError extends Error {
   statusCode: number;
-  statusMessage: string;
-  expiryDate?: string;
+  constructor(statusCode: number, message: string) {
+    super(message);
+    this.statusCode = statusCode;
+  }
 }
 
 /**
  * Confirms a subscription by setting status from INACTIVE to ACTIVE.
  */
-export async function confirmSubscription(collection: Collection, subscriptionId: ObjectId): Promise<ActionResult> {
+export async function confirmSubscription(collection: Collection, subscriptionId: ObjectId): Promise<void> {
   const result = await collection.updateOne(
     { _id: subscriptionId, sms_confirmed: false },
     {
@@ -23,41 +24,21 @@ export async function confirmSubscription(collection: Collection, subscriptionId
   );
 
   if (result.modifiedCount === 0) {
-    return {
-      success: false,
-      statusCode: 404,
-      statusMessage: 'Subscription not found or already confirmed.',
-    };
+    throw new ActionError(404, 'Subscription not found or already confirmed.');
   }
-
-  return {
-    success: true,
-    statusCode: 200,
-    statusMessage: 'Subscription confirmed.',
-  };
 }
 
 /**
  * Deletes a subscription.
  */
-export async function deleteSubscription(collection: Collection, subscriptionId: ObjectId): Promise<ActionResult> {
+export async function deleteSubscription(collection: Collection, subscriptionId: ObjectId): Promise<void> {
   const result = await collection.deleteOne({ _id: subscriptionId });
 
   // @fixme What if the user still has email subscription active?
 
   if (result.deletedCount === 0) {
-    return {
-      success: false,
-      statusCode: 404,
-      statusMessage: 'Subscription not found.',
-    };
+    throw new ActionError(404, 'Subscription not found.');
   }
-
-  return {
-    success: true,
-    statusCode: 200,
-    statusMessage: 'Subscription deleted.',
-  };
 }
 
 /**
@@ -72,14 +53,10 @@ export async function renewSubscription(
   subscription: RenewalSubscriptionType,
   siteConfig: SiteConfigurationType,
   atv: ATV,
-): Promise<ActionResult> {
+): Promise<void> {
   // Check ACTIVE status
   if (subscription.status !== SubscriptionStatus.ACTIVE) {
-    return {
-      success: false,
-      statusCode: 400,
-      statusMessage: 'Only active subscriptions can be renewed.',
-    };
+    throw new ActionError(400, 'Only active subscriptions can be renewed.');
   }
 
   // Check renewal window
@@ -88,11 +65,7 @@ export async function renewSubscription(
   const expiryNotificationDate = new Date(subscriptionExpiresAt - expiryNotificationDays * 24 * 60 * 60 * 1000);
 
   if (Date.now() < expiryNotificationDate.getTime()) {
-    return {
-      success: false,
-      statusCode: 400,
-      statusMessage: 'Subscription cannot be renewed yet.',
-    };
+    throw new ActionError(400, 'Subscription cannot be renewed yet.');
   }
 
   // Update ATV document delete_after
@@ -100,11 +73,7 @@ export async function renewSubscription(
   try {
     await atv.updateDocumentDeleteAfter(ATV.getAtvId(subscription), maxAge, now);
   } catch (_error) {
-    return {
-      success: false,
-      statusCode: 500,
-      statusMessage: 'Failed to update subscription expiry in storage.',
-    };
+    throw new ActionError(500, 'Failed to update subscription expiry in storage.');
   }
 
   // Calculate new delete_after
@@ -131,14 +100,4 @@ export async function renewSubscription(
       $unset: { sms_code: 1, sms_code_created: 1 },
     },
   );
-
-  // Calculate new expiry date
-  const newExpiryDate = new Date(Date.now() + maxAge * 24 * 60 * 60 * 1000);
-
-  return {
-    success: true,
-    statusCode: 200,
-    statusMessage: 'Subscription renewed successfully.',
-    expiryDate: newExpiryDate.toISOString(),
-  };
 }

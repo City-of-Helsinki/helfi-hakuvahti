@@ -1,10 +1,10 @@
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import libphonenumber from 'google-libphonenumber';
+import type { ATV } from '../lib/atv';
 import { confirmationEmail, confirmationSms } from '../lib/email';
+import { getRandHash } from '../lib/randhash';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
 import { generateUniqueSmsCode } from '../lib/smsCode';
-import type { ATV } from '../lib/atv';
-import { getRandHash } from '../lib/randhash';
 import { Generic400Error, type Generic400ErrorType, Generic500Error, type Generic500ErrorType } from '../types/error';
 import type { QueueInsertDocument } from '../types/queue';
 import {

@@ -4,6 +4,7 @@ import { ObjectId } from '@fastify/mongodb';
 import { Int32, MongoClient } from 'mongodb';
 import type { ATV } from '../../src/lib/atv';
 import {
+  ActionError,
   confirmSubscription,
   deleteSubscription,
   renewSubscription,
@@ -55,10 +56,7 @@ describe('subscriptionActions', () => {
       const id = await insertSubscription({ sms_confirmed: false });
       const collection = mongo.db().collection('subscription');
 
-      const result = await confirmSubscription(collection, id);
-
-      assert.strictEqual(result.success, true);
-      assert.strictEqual(result.statusCode, 200);
+      await confirmSubscription(collection, id);
 
       const doc = await collection.findOne({ _id: id });
       assert.ok(doc);
@@ -68,7 +66,7 @@ describe('subscriptionActions', () => {
       assert.strictEqual(doc.sms_code_created, undefined);
     });
 
-    test('returns 404 when subscription is already confirmed', async () => {
+    test('throws 404 when subscription is already confirmed', async () => {
       const collection = mongo.db().collection('subscription');
 
       // Already confirmed (sms_confirmed: true)
@@ -76,23 +74,23 @@ describe('subscriptionActions', () => {
         status: new Int32(SubscriptionStatus.ACTIVE),
         sms_confirmed: true,
       });
-      const result1 = await confirmSubscription(collection, confirmedId);
-      assert.strictEqual(result1.success, false);
-      assert.strictEqual(result1.statusCode, 404);
+      await assert.rejects(() => confirmSubscription(collection, confirmedId), (error: ActionError) => {
+        assert.strictEqual(error.statusCode, 404);
+        return true;
+      });
 
       // Non-existent
-      const result2 = await confirmSubscription(collection, new ObjectId());
-      assert.strictEqual(result2.success, false);
-      assert.strictEqual(result2.statusCode, 404);
+      await assert.rejects(() => confirmSubscription(collection, new ObjectId()), (error: ActionError) => {
+        assert.strictEqual(error.statusCode, 404);
+        return true;
+      });
     });
 
     test('confirming SMS does not set email_confirmed', async () => {
       const id = await insertSubscription({ sms_confirmed: false, email_confirmed: false });
       const collection = mongo.db().collection('subscription');
 
-      const result = await confirmSubscription(collection, id);
-
-      assert.strictEqual(result.success, true);
+      await confirmSubscription(collection, id);
 
       const doc = await collection.findOne({ _id: id });
       assert.ok(doc);
@@ -106,19 +104,18 @@ describe('subscriptionActions', () => {
       const id = await insertSubscription();
       const collection = mongo.db().collection('subscription');
 
-      const result = await deleteSubscription(collection, id);
+      await deleteSubscription(collection, id);
 
-      assert.strictEqual(result.success, true);
-      assert.strictEqual(result.statusCode, 200);
       assert.strictEqual(await collection.findOne({ _id: id }), null);
     });
 
-    test('returns 404 for non-existent subscription', async () => {
+    test('throws 404 for non-existent subscription', async () => {
       const collection = mongo.db().collection('subscription');
-      const result = await deleteSubscription(collection, new ObjectId());
 
-      assert.strictEqual(result.success, false);
-      assert.strictEqual(result.statusCode, 404);
+      await assert.rejects(() => deleteSubscription(collection, new ObjectId()), (error: ActionError) => {
+        assert.strictEqual(error.statusCode, 404);
+        return true;
+      });
     });
   });
 
@@ -129,7 +126,7 @@ describe('subscriptionActions', () => {
 
     const noOpAtv = { updateDocumentDeleteAfter: async () => ({}) } as unknown as ATV;
 
-    test('rejects non-ACTIVE or not-yet-renewable subscriptions', async () => {
+    test('throws 400 for non-ACTIVE or not-yet-renewable subscriptions', async () => {
       const collection = mongo.db().collection('subscription');
 
       // Non-ACTIVE subscription
@@ -142,9 +139,10 @@ describe('subscriptionActions', () => {
         status: SubscriptionStatus.INACTIVE,
         created: new Date(),
       };
-      const result1 = await renewSubscription(collection, inactiveSub, siteConfig, noOpAtv);
-      assert.strictEqual(result1.success, false);
-      assert.strictEqual(result1.statusCode, 400);
+      await assert.rejects(() => renewSubscription(collection, inactiveSub, siteConfig, noOpAtv), (error: ActionError) => {
+        assert.strictEqual(error.statusCode, 400);
+        return true;
+      });
 
       // ACTIVE but outside renewal window (just created)
       const activeId = await insertSubscription({ status: new Int32(SubscriptionStatus.ACTIVE) });
@@ -156,12 +154,13 @@ describe('subscriptionActions', () => {
         status: SubscriptionStatus.ACTIVE,
         created: new Date(),
       };
-      const result2 = await renewSubscription(collection, activeSub, siteConfig, noOpAtv);
-      assert.strictEqual(result2.success, false);
-      assert.strictEqual(result2.statusCode, 400);
+      await assert.rejects(() => renewSubscription(collection, activeSub, siteConfig, noOpAtv), (error: ActionError) => {
+        assert.strictEqual(error.statusCode, 400);
+        return true;
+      });
     });
 
-    test('returns 500 when ATV update fails during renewal', async () => {
+    test('throws 500 when ATV update fails during renewal', async () => {
       const created = new Date(Date.now() - 88 * 24 * 60 * 60 * 1000);
       const id = await insertSubscription({ status: new Int32(SubscriptionStatus.ACTIVE), created });
       const collection = mongo.db().collection('subscription');
@@ -179,9 +178,10 @@ describe('subscriptionActions', () => {
         created,
       };
 
-      const result = await renewSubscription(collection, subscription, siteConfig, failingAtv);
-      assert.strictEqual(result.success, false);
-      assert.strictEqual(result.statusCode, 500);
+      await assert.rejects(() => renewSubscription(collection, subscription, siteConfig, failingAtv), (error: ActionError) => {
+        assert.strictEqual(error.statusCode, 500);
+        return true;
+      });
     });
 
     test('successfully renews and updates all fields', async () => {
@@ -204,10 +204,7 @@ describe('subscriptionActions', () => {
         created,
       };
 
-      const result = await renewSubscription(collection, subscription, siteConfig, noOpAtv);
-      assert.strictEqual(result.success, true);
-      assert.strictEqual(result.statusCode, 200);
-      assert.ok(result.expiryDate);
+      await renewSubscription(collection, subscription, siteConfig, noOpAtv);
 
       const doc = await collection.findOne({ _id: id });
       assert.ok(doc);

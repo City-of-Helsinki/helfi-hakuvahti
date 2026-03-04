@@ -3,7 +3,7 @@ import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest 
 import type { Collection } from 'mongodb';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
 import { findSubscriptionByCode, type SmsAction, verifySmsRequest } from '../lib/smsCode';
-import { confirmSubscription, deleteSubscription, renewSubscription } from '../lib/subscriptionActions';
+import { ActionError, confirmSubscription, deleteSubscription, renewSubscription } from '../lib/subscriptionActions';
 import { Generic500Error, type Generic500ErrorType } from '../types/error';
 import type { SiteConfigurationType } from '../types/siteConfig';
 import {
@@ -107,20 +107,24 @@ const createSmsHandler =
     }
 
     // Execute action
-    const result = await executeAction(action, collection, subscription, siteConfig, fastify);
+    try {
+      await executeAction(action, collection, subscription, siteConfig, fastify);
 
-    if (result.success) {
       fastify.log.info({
         level: 'info',
         message: `Subscription ${subscription._id} ${action}ed via SMS`,
       });
-    }
 
-    return reply.code(result.statusCode).send({
-      statusCode: result.statusCode,
-      statusMessage: result.statusMessage,
-      expiryDate: result.expiryDate,
-    });
+      return reply.code(200).send();
+    } catch (error) {
+      if (error instanceof ActionError) {
+        return reply.code(error.statusCode).send({
+          statusCode: error.statusCode,
+          statusMessage: error.message,
+        });
+      }
+      throw error;
+    }
   };
 
 /**

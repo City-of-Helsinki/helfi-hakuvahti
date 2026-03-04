@@ -115,7 +115,6 @@ export type SmsVerificationRequestType = Static<typeof SmsVerificationRequest>;
 export const SmsVerificationResponse = Type.Object({
   statusCode: Type.Number(),
   statusMessage: Type.String(),
-  expiryDate: Type.Optional(Type.String()),
 });
 export type SmsVerificationResponseType = Static<typeof SmsVerificationResponse>;
 

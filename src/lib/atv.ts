@@ -1,4 +1,4 @@
-import axios, {AxiosRequestConfig, type AxiosResponse} from 'axios';
+import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import type { AtvDocumentBatchType, AtvDocumentType } from '../types/atv';
 
 export interface AtvConfig {
@@ -40,7 +40,7 @@ export class ATV {
     fromDate?: Date,
   ): Promise<Partial<AtvDocumentType>> {
     // First, fetch the existing document to preserve all content
-    const existingDoc: Partial<AtvDocumentType> = await this.makeRequest('get', `/v1/documents/${atvDocumentId}`)
+    const existingDoc: Partial<AtvDocumentType> = await this.makeRequest('get', `/v1/documents/${atvDocumentId}`);
 
     // Calculate new delete_after date
     const deleteAfter = fromDate ? new Date(fromDate) : new Date();
@@ -116,12 +116,16 @@ export class ATV {
    * @param endpoint
    * @param body
    * @param contentType
-   * @private
    */
-  private async makeRequest<Response, Body = unknown>(method: string, endpoint: string, body?: Body, contentType?: string) {
+  private async makeRequest<Response, Body = unknown>(
+    method: string,
+    endpoint: string,
+    body?: Body,
+    contentType?: string,
+  ) {
     const headers: AxiosRequestConfig['headers'] = {
       'X-Api-Key': this.apiKey,
-    }
+    };
 
     if (body) {
       headers['Content-Type'] = contentType ?? 'application/json';
@@ -135,13 +139,11 @@ export class ATV {
         data: body,
       });
 
-      return response.data
-    }
-    catch (error: unknown) {
+      return response.data;
+    } catch (error: unknown) {
       throw new Error('ATV request failed', {
         cause: error,
       });
     }
   }
-
 }
