@@ -1,3 +1,4 @@
+import * as fs from 'node:fs';
 import { sprightly } from 'sprightly';
 
 import type { SiteConfigurationType } from '../types/siteConfig';
@@ -186,16 +187,24 @@ export const newHitsEmail = async (
 export const newHitsSms = async (
   lang: SubscriptionCollectionLanguageType,
   data: {
+    hits: Record<string, unknown>[];
     search_description: string;
     sms_code?: string;
   },
   siteConfig: SiteConfigurationType,
-) =>
-  sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/newhits.txt`, {
+) => {
+  const smsHitTemplate = `${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/hit_item.txt`;
+  const hitsContent = fs.existsSync(smsHitTemplate)
+    ? data.hits.map((item) => sprightly(smsHitTemplate, flattenHitForTemplate(item, siteConfig))).join('')
+    : '';
+
+  return sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/newhits.txt`, {
     ...buildTranslationContext(lang, siteConfig),
     search_description: data.search_description,
     sms_code: data.sms_code ?? '',
+    hits: hitsContent,
   });
+};
 
 // SMS notification for subscription renewal
 export const renewalSms = async (
