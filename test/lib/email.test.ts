@@ -30,6 +30,7 @@ const baseConfig: SiteConfigurationType = {
     maxHitsInEmail: 10,
   },
   elasticProxyUrl: 'https://elastic.test',
+  matchField: 'field_publication_starts',
   translations: {
     foo: {
       fi: 'Hei',

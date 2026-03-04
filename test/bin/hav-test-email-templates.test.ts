@@ -31,6 +31,7 @@ test('generateTestEmails queues all email types for all languages', async () => 
       templatePath: 'rekry',
     },
     elasticProxyUrl: 'https://elastic.test',
+    matchField: 'field_publication_starts',
     translations: {
       site_name: { fi: 'Avoimet työpaikat', en: 'Open positions', sv: 'Lediga jobb' },
     },
