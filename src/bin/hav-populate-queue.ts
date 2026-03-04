@@ -159,7 +159,7 @@ const getNewHitsFromElasticsearch = async (
       elasticQuery,
     );
 
-    const matchField = siteConfig.subscription.matchField ?? 'field_publication_starts';
+    const matchField = siteConfig.matchField;
 
     // Filter out new hits:
     return (elasticResponse?.hits?.hits ?? [])
