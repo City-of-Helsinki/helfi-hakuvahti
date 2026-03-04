@@ -187,6 +187,8 @@ const getNewHitsFromElasticsearch = async (
 /**
  * Processes subscriptions for a specific site configuration.
  *
+ * @todo extract these function to a service so this can be tested.
+ *
  * @param server - Fastify server instance.
  * @param siteConfig - The site configuration to process
  * @param stats - Statistics object to track processing
