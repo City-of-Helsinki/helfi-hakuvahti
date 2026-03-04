@@ -6,6 +6,7 @@ import type {
   SiteConfigurationType,
   SiteEnvironmentConfigType,
 } from '../types/siteConfig';
+import type { SubscriptionCollectionLanguageType } from '../types/subscription';
 
 export class SiteConfigurationLoader {
   private static instance: SiteConfigurationLoader;
@@ -44,6 +45,14 @@ export class SiteConfigurationLoader {
 
   static getSiteIds(): string[] {
     return Object.keys(SiteConfigurationLoader.getInstance().configurations);
+  }
+
+  static getLocalizedUrl(siteConfig: SiteConfigurationType, langCode: SubscriptionCollectionLanguageType): string {
+    const langKey = langCode.toLowerCase();
+    if (langKey in siteConfig.urls) {
+      return siteConfig.urls[langKey as keyof typeof siteConfig.urls];
+    }
+    return siteConfig.urls.base;
   }
 
   private loadConfigurations(): void {

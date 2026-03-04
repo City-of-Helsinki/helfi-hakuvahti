@@ -108,7 +108,7 @@ const createSmsHandler =
         message: `Subscription ${subscription._id} ${action}ed via SMS`,
       });
 
-      return reply.code(200).send();
+      return reply.code(200).send(subscription);
     } catch (error) {
       if (error instanceof ActionError) {
         return reply.code(error.statusCode).send({

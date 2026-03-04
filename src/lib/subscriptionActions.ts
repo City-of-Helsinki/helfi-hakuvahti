@@ -108,6 +108,9 @@ export async function renewSubscription(
   newDeleteAfter.setDate(newDeleteAfter.getDate() + maxAge);
 
   const $set: Partial<SubscriptionCollectionType> = {
+    // Reset created so expiration checks (created + maxAge) use the renewed date,
+    // not the original subscription creation date.
+    created: now,
     modified: now,
     expiry_notification_sent: SubscriptionStatus.INACTIVE,
     delete_after: newDeleteAfter,

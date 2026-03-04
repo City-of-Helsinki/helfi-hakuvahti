@@ -8,15 +8,12 @@ import base64Plugin from '../plugins/base64';
 import elasticproxy from '../plugins/elasticproxy';
 import mongodb from '../plugins/mongodb';
 import '../plugins/sentry';
+import type { WithId } from 'mongodb';
 import { ATV } from '../lib/atv';
 import type { ElasticProxyJsonResponseType, PartialDrupalNodeType } from '../types/elasticproxy';
 import type { QueueInsertDocument } from '../types/queue';
 import type { SiteConfigurationType } from '../types/siteConfig';
-import {
-  type SubscriptionCollectionLanguageType,
-  type SubscriptionCollectionType,
-  SubscriptionStatus,
-} from '../types/subscription';
+import { type SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription';
 
 const isEmailActive = (sub: Partial<SubscriptionCollectionType>): boolean =>
   sub.email_confirmed !== undefined ? sub.email_confirmed === true : sub.status === SubscriptionStatus.ACTIVE; // legacy fallback
@@ -31,17 +28,6 @@ interface ProcessingStats {
   newResultsEmailsQueued: number;
   smsQueued: number;
 }
-
-export const getLocalizedUrl = (
-  siteConfig: SiteConfigurationType,
-  langCode: SubscriptionCollectionLanguageType,
-): string => {
-  const langKey = langCode.toLowerCase() as keyof typeof siteConfig.urls;
-  if (langKey in siteConfig.urls) {
-    return siteConfig.urls[langKey];
-  }
-  return siteConfig.urls.base;
-};
 
 // Command line/cron application
 // to query for new results for subscriptions from
@@ -141,21 +127,17 @@ export const needsDeleteAfterSync = (storedDeleteAfter: Date | undefined, expect
 };
 
 const getNewHitsFromElasticsearch = async (
-  subscription: SubscriptionCollectionType & { _id: ObjectId },
+  subscription: WithId<SubscriptionCollectionType>,
   siteConfig: SiteConfigurationType,
   server: Server,
   resolvedElasticQuery?: string,
 ): Promise<PartialDrupalNodeType[]> => {
-  let elasticQuery: string;
-
-  if (resolvedElasticQuery) {
-    elasticQuery = server.b64decode(resolvedElasticQuery);
-  } else if (subscription.elastic_query) {
-    elasticQuery = server.b64decode(subscription.elastic_query);
-  } else {
+  if (!resolvedElasticQuery) {
     console.error(`Subscription ${subscription._id} has no elastic_query`);
     return [];
   }
+
+  const elasticQuery = server.b64decode(resolvedElasticQuery);
 
   const lastChecked: number = subscription.last_checked ? subscription.last_checked : Math.floor(Date.now() / 1000);
 
@@ -209,6 +191,8 @@ const processSiteSubscriptions = async (
   }
 
   // List of all enabled subscriptions for this site
+  // @fixme This query needs to have a limit so the memory
+  //   usage doesn't grow without bounds.
   const result = await collection
     .find({
       status: SubscriptionStatus.ACTIVE,
@@ -225,7 +209,7 @@ const processSiteSubscriptions = async (
     // Resolve user data from ATV if stored there
     let resolvedQuery: string = subscription.query;
     let resolvedSearchDescription: string = subscription.search_description ?? '';
-    let resolvedElasticQuery: string | undefined;
+    let resolvedElasticQuery: string | undefined = subscription.elastic_query;
 
     if (subscription.user_data_in_atv) {
       try {
@@ -239,7 +223,7 @@ const processSiteSubscriptions = async (
       }
     }
 
-    const localizedBaseUrl = getLocalizedUrl(siteConfig, subscription.lang);
+    const localizedBaseUrl = SiteConfigurationLoader.getLocalizedUrl(siteConfig, subscription.lang);
 
     // Calculate subscription expiry date
     const subscriptionValidForDays = siteConfig.subscription.maxAge;

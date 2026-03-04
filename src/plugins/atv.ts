@@ -1,8 +1,6 @@
 import fp from 'fastify-plugin';
 import { ATV } from '../lib/atv';
 
-export type AtvPluginOptions = Record<string, never>;
-
 export default fp(async (fastify, _opts) => {
   fastify.decorate(
     'atv',

@@ -1,4 +1,3 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
 import type * as Sentry from '@sentry/node';
 
 declare module 'fastify' {

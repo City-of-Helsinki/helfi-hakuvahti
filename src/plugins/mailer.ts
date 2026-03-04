@@ -19,12 +19,10 @@ export default fp(async function mailerPlugin(fastify) {
     },
   };
 
-  // eslint-disable-next-line global-require
   fastify.register(require('fastify-mailer'), opts);
 });
 
 declare module 'fastify' {
-  // eslint-disable-next-line no-shadow
   interface FastifyInstance {
     mailer: FastifyMailer;
   }

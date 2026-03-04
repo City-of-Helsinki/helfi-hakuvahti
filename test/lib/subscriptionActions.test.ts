@@ -189,6 +189,8 @@ describe('subscriptionActions', () => {
       const doc = await collection.findOne({ _id: id });
       assert.ok(doc);
 
+      // created should be reset so expiration checks (created + maxAge) restart from now
+      assert.ok(Date.now() - new Date(doc.created).getTime() < 60 * 1000, 'created should be reset on renewal');
       // Modified date should be refreshed
       assert.ok(Date.now() - new Date(doc.modified).getTime() < 60 * 1000);
       // Expiry notification reset
