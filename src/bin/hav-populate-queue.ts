@@ -394,6 +394,7 @@ const processSiteSubscriptions = async (
         const smsContent = await newHitsSms(
           subscription.lang,
           {
+            hits: hitsForEmail,
             search_description: subscription.search_description,
             sms_code: smsCode,
           },
