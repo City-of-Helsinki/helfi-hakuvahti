@@ -193,7 +193,7 @@
     },
     "sms_confirmation_link": {
       "fi": "hel.fi/vahvista-siirtovahti",
-      "en": "hel.fi/confirm-search-alert",
+      "en": "hel.fi/confirm-vehicle-removal-alert",
       "sv": "hel.fi/bekrafta-flyttningsvakten"
     },
     "sms_newhits_intro": {
@@ -208,7 +208,7 @@
     },
     "sms_newhits_remove_link": {
       "fi": "hel.fi/poista-siirtovahti",
-      "en": "hel.fi/remove-search-alert",
+      "en": "hel.fi/remove-vehicle-removal-alert",
       "sv": "hel.fi/redigera-flyttningsvakten"
     },
     "sms_newhits_code_label": {
@@ -238,7 +238,7 @@
     },
     "sms_renewal_link": {
       "fi": "hel.fi/jatka-siirtovahti",
-      "en": "hel.fi/extend-search-alert",
+      "en": "hel.fi/extend-vehicle-removal-alert",
       "sv": "hel.fi/forlang-flyttningsvakten"
     },
     "sms_renewal_code_label": {
