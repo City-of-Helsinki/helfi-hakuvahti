@@ -1,1 +1,1 @@
-{{ sms_newhits_intro }} {{ email_generic_your_search_terms }}: {{ search_description }} {{ sms_newhits_remove_text }} {{ sms_newhits_remove_link }} {{ sms_newhits_code_label }} {{ sms_code }} {{ sms_newhits_code_validity }}
+{{ sms_newhits_intro }} {{ email_generic_your_search_terms }}: {{ search_description }} {{ sms_newhits_remove_text }} {{ sms_newhits_remove_link }}?id={{ id }}

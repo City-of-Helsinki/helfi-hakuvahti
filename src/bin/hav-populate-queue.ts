@@ -2,7 +2,6 @@ import type { ObjectId } from '@fastify/mongodb';
 import command, { type Server } from '../lib/command';
 import { expiryEmail, newHitsEmail, newHitsSms, renewalSms } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
-import { generateUniqueSmsCode } from '../lib/smsCode';
 import atv from '../plugins/atv';
 import base64Plugin from '../plugins/base64';
 import elasticproxy from '../plugins/elasticproxy';
@@ -40,7 +39,7 @@ interface ProcessingStats {
  * @param modifyStatus - the status to modify subscriptions
  * @param olderThanDays - the number of days to consider for deletion
  * @param siteId - the site ID to filter subscriptions
- * @return {Promise<void>} Promise that resolves when the subscriptions are deleted
+ * @return Promise that resolves when the subscriptions are deleted
  */
 const massDeleteSubscriptions = async (
   server: Server,
@@ -297,22 +296,12 @@ const processSiteSubscriptions = async (
       // Queue renewal SMS if subscription has SMS and site supports it
       if (isSmsActive(subscription as Partial<SubscriptionCollectionType>) && siteConfig.subscription.enableSms) {
         try {
-          const smsCode = await generateUniqueSmsCode(collection);
-          const now = new Date();
-
-          if (!isDryRun) {
-            await collection.updateOne(
-              { _id: subscription._id },
-              { $set: { sms_code: smsCode, sms_code_created: now } },
-            );
-          }
-
           const smsContent = await renewalSms(
             subscription.lang,
             {
               expiry_date: formattedExpiryDate,
               search_description: resolvedSearchDescription,
-              sms_code: smsCode,
+              id: subscription._id.toString(),
             },
             siteConfig,
           );
@@ -324,7 +313,7 @@ const processSiteSubscriptions = async (
           };
 
           if (isDryRun) {
-            console.log(`[DRY RUN] Would queue renewal SMS for ${subscription._id} with code ${smsCode}`);
+            console.log(`[DRY RUN] Would queue renewal SMS for ${subscription._id}`);
           } else {
             await queueCollection.insertOne(smsToQueue);
           }
@@ -397,20 +386,11 @@ const processSiteSubscriptions = async (
     // Queue SMS if subscription has SMS confirmed and SMS is enabled for site
     if (isSmsActive(subscription as Partial<SubscriptionCollectionType>) && siteConfig.subscription.enableSms) {
       try {
-        // Regenerate SMS code for this notification
-        const smsCode = await generateUniqueSmsCode(collection);
-        const now = new Date();
-
-        // Update subscription with new SMS code
-        if (!isDryRun) {
-          await collection.updateOne({ _id: subscription._id }, { $set: { sms_code: smsCode, sms_code_created: now } });
-        }
-
         const smsContent = await newHitsSms(
           subscription.lang,
           {
             search_description: resolvedSearchDescription,
-            sms_code: smsCode,
+            id: subscription._id.toString(),
           },
           siteConfig,
         );
@@ -422,7 +402,7 @@ const processSiteSubscriptions = async (
         };
 
         if (isDryRun) {
-          console.log(`[DRY RUN] Would queue SMS for ${subscription._id} with code ${smsCode}`);
+          console.log(`[DRY RUN] Would queue SMS for ${subscription._id}`);
         } else {
           await queueCollection.insertOne(smsToQueue);
         }

@@ -42,6 +42,7 @@ command(
           lang,
           {
             search_description: 'Test search: Open positions in Helsinki',
+            id: 'test-id-123',
           },
           siteConfig,
         );

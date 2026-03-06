@@ -3,8 +3,9 @@ import { type SubscriptionCollectionType, SubscriptionStatus } from '../types/su
 import { ATV } from './atv';
 import { SiteConfigurationLoader } from './siteConfigurationLoader';
 
-type SubscriptionCollection = Collection<SubscriptionCollectionType>;
-type SubscriptionFilter = Filter<SubscriptionCollectionType>;
+export type SubscriptionCollection = Collection<SubscriptionCollectionType>;
+export type SubscriptionFilter = Filter<SubscriptionCollectionType>;
+export type SubscriptionChannel = 'email' | 'sms';
 
 export class ActionError extends Error {
   statusCode: number;
@@ -18,9 +19,9 @@ export class ActionError extends Error {
  * Confirms a subscription by setting status from INACTIVE to ACTIVE.
  */
 export async function confirmSubscription(
-  collection: SubscriptionCollection,
+  collection: SubscriptionCollection | undefined,
   filter: SubscriptionFilter,
-  channel: 'email' | 'sms',
+  channel: SubscriptionChannel,
 ): Promise<void> {
   const confirmedField = `${channel}_confirmed` as 'email_confirmed' | 'sms_confirmed';
 
@@ -30,15 +31,9 @@ export async function confirmSubscription(
     modified: new Date(),
   };
 
-  const $unset: Partial<Record<keyof SubscriptionCollectionType, 1>> | undefined =
-    channel === 'sms' ? { sms_code: 1, sms_code_created: 1 } : undefined;
+  const result = await collection?.updateOne({ [confirmedField]: false, ...filter }, { $set });
 
-  const result = await collection.updateOne(
-    { [confirmedField]: false, ...filter },
-    $unset ? { $set, $unset } : { $set },
-  );
-
-  if (result.modifiedCount === 0) {
+  if (!result || result.modifiedCount === 0) {
     throw new ActionError(404, 'Subscription not found or already confirmed.');
   }
 }
@@ -47,12 +42,12 @@ export async function confirmSubscription(
  * Deletes a subscription.
  */
 export async function deleteSubscription(
-  collection: SubscriptionCollection,
+  collection: SubscriptionCollection | undefined,
   filter: SubscriptionFilter,
 ): Promise<void> {
-  const result = await collection.deleteOne(filter);
+  const result = await collection?.deleteOne(filter);
 
-  if (result.deletedCount === 0) {
+  if (!result || result.deletedCount === 0) {
     throw new ActionError(404, 'Subscription not found.');
   }
 }
@@ -64,10 +59,14 @@ export async function deleteSubscription(
  *
  */
 export async function renewSubscription(
-  collection: SubscriptionCollection,
+  collection: SubscriptionCollection | undefined,
   filter: SubscriptionFilter,
   atv: ATV,
 ): Promise<void> {
+  if (!collection) {
+    throw new ActionError(404, 'Subscription not found.');
+  }
+
   const subscription = await collection.findOne(filter);
 
   if (!subscription) {
@@ -116,10 +115,5 @@ export async function renewSubscription(
     delete_after: newDeleteAfter,
   };
 
-  const $unset: Partial<Record<keyof SubscriptionCollectionType, 1>> = {
-    sms_code: 1,
-    sms_code_created: 1,
-  };
-
-  await collection.updateOne({ _id: subscription._id }, { $set, $unset });
+  await collection.updateOne({ _id: subscription._id }, { $set });
 }

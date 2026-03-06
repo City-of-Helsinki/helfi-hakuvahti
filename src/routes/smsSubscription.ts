@@ -1,146 +1,88 @@
-import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
-import type { Collection, WithId } from 'mongodb';
+import { ObjectId } from '@fastify/mongodb';
+import type { FastifyPluginAsync } from 'fastify';
+import { verifySms } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
-import { type SmsAction, verifySmsRequest } from '../lib/smsCode';
-import { ActionError, confirmSubscription, deleteSubscription, renewSubscription } from '../lib/subscriptionActions';
+import { generateSmsCode } from '../lib/smsCode';
 import { Generic500Error, type Generic500ErrorType } from '../types/error';
+import type { QueueInsertDocument } from '../types/queue';
 import {
-  SmsVerificationRequest,
-  type SmsVerificationRequestType,
   SmsVerificationResponse,
   type SmsVerificationResponseType,
   type SubscriptionCollectionType,
 } from '../types/subscription';
 
 /**
- * Shared schema for all SMS verification endpoints.
+ * SMS-based subscription verification.
+ * POST /subscription/sms/verify/:id - Generate and send a verification code via SMS.
  */
-const smsSchema = {
-  body: SmsVerificationRequest,
-  response: {
-    200: SmsVerificationResponse,
-    400: SmsVerificationResponse,
-    401: SmsVerificationResponse,
-    403: SmsVerificationResponse,
-    404: SmsVerificationResponse,
-    429: SmsVerificationResponse,
-    500: Generic500Error,
-  },
-};
+const smsSubscription: FastifyPluginAsync = async (fastify, _opts) => {
+  fastify.post<{
+    Params: { id: string };
+    Reply: SmsVerificationResponseType | Generic500ErrorType;
+  }>(
+    '/subscription/sms/verify/:id',
+    {
+      schema: {
+        response: {
+          200: SmsVerificationResponse,
+          403: SmsVerificationResponse,
+          404: SmsVerificationResponse,
+          500: Generic500Error,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params;
 
-/**
- * Execute the subscription action based on type.
- */
-const executeAction = async (
-  action: SmsAction,
-  collection: Collection<SubscriptionCollectionType>,
-  subscription: WithId<SubscriptionCollectionType>,
-  fastify: FastifyInstance,
-) => {
-  const subscriptionId = subscription._id;
+      const subscription = await fastify.mongo.db
+        ?.collection<SubscriptionCollectionType>('subscription')
+        ?.findOne({ _id: new ObjectId(id) });
 
-  switch (action) {
-    case 'confirm':
-      return confirmSubscription(collection, { _id: subscriptionId }, 'sms');
-
-    case 'delete':
-      return deleteSubscription(collection, { _id: subscriptionId });
-
-    case 'renew':
-      return renewSubscription(collection, { _id: subscriptionId }, fastify.atv);
-  }
-};
-
-/**
- * Create SMS verification handler for a specific action.
- */
-const createSmsHandler =
-  (action: SmsAction, fastify: FastifyInstance) =>
-  async (request: FastifyRequest<{ Body: SmsVerificationRequestType }>, reply: FastifyReply) => {
-    const { sms_code, number } = request.body;
-    const collection = fastify.mongo.db?.collection<SubscriptionCollectionType>('subscription');
-
-    if (!collection) {
-      return reply.code(500).send({ error: 'Database not available' });
-    }
-
-    // Find subscription by SMS code.
-    // @fixme: we rely on unique short code that is sent
-    //   to user as a sms message. This is quite fragile and
-    //   easy to enumerate. Be careful!
-    const subscription = await collection.findOne({
-      sms_code,
-      sms_code_created: { $exists: true },
-    });
-
-    if (!subscription) {
-      return reply.code(404).send({
-        statusCode: 404,
-        statusMessage: 'Invalid verification code.',
-      });
-    }
-
-    // Load site configuration and check enableSms
-    const siteConfig = SiteConfigurationLoader.getConfiguration(subscription.site_id);
-    if (!siteConfig?.subscription.enableSms) {
-      return reply.code(403).send({
-        statusCode: 403,
-        statusMessage: 'SMS verification is not enabled for this site.',
-      });
-    }
-
-    // Verify SMS code (check expiry + validate phone)
-    const verified = await verifySmsRequest(subscription, number, siteConfig, action, fastify.atv);
-
-    if (!verified) {
-      return reply.code(401).send({
-        statusCode: 401,
-        statusMessage: 'Verification failed.',
-      });
-    }
-
-    // Execute action
-    try {
-      await executeAction(action, collection, subscription, fastify);
-
-      fastify.log.info({
-        level: 'info',
-        message: `Subscription ${subscription._id} ${action}ed via SMS`,
-      });
-
-      return reply.code(200).send(subscription);
-    } catch (error) {
-      if (error instanceof ActionError) {
-        return reply.code(error.statusCode).send({
-          statusCode: error.statusCode,
-          statusMessage: error.message,
+      if (!subscription) {
+        return reply.code(404).send({
+          statusCode: 404,
+          statusMessage: 'Subscription not found',
         });
       }
-      throw error;
-    }
-  };
 
-/**
- * SMS-based subscription actions.
- * - POST /subscription/confirm/sms
- * - POST /subscription/delete/sms
- * - POST /subscription/renew/sms
- */
-const smsSubscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts: object): Promise<void> => {
-  fastify.post<{
-    Body: SmsVerificationRequestType;
-    Reply: SmsVerificationResponseType | Generic500ErrorType;
-  }>('/subscription/confirm/sms', { schema: smsSchema }, createSmsHandler('confirm', fastify));
+      const site = SiteConfigurationLoader.getConfiguration(subscription.site_id);
+      if (!site?.subscription?.enableSms) {
+        return reply.code(403).send({
+          statusCode: 403,
+          statusMessage: 'SMS verification is not enabled for this site.',
+        });
+      }
 
-  fastify.post<{
-    Body: SmsVerificationRequestType;
-    Reply: SmsVerificationResponseType | Generic500ErrorType;
-  }>('/subscription/delete/sms', { schema: smsSchema }, createSmsHandler('delete', fastify));
+      if (!subscription.atv_id) {
+        return reply.code(500).send({
+          statusCode: 500,
+          statusMessage: 'Subscription has no ATV document.',
+        });
+      }
 
-  fastify.post<{
-    Body: SmsVerificationRequestType;
-    Reply: SmsVerificationResponseType | Generic500ErrorType;
-  }>('/subscription/renew/sms', { schema: smsSchema }, createSmsHandler('renew', fastify));
+      // Generate TOTP-like code
+      const code = generateSmsCode(subscription.sms_secret);
+
+      // Queue SMS for sending
+      const smsContent = await verifySms(subscription.lang, { code }, site);
+      const document: QueueInsertDocument = {
+        type: 'sms',
+        atv_id: subscription.atv_id,
+        content: smsContent,
+      };
+
+      await fastify.mongo.db?.collection('queue')?.insertOne(document);
+
+      fastify.log.info({
+        message: `Verification SMS queued for subscription ${subscription._id}`,
+      });
+
+      return reply.code(200).send({
+        statusCode: 200,
+        statusMessage: 'Verification code sent.',
+      });
+    },
+  );
 };
 
 export default smsSubscription;

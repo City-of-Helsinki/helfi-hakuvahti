@@ -9,7 +9,7 @@ describe('/subscription/renew', () => {
     const app = await build(t);
 
     const res = await app.inject({
-      method: 'GET',
+      method: 'POST',
       url: `/subscription/renew/${new ObjectId()}/invalidhash`,
       headers: { Authorization: 'api-key test' },
     });
@@ -31,7 +31,7 @@ describe('/subscription/renew', () => {
     });
 
     const res = await app.inject({
-      method: 'GET',
+      method: 'POST',
       url: `/subscription/renew/${subscriptionId}/${hash}`,
       headers: { Authorization: 'api-key test' },
     });
@@ -69,7 +69,7 @@ describe('/subscription/renew', () => {
     });
 
     const res = await app.inject({
-      method: 'GET',
+      method: 'POST',
       url: `/subscription/renew/${subscriptionId}/${hash}`,
       headers: { Authorization: 'api-key test' },
     });

@@ -16,26 +16,50 @@ export const SubscriptionCollectionLanguage = Type.Union([Type.Literal('en'), Ty
 export type SubscriptionCollectionLanguageType = Static<typeof SubscriptionCollectionLanguage>;
 
 export const SubscriptionCollection = Type.Object({
-  email: Type.String(),
+  /** Link to the ATV document where user data is stored. */
   atv_id: Type.Optional(Type.String()),
-  elastic_query: Type.String(),
+  /** Truthy if query information is is stored in ATV. */
   user_data_in_atv: Type.Optional(Type.Number()),
+
+  elastic_query: Type.String(),
   search_description: Type.Optional(Type.String()),
-  hash: Type.Optional(Type.String()),
   query: Type.String(),
+  /** Legacy, always empty string. */
+  // @todo figure out how to remove this from schema so
+  //   we don't need to store empty string to this field.
+  email: Type.String(),
+
+  /** An extra layer of protection for the email subscriptions.
+   * The User must know both database is and hash to operate on
+   * email subscription. This enables us to use database ids that
+   * are guessable */
+  hash: Type.Optional(Type.String()),
+  /** Subscription configuration id. See /conf directory. */
   site_id: Type.String(),
+
+  /** Time when the subscription was last renewed. */
   created: Type.Date(),
+  /** Time when the subscription was last modified. */
   modified: Type.Date(),
+  /** When the subscription expires. */
+  delete_after: Type.Optional(Type.Date()),
+  /** Created is updated each time the subscription is renewed. */
+  first_created: Type.Optional(Type.Date()),
+
   lang: SubscriptionCollectionLanguage,
+  /** Notifications are sent if results are newer than last_checked. */
   last_checked: Type.Optional(Type.Number()),
+  /** Flag indicating that the user was notified about an expiring subscription. */
   expiry_notification_sent: Type.Enum(SubscriptionStatus),
   status: Type.Enum(SubscriptionStatus),
+
+  /** Indicates if the email subscription is confirmed. */
   email_confirmed: Type.Optional(Type.Boolean()),
+  /** Indicates if the sms subscription is confirmed. */
   sms_confirmed: Type.Optional(Type.Boolean()),
-  delete_after: Type.Optional(Type.Date()),
-  first_created: Type.Optional(Type.Date()),
-  sms_code: Type.Optional(Type.String()),
-  sms_code_created: Type.Optional(Type.Date()),
+
+  /** Similar to hash but for sms subscriptions. */
+  sms_secret: Type.String(),
 });
 export type SubscriptionCollectionType = Static<typeof SubscriptionCollection>;
 
@@ -93,7 +117,6 @@ export type SubscriptionGenericPostResponseType = Static<typeof SubscriptionGene
 // SMS verification request
 export const SmsVerificationRequest = Type.Object({
   sms_code: Type.String(),
-  number: Type.String(),
 });
 export type SmsVerificationRequestType = Static<typeof SmsVerificationRequest>;
 

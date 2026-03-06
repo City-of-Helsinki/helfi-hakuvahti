@@ -1,10 +1,10 @@
+import { randomBytes } from 'node:crypto';
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import libphonenumber from 'google-libphonenumber';
 import type { ATV } from '../lib/atv';
 import { confirmationEmail, confirmationSms } from '../lib/email';
 import { getRandHash } from '../lib/randhash';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
-import { generateUniqueSmsCode } from '../lib/smsCode';
 import { Generic400Error, type Generic400ErrorType, Generic500Error, type Generic500ErrorType } from '../types/error';
 import type { QueueInsertDocument } from '../types/queue';
 import {
@@ -161,18 +161,22 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         search_description: request.body.user_data_in_atv ? '' : request.body.search_description,
         site_id: request.body.site_id,
         lang: request.body.lang,
+        // Links to the ATV document that stores user data.
         atv_id: atvId,
         hash,
+        // Created = when the subscription is last renewed.
         created: now,
+        // First created = when the subscription is created.
+        first_created: now,
         modified: now,
         last_checked: Math.floor(Date.now() / 1000),
         expiry_notification_sent: SubscriptionStatus.INACTIVE,
         status: SubscriptionStatus.INACTIVE,
         email_confirmed: hasEmail ? false : undefined,
         sms_confirmed: hasSms ? false : undefined,
-        // Generate SMS code if SMS is enabled for this subscription and site
-        sms_code: hasSms ? await generateUniqueSmsCode(collection) : undefined,
-        sms_code_created: hasSms ? now : undefined,
+        // SMS secret must be separate from hash so that hash
+        // cannot be used to confirm SMS subscriptions and vice versa.
+        sms_secret: randomBytes(32).toString('hex'),
         delete_after: deleteAfter,
       };
 
@@ -221,7 +225,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
               content: await confirmationSms(
                 request.body.lang,
                 {
-                  sms_code: subscriptionData.sms_code ?? '',
+                  id: response.insertedId.toString(),
                 },
                 siteConfig,
               ),

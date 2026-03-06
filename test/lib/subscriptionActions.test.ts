@@ -44,15 +44,14 @@ describe('subscriptionActions', () => {
       expiry_notification_sent: SubscriptionStatus.INACTIVE,
       created: now,
       modified: now,
-      sms_code: '123456',
-      sms_code_created: now,
+      sms_secret: 'test-secret',
       ...data,
     } as SubscriptionCollectionType);
     return id;
   };
 
   describe('confirmSubscription', () => {
-    test('confirms SMS subscription with sms_confirmed: false and clears SMS fields', async () => {
+    test('confirms SMS subscription with sms_confirmed: false', async () => {
       const beforeConfirm = new Date();
       const id = await insertSubscription({ sms_confirmed: false });
       const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
@@ -63,8 +62,6 @@ describe('subscriptionActions', () => {
       assert.ok(doc);
       assert.strictEqual(doc.status, SubscriptionStatus.ACTIVE);
       assert.strictEqual(doc.sms_confirmed, true);
-      assert.strictEqual(doc.sms_code, undefined);
-      assert.strictEqual(doc.sms_code_created, undefined);
       assert.ok(doc.modified >= beforeConfirm, 'modified should be updated');
     });
 
@@ -79,9 +76,6 @@ describe('subscriptionActions', () => {
       assert.strictEqual(doc.status, SubscriptionStatus.ACTIVE);
       assert.strictEqual(doc.email_confirmed, true);
       assert.strictEqual(doc.sms_confirmed, false, 'sms_confirmed should remain false');
-      // SMS fields should not be cleared for email confirmation
-      assert.strictEqual(doc.sms_code, '123456');
-      assert.ok(doc.sms_code_created);
     });
 
     test('throws 404 when subscription is already confirmed', async () => {
@@ -179,8 +173,6 @@ describe('subscriptionActions', () => {
         status: new Int32(SubscriptionStatus.ACTIVE),
         created,
         expiry_notification_sent: new Int32(1),
-        sms_code: '654321',
-        sms_code_created: new Date(),
       });
       const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
@@ -197,9 +189,6 @@ describe('subscriptionActions', () => {
       assert.strictEqual(doc.expiry_notification_sent, SubscriptionStatus.INACTIVE);
       // delete_after set
       assert.ok(doc.delete_after);
-      // SMS fields cleared
-      assert.strictEqual(doc.sms_code, undefined);
-      assert.strictEqual(doc.sms_code_created, undefined);
     });
   });
 });

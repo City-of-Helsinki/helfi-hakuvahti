@@ -176,20 +176,15 @@
       "en": "Please do not reply to this message.",
       "sv": "Detta meddelande kan inte besvaras."
     },
+    "sms_verify_intro": {
+      "fi": "Vahvistuskoodisi:",
+      "en": "Confirmation code:",
+      "sv": "Bekräftelsekod:"
+    },
     "sms_confirmation_intro": {
       "fi": "Vahvista ajoneuvojen siirtovahdin tilaus Helsingin kaupungilta",
       "en": "Confirm your Vehicle Removal Alert Service subscription with the City of Helsinki",
       "sv": "Bekräfta beställningen av flyttningsvakten för fordon från Helsingfors stad"
-    },
-    "sms_confirmation_code_label": {
-      "fi": "Vahvistuskoodi:",
-      "en": "Confirmation code:",
-      "sv": "Bekräftelsekod:"
-    },
-    "sms_confirmation_code_validity": {
-      "fi": "Vahvistuskoodi on voimassa 60 minuuttia",
-      "en": "The confirmation code will be valid for 60 minutes",
-      "sv": "Bekräftelsekoden är giltig i 60 minuter"
     },
     "sms_confirmation_link": {
       "fi": "hel.fi/vahvista-siirtovahti",
@@ -211,16 +206,6 @@
       "en": "hel.fi/delete-saved-search",
       "sv": "hel.fi/radera-sokvakten"
     },
-    "sms_newhits_code_label": {
-      "fi": "Vahvistuskoodi:",
-      "en": "Confirmation code:",
-      "sv": "Bekräftelsekod:"
-    },
-    "sms_newhits_code_validity": {
-      "fi": "Vahvistuskoodi on voimassa 24 tuntia.",
-      "en": "The confirmation code will be valid for 24 hours.",
-      "sv": "Bekräftelsekoden är giltig i 24 timmar."
-    },
     "sms_renewal_intro": {
       "fi": "Ajoneuvojen siirtovahtisi Helsingin kaupungilta on vanhentumassa",
       "en": "Your Vehicle Removal Alert Service subscription with the City of Helsinki will expire on",
@@ -240,16 +225,6 @@
       "fi": "hel.fi/jatka-siirtovahti",
       "en": "hel.fi/extend-saved-search",
       "sv": "hel.fi/forlang-sokvakten"
-    },
-    "sms_renewal_code_label": {
-      "fi": "Vahvistuskoodi:",
-      "en": "Confirmation code:",
-      "sv": "Bekräftelsekod:"
-    },
-    "sms_renewal_code_validity": {
-      "fi": "Vahvistuskoodi on voimassa 24 tuntia.",
-      "en": "The confirmation code will be valid for 24 hours.",
-      "sv": "Bekräftelsekoden är giltig i 24 timmar."
     }
   },
   "dev": {

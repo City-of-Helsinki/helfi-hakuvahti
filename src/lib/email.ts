@@ -52,15 +52,26 @@ export const wrapWithLayout = (
   return sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/index.html`, layoutData);
 };
 
+// SMS verification code
+export const verifySms = async (
+  lang: SubscriptionCollectionLanguageType,
+  data: { code: string },
+  siteConfig: SiteConfigurationType,
+) =>
+  sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/verify.txt`, {
+    ...buildTranslationContext(lang, siteConfig),
+    code: data.code,
+  });
+
 // Subscription confirmation SMS
 export const confirmationSms = async (
   lang: SubscriptionCollectionLanguageType,
-  data: { sms_code: string },
+  data: { id: string },
   siteConfig: SiteConfigurationType,
 ) =>
   sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/confirmation.txt`, {
     ...buildTranslationContext(lang, siteConfig),
-    sms_code: data.sms_code ?? '',
+    id: data.id,
   });
 
 // Subscription confirmation email
@@ -159,14 +170,14 @@ export const newHitsSms = async (
   lang: SubscriptionCollectionLanguageType,
   data: {
     search_description: string;
-    sms_code?: string;
+    id: string;
   },
   siteConfig: SiteConfigurationType,
 ) =>
   sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/newhits.txt`, {
     ...buildTranslationContext(lang, siteConfig),
     search_description: data.search_description,
-    sms_code: data.sms_code ?? '',
+    id: data.id,
   });
 
 // SMS notification for subscription renewal
@@ -175,7 +186,7 @@ export const renewalSms = async (
   data: {
     expiry_date: string;
     search_description: string;
-    sms_code: string;
+    id: string;
   },
   siteConfig: SiteConfigurationType,
 ) =>
@@ -183,5 +194,5 @@ export const renewalSms = async (
     ...buildTranslationContext(lang, siteConfig),
     expiry_date: data.expiry_date,
     search_description: data.search_description,
-    sms_code: data.sms_code,
+    id: data.id,
   });

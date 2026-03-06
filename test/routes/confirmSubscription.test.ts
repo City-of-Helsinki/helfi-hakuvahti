@@ -9,7 +9,7 @@ describe('/subscription/confirm', () => {
     const app = await build(t);
 
     const res = await app.inject({
-      method: 'GET',
+      method: 'POST',
       url: `/subscription/confirm/${new ObjectId()}/invalid`,
       headers: { Authorization: 'api-key test' },
     });
@@ -24,7 +24,7 @@ describe('/subscription/confirm', () => {
     const subscriptionId = await createSubscription(collection, { email_confirmed: false });
 
     const res = await app.inject({
-      method: 'GET',
+      method: 'POST',
       url: `/subscription/confirm/${subscriptionId}/invalid`,
       headers: { Authorization: 'api-key test' },
     });
@@ -45,7 +45,7 @@ describe('/subscription/confirm', () => {
     const subscriptionId = await createSubscription(collection, { hash, email_confirmed: false });
 
     const res = await app.inject({
-      method: 'GET',
+      method: 'POST',
       url: `/subscription/confirm/${subscriptionId}/${hash}`,
       headers: { Authorization: 'api-key test' },
     });
@@ -70,7 +70,7 @@ describe('/subscription/confirm', () => {
     });
 
     const res = await app.inject({
-      method: 'GET',
+      method: 'POST',
       url: `/subscription/confirm/${subscriptionId}/${hash}`,
       headers: { Authorization: 'api-key test' },
     });
