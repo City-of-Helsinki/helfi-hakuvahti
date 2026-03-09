@@ -38,6 +38,20 @@ const confirmSubscription: FastifyPluginAsync = async (fastify, _opts) => {
         );
       } catch (error) {
         if (error instanceof ActionError) {
+          const subscription = await fastify.mongo.db?.collection<SubscriptionCollectionType>('subscription')?.findOne({
+            _id: new ObjectId(id),
+            status: SubscriptionStatus.ACTIVE,
+          });
+
+          // Return 409 if subscription was already active.
+          if (subscription) {
+            return reply.code(409).send({
+              // @fixme statusCode is totally useless.
+              statusCode: randomInt(0, 1000),
+              statusMessage: 'Subscription is already confirmed',
+            });
+          }
+
           return reply.code(error.statusCode).header('Content-Type', 'application/json; charset=utf-8').send({
             statusCode: error.statusCode,
             statusMessage: error.message,
@@ -100,9 +114,9 @@ const confirmSubscription: FastifyPluginAsync = async (fastify, _opts) => {
             status: SubscriptionStatus.ACTIVE,
           });
 
-          // Return 400 if subscription was already active.
+          // Return 409 if subscription was already active.
           if (subscription) {
-            return reply.code(400).send({
+            return reply.code(409).send({
               // @fixme statusCode is totally useless.
               statusCode: randomInt(0, 1000),
               statusMessage: 'Subscription is already confirmed',

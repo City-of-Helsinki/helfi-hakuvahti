@@ -58,6 +58,28 @@ describe('/subscription/confirm', () => {
     assert.strictEqual(updatedSubscription?.email_confirmed, true, 'email_confirmed should be true');
   });
 
+  test('returns 409 when subscription is already active', async (t) => {
+    const app = await build(t);
+
+    const collection = app.mongo.db?.collection('subscription');
+    const hash = `test-hash-409-${Date.now()}`;
+    const subscriptionId = await createSubscription(collection, {
+      hash,
+      status: SubscriptionStatus.ACTIVE,
+      email_confirmed: true,
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/subscription/confirm/${subscriptionId}/${hash}`,
+      headers: { Authorization: 'api-key test' },
+    });
+
+    assert.strictEqual(res.statusCode, 409);
+    const body = JSON.parse(res.body);
+    assert.strictEqual(body.statusMessage, 'Subscription is already confirmed');
+  });
+
   test('confirming email does not set sms_confirmed', async (t) => {
     const app = await build(t);
 
