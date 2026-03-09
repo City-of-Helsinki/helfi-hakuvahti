@@ -183,46 +183,34 @@ test('SiteConfigurationLoader', async (t) => {
     assert.strictEqual(instance1, instance2);
   });
 
-  await t.test('loadConfigurations loads config files successfully', async () => {
+  await t.test('getInstance auto-loads configurations', () => {
     process.env.ENVIRONMENT = 'local';
 
-    const loader = SiteConfigurationLoader.getInstance();
-    await loader.loadConfigurations();
-
-    const configs = loader.getConfigurations();
+    const configs = SiteConfigurationLoader.getConfigurations();
     assert.strictEqual(Object.keys(configs).length, 2);
     assert.strictEqual(configs.rekry.name, 'rekry');
     assert.strictEqual(configs.rekry.urls.base, 'https://helfi-rekry.docker.so');
     assert.strictEqual(configs['another'].name, 'another-site');
   });
 
-  await t.test('loadConfigurations uses prod environment when specified', async () => {
+  await t.test('static getConfiguration uses prod environment when specified', () => {
     process.env.ENVIRONMENT = 'prod';
 
-    const loader = SiteConfigurationLoader.getInstance();
-    await loader.loadConfigurations();
-
-    const rekryConfig = loader.getConfiguration('rekry');
+    const rekryConfig = SiteConfigurationLoader.getConfiguration('rekry');
     assert.strictEqual(rekryConfig?.urls.base, 'https://hel.fi');
   });
 
-  await t.test('loadConfigurations uses local environment', async () => {
+  await t.test('static getConfiguration uses local environment', () => {
     process.env.ENVIRONMENT = 'local';
 
-    const loader = SiteConfigurationLoader.getInstance();
-    await loader.loadConfigurations();
-
-    const rekryConfig = loader.getConfiguration('rekry');
+    const rekryConfig = SiteConfigurationLoader.getConfiguration('rekry');
     assert.strictEqual(rekryConfig?.urls.base, 'https://helfi-rekry.docker.so');
   });
 
-  await t.test('getConfiguration returns specific site config', async () => {
+  await t.test('static getConfiguration returns specific site config', () => {
     process.env.ENVIRONMENT = 'local';
 
-    const loader = SiteConfigurationLoader.getInstance();
-    await loader.loadConfigurations();
-
-    const rekryConfig = loader.getConfiguration('rekry');
+    const rekryConfig = SiteConfigurationLoader.getConfiguration('rekry');
     assert.ok(rekryConfig);
     assert.strictEqual(rekryConfig.id, 'rekry');
     assert.strictEqual(rekryConfig.name, 'rekry');
@@ -230,50 +218,40 @@ test('SiteConfigurationLoader', async (t) => {
     assert.strictEqual(rekryConfig.mail.templatePath, 'rekry');
   });
 
-  await t.test('getConfiguration returns undefined for non-existent site', async () => {
+  await t.test('static getConfiguration returns undefined for non-existent site', () => {
     process.env.ENVIRONMENT = 'local';
 
-    const loader = SiteConfigurationLoader.getInstance();
-    await loader.loadConfigurations();
-
-    const config = loader.getConfiguration('non-existent');
+    const config = SiteConfigurationLoader.getConfiguration('non-existent');
     assert.strictEqual(config, undefined);
   });
 
-  await t.test('getSiteIds returns array of site IDs', async () => {
+  await t.test('static getSiteIds returns array of site IDs', () => {
     process.env.ENVIRONMENT = 'local';
 
-    const loader = SiteConfigurationLoader.getInstance();
-    await loader.loadConfigurations();
-
-    const siteIds = loader.getSiteIds();
+    const siteIds = SiteConfigurationLoader.getSiteIds();
     assert.ok(Array.isArray(siteIds));
     assert.strictEqual(siteIds.length, 2);
     assert.ok(siteIds.includes('rekry'));
     assert.ok(siteIds.includes('another'));
   });
 
-  await t.test('throws error when configuration directory does not exist', async () => {
+  await t.test('throws error when configuration directory does not exist', () => {
     // Remove conf directory
     fs.rmSync(path.join(tempDir, 'conf'), { recursive: true, force: true });
 
-    const loader = SiteConfigurationLoader.getInstance();
-
-    await assert.rejects(() => loader.loadConfigurations(), /Configuration directory not found/);
+    assert.throws(() => SiteConfigurationLoader.getInstance(), /Configuration directory not found/);
   });
 
-  await t.test('throws error when no JSON files found', async () => {
+  await t.test('throws error when no JSON files found', () => {
     // Empty the conf directory
     const confDir = path.join(tempDir, 'conf');
     fs.rmSync(confDir, { recursive: true, force: true });
     fs.mkdirSync(confDir);
 
-    const loader = SiteConfigurationLoader.getInstance();
-
-    await assert.rejects(() => loader.loadConfigurations(), /No JSON configuration files found/);
+    assert.throws(() => SiteConfigurationLoader.getInstance(), /No JSON configuration files found/);
   });
 
-  await t.test('throws error when environment not found in config', async () => {
+  await t.test('throws error when environment not found in config', () => {
     process.env.ENVIRONMENT = 'staging'; // Not present in mock config
 
     // Ensure we have config files for this test
@@ -282,22 +260,10 @@ test('SiteConfigurationLoader', async (t) => {
       fs.writeFileSync(path.join(confDir, 'rekry.json'), JSON.stringify(mockRekryConfig, null, 2));
     }
 
-    const loader = SiteConfigurationLoader.getInstance();
-
-    await assert.rejects(() => loader.loadConfigurations(), /Environment 'staging' not found in configuration/);
+    assert.throws(() => SiteConfigurationLoader.getInstance(), /Environment 'staging' not found in configuration/);
   });
 
-  await t.test('throws error when accessing methods before loading', () => {
-    const loader = SiteConfigurationLoader.getInstance();
-
-    assert.throws(() => loader.getConfigurations(), /Configurations not loaded/);
-
-    assert.throws(() => loader.getConfiguration('rekry'), /Configurations not loaded/);
-
-    assert.throws(() => loader.getSiteIds(), /Configurations not loaded/);
-  });
-
-  await t.test('throws error for invalid JSON file', async () => {
+  await t.test('throws error for invalid JSON file', () => {
     // Clean up first to ensure only this test file exists
     const confDir = path.join(tempDir, 'conf');
     const files = fs.readdirSync(confDir);
@@ -308,12 +274,10 @@ test('SiteConfigurationLoader', async (t) => {
     // Write invalid JSON
     fs.writeFileSync(path.join(confDir, 'invalid.json'), '{ invalid json');
 
-    const loader = SiteConfigurationLoader.getInstance();
-
-    await assert.rejects(() => loader.loadConfigurations(), /Failed to load configuration/);
+    assert.throws(() => SiteConfigurationLoader.getInstance());
   });
 
-  await t.test('throws error for missing required properties in config', async () => {
+  await t.test('throws error for missing required properties in config', () => {
     // Clean up first to ensure only this test file exists
     const confDir = path.join(tempDir, 'conf');
     const files = fs.readdirSync(confDir);
@@ -336,35 +300,14 @@ test('SiteConfigurationLoader', async (t) => {
       }),
     );
 
-    const loader = SiteConfigurationLoader.getInstance();
-
-    await assert.rejects(() => loader.loadConfigurations(), /Invalid environment configuration/);
+    assert.throws(() => SiteConfigurationLoader.getInstance(), /Invalid environment configuration/);
   });
 
-  await t.test('prevents multiple loadConfigurations calls', async () => {
+  await t.test('getInstance is idempotent (does not reload)', () => {
     process.env.ENVIRONMENT = 'local';
 
-    // Clean up first to ensure we have clean test files
-    const confDir = path.join(tempDir, 'conf');
-    const files = fs.readdirSync(confDir);
-    for (const file of files) {
-      fs.unlinkSync(path.join(confDir, file));
-    }
-
-    // Recreate original test files
-    fs.writeFileSync(path.join(confDir, 'rekry.json'), JSON.stringify(mockRekryConfig, null, 2));
-
-    fs.writeFileSync(path.join(confDir, 'another.json'), JSON.stringify(mockAnotherConfig, null, 2));
-
-    const loader = SiteConfigurationLoader.getInstance();
-
-    // First call should load
-    await loader.loadConfigurations();
-    const firstResult = loader.getConfigurations();
-
-    // Second call should return immediately without reloading
-    await loader.loadConfigurations();
-    const secondResult = loader.getConfigurations();
+    const firstResult = SiteConfigurationLoader.getConfigurations();
+    const secondResult = SiteConfigurationLoader.getConfigurations();
 
     assert.strictEqual(firstResult, secondResult);
   });

@@ -1,10 +1,9 @@
 import * as assert from 'node:assert';
 import { after, before, beforeEach, describe, mock, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';
-import type { FastifyInstance } from 'fastify';
 import { MongoClient } from 'mongodb';
+import type { ATV } from '../../src/lib/atv';
 import { QueueService } from '../../src/lib/queueService';
-import '../../src/plugins/atv';
 import type { FastifyMailer } from '../../src/types/mailer';
 
 describe('QueueService', () => {
@@ -20,7 +19,7 @@ describe('QueueService', () => {
   };
 
   const atv = {
-    atvGetDocumentBatch: mock.fn<FastifyInstance['atvGetDocumentBatch']>(),
+    getDocumentBatch: mock.fn<ATV['getDocumentBatch']>(),
   };
 
   before(async () => {
@@ -34,7 +33,7 @@ describe('QueueService', () => {
   beforeEach(async () => {
     emailSender.sendMail.mock.restore();
     smsSender.sendSms.mock.restore();
-    atv.atvGetDocumentBatch.mock.restore();
+    atv.getDocumentBatch.mock.restore();
 
     // Delete all items.
     await mongo.db().collection('queue').deleteMany({});
@@ -49,7 +48,7 @@ describe('QueueService', () => {
       content: '<html><head><title>Test Email</title></head><body>Hello</body></html>',
     });
 
-    atv.atvGetDocumentBatch.mock.mockImplementation(() =>
+    atv.getDocumentBatch.mock.mockImplementation(() =>
       Promise.resolve([
         {
           // Id that matches atv_id field in queue collection.
@@ -103,7 +102,7 @@ describe('QueueService', () => {
       content: 'Hello SMS',
     });
 
-    atv.atvGetDocumentBatch.mock.mockImplementation(() =>
+    atv.getDocumentBatch.mock.mockImplementation(() =>
       Promise.resolve([
         {
           // Id that matches atv_id field in queue collection.

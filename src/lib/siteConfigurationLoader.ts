@@ -6,6 +6,7 @@ import type {
   SiteConfigurationType,
   SiteEnvironmentConfigType,
 } from '../types/siteConfig';
+import type { SubscriptionCollectionLanguageType } from '../types/subscription';
 
 export class SiteConfigurationLoader {
   private static instance: SiteConfigurationLoader;
@@ -14,24 +15,47 @@ export class SiteConfigurationLoader {
 
   private loaded = false;
 
-  // eslint-disable-next-line no-empty-function
   private constructor() {}
 
   public static getInstance(): SiteConfigurationLoader {
     if (!SiteConfigurationLoader.instance) {
       SiteConfigurationLoader.instance = new SiteConfigurationLoader();
+      SiteConfigurationLoader.instance.loadConfigurations();
     }
 
     return SiteConfigurationLoader.instance;
   }
 
   /**
-   * This function needs to be called after getInstance
-   * to populate site data.
-   *
-   * @fixme call loadConfiguration automatically in getInstance.
+   * Gets all loaded site configurations
+   * @return {SiteConfigurationMapType} The loaded site configurations
    */
-  public async loadConfigurations(): Promise<void> {
+  static getConfigurations(): SiteConfigurationMapType {
+    return SiteConfigurationLoader.getInstance().configurations;
+  }
+
+  /**
+   * Gets a specific site configuration by ID
+   * @param siteId - The site ID to get configuration for
+   * @return The site configuration or undefined if not found
+   */
+  static getConfiguration(siteId: string): SiteConfigurationType | undefined {
+    return SiteConfigurationLoader.getInstance().configurations[siteId];
+  }
+
+  static getSiteIds(): string[] {
+    return Object.keys(SiteConfigurationLoader.getInstance().configurations);
+  }
+
+  static getLocalizedUrl(siteConfig: SiteConfigurationType, langCode: SubscriptionCollectionLanguageType): string {
+    const langKey = langCode.toLowerCase();
+    if (langKey in siteConfig.urls) {
+      return siteConfig.urls[langKey as keyof typeof siteConfig.urls];
+    }
+    return siteConfig.urls.base;
+  }
+
+  private loadConfigurations(): void {
     if (this.loaded) {
       return;
     }
@@ -49,89 +73,53 @@ export class SiteConfigurationLoader {
       throw new Error('No JSON configuration files found in conf/ directory');
     }
 
-    // eslint-disable-next-line no-restricted-syntax
     for (const file of files) {
       const siteId = path.basename(file, '.json');
       const filePath = path.join(configDir, file);
 
-      try {
-        const fileContent = fs.readFileSync(filePath, 'utf8');
-        const rawConfig: SiteConfigurationFileType = JSON.parse(fileContent);
+      const fileContent = fs.readFileSync(filePath, 'utf8');
+      const rawConfig: SiteConfigurationFileType = JSON.parse(fileContent);
 
-        if (!this.validateRawConfiguration(rawConfig)) {
-          throw new Error(`Invalid configuration structure in ${filePath}`);
-        }
-
-        // Extract environment-specific config
-        const envConfig = (rawConfig as Record<string, unknown>)[environment] as SiteEnvironmentConfigType;
-        if (!envConfig) {
-          throw new Error(`Environment '${environment}' not found in configuration ${filePath}`);
-        }
-
-        if (!this.validateEnvironmentConfiguration(envConfig)) {
-          throw new Error(`Invalid environment configuration for '${environment}' in ${filePath}`);
-        }
-
-        const translations = rawConfig.translations ?? undefined;
-        const fieldFormats = rawConfig.fieldFormats ?? undefined;
-
-        // Flatten to runtime configuration
-        this.configurations[siteId] = {
-          id: siteId,
-          name: rawConfig.name,
-          urls: envConfig.urls,
-          subscription: envConfig.subscription,
-          mail: envConfig.mail,
-          elasticProxyUrl: envConfig.elasticProxyUrl,
-          translations,
-          matchField: rawConfig.matchField,
-          fieldFormats,
-        };
-      } catch (error) {
-        throw new Error(`Failed to load configuration from ${filePath}: ${error}`);
+      if (!this.validateRawConfiguration(rawConfig)) {
+        throw new Error(`Invalid configuration structure in ${filePath}`);
       }
+
+      // Extract environment-specific config
+      const envConfig = (rawConfig as Record<string, unknown>)[environment] as SiteEnvironmentConfigType;
+      if (!envConfig) {
+        throw new Error(`Environment '${environment}' not found in configuration ${filePath}`);
+      }
+
+      if (!this.validateEnvironmentConfiguration(envConfig)) {
+        throw new Error(`Invalid environment configuration for '${environment}' in ${filePath}`);
+      }
+
+      const translations = rawConfig.translations ?? undefined;
+      const fieldFormats = rawConfig.fieldFormats ?? undefined;
+
+      // Flatten to runtime configuration
+      this.configurations[siteId] = {
+        id: siteId,
+        name: rawConfig.name,
+        urls: envConfig.urls,
+        subscription: envConfig.subscription,
+        mail: envConfig.mail,
+        elasticProxyUrl: envConfig.elasticProxyUrl,
+        translations,
+        matchField: rawConfig.matchField,
+        fieldFormats,
+      };
     }
 
     this.loaded = true;
   }
 
   /**
-   * Gets all loaded site configurations
-   * @return {SiteConfigurationMapType} The loaded site configurations
-   */
-  public getConfigurations(): SiteConfigurationMapType {
-    if (!this.loaded) {
-      throw new Error('Configurations not loaded. Call loadConfigurations() first.');
-    }
-    return this.configurations;
-  }
-
-  /**
-   * Gets a specific site configuration by ID
-   * @param {string} siteId - The site ID to get configuration for
-   * @return {SiteConfigurationType | undefined} The site configuration or undefined if not found
-   */
-  public getConfiguration(siteId: string): SiteConfigurationType | undefined {
-    if (!this.loaded) {
-      throw new Error('Configurations not loaded. Call loadConfigurations() first.');
-    }
-    return this.configurations[siteId];
-  }
-
-  public getSiteIds(): string[] {
-    if (!this.loaded) {
-      throw new Error('Configurations not loaded. Call loadConfigurations() first.');
-    }
-    return Object.keys(this.configurations);
-  }
-
-  /**
    * Validates that a raw configuration file has required properties
-   * @param {unknown} config - The configuration object to validate
-   * @return {boolean} True if configuration is valid
+   * @param config - The configuration object to validate
+   * @return True if configuration is valid
    */
-  // eslint-disable-next-line class-methods-use-this
-  public validateRawConfiguration(config: unknown): config is SiteConfigurationFileType {
+  private validateRawConfiguration(config: unknown): config is SiteConfigurationFileType {
     if (typeof config !== 'object' || config === null) {
       return false;
     }
@@ -149,11 +137,10 @@ export class SiteConfigurationLoader {
 
   /**
    * Validates that an environment-specific configuration has required properties
-   * @param {unknown} config - The configuration object to validate
-   * @return {boolean} True if environment configuration is valid
+   * @param config - The configuration object to validate
+   * @return True if environment configuration is valid
    */
-  // eslint-disable-next-line class-methods-use-this
-  public validateEnvironmentConfiguration(config: unknown): config is SiteEnvironmentConfigType {
+  private validateEnvironmentConfiguration(config: unknown): config is SiteEnvironmentConfigType {
     if (typeof config !== 'object' || config === null) {
       return false;
     }

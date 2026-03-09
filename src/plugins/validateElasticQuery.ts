@@ -31,9 +31,7 @@ const validateElasticQueryHook = async (request: FastifyRequest, fastify: Fastif
       throw new Error('elastic_query is required');
     }
 
-    const configLoader = SiteConfigurationLoader.getInstance();
-    await configLoader.loadConfigurations();
-    const siteConfig = configLoader.getConfiguration(siteId);
+    const siteConfig = SiteConfigurationLoader.getConfiguration(siteId);
 
     if (!siteConfig) {
       throw new Error(`Invalid site_id: ${siteId}`);

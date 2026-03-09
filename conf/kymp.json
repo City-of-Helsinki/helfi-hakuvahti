@@ -211,16 +211,6 @@
       "en": "hel.fi/remove-vehicle-removal-alert",
       "sv": "hel.fi/redigera-flyttningsvakten"
     },
-    "sms_newhits_code_label": {
-      "fi": "Vahvistuskoodi:",
-      "en": "Confirmation code:",
-      "sv": "Bekräftelsekod:"
-    },
-    "sms_newhits_code_validity": {
-      "fi": "Vahvistuskoodi on voimassa 24 tuntia.",
-      "en": "The confirmation code will be valid for 24 hours.",
-      "sv": "Bekräftelsekoden är giltig i 24 timmar."
-    },
     "sms_renewal_intro": {
       "fi": "Ajoneuvojen siirtovahtisi Helsingin kaupungilta on vanhentumassa",
       "en": "Your Vehicle Removal Alert Service subscription with the City of Helsinki will expire on",
@@ -240,16 +230,6 @@
       "fi": "hel.fi/jatka-siirtovahti",
       "en": "hel.fi/extend-vehicle-removal-alert",
       "sv": "hel.fi/forlang-flyttningsvakten"
-    },
-    "sms_renewal_code_label": {
-      "fi": "Vahvistuskoodi:",
-      "en": "Confirmation code:",
-      "sv": "Bekräftelsekod:"
-    },
-    "sms_renewal_code_validity": {
-      "fi": "Vahvistuskoodi on voimassa 24 tuntia.",
-      "en": "The confirmation code will be valid for 24 hours.",
-      "sv": "Bekräftelsekoden är giltig i 24 timmar."
     }
   },
   "matchField": "created_at",

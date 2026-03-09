@@ -20,12 +20,8 @@ command(
     console.log(`Environment: ${process.env.ENVIRONMENT || 'dev'}\n`);
 
     try {
-      // Load site configurations
-      const configLoader = SiteConfigurationLoader.getInstance();
-      await configLoader.loadConfigurations();
-
       // Use first available site configuration for testing (default to 'rekry')
-      const siteConfigs = configLoader.getConfigurations();
+      const siteConfigs = SiteConfigurationLoader.getConfigurations();
       const siteId = Object.keys(siteConfigs)[0];
       const siteConfig = siteConfigs[siteId];
 
@@ -47,6 +43,7 @@ command(
           {
             hits: [],
             search_description: 'Test search: Open positions in Helsinki',
+            id: 'test-id-123',
           },
           siteConfig,
         );

@@ -1,8 +1,13 @@
+import { randomInt } from 'node:crypto';
 import { ObjectId } from '@fastify/mongodb';
 import type { FastifyPluginAsync } from 'fastify';
+import { findAndVerifySmsSubscription } from '../lib/smsCode';
+import { ActionError, confirmSubscription as confirmAction } from '../lib/subscriptionActions';
 import { Generic500Error, type Generic500ErrorType } from '../types/error';
-
 import {
+  type SmsVerificationRequestType,
+  SmsVerificationResponse,
+  type SubscriptionCollectionType,
   SubscriptionGenericPostResponse,
   type SubscriptionGenericPostResponseType,
   SubscriptionStatus,
@@ -10,8 +15,8 @@ import {
 
 // Confirms subscription
 const confirmSubscription: FastifyPluginAsync = async (fastify, _opts) => {
-  // @fixme change request type to post.
-  fastify.get<{
+  fastify.post<{
+    Params: { id: string; hash: string };
     Reply: SubscriptionGenericPostResponseType | Generic500ErrorType;
   }>(
     '/subscription/confirm/:id/:hash',
@@ -24,34 +29,120 @@ const confirmSubscription: FastifyPluginAsync = async (fastify, _opts) => {
       },
     },
     async (request, reply) => {
-      const { id, hash } = request.params as { id: string; hash: string };
+      const { id, hash } = request.params;
+      try {
+        await confirmAction(
+          fastify.mongo.db?.collection<SubscriptionCollectionType>('subscription'),
+          { _id: new ObjectId(id), hash },
+          'email',
+        );
+      } catch (error) {
+        if (error instanceof ActionError) {
+          const subscription = await fastify.mongo.db?.collection<SubscriptionCollectionType>('subscription')?.findOne({
+            _id: new ObjectId(id),
+            status: SubscriptionStatus.ACTIVE,
+          });
 
-      // Set status to active if the client known object id and hash value.
-      const response = await fastify.mongo.db?.collection('subscription')?.updateOne(
-        {
-          _id: new ObjectId(id),
-          hash,
-          status: SubscriptionStatus.INACTIVE,
+          // Return 409 if subscription was already active.
+          if (subscription) {
+            return reply.code(409).send({
+              // @fixme statusCode is totally useless.
+              statusCode: randomInt(0, 1000),
+              statusMessage: 'Subscription is already confirmed',
+            });
+          }
+
+          return reply.code(error.statusCode).header('Content-Type', 'application/json; charset=utf-8').send({
+            statusCode: error.statusCode,
+            statusMessage: error.message,
+          });
+        }
+
+        throw error;
+      }
+
+      fastify.log.info({
+        level: 'info',
+        message: `Subscription ${id} confirmed`,
+      });
+
+      return reply.code(200).header('Content-Type', 'application/json; charset=utf-8').send({
+        statusCode: 200,
+        statusMessage: 'Subscription enabled.',
+      });
+    },
+  );
+
+  /**
+   * Caller MUST rate limit this endpoint.
+   */
+  fastify.post<{
+    Body: SmsVerificationRequestType;
+    Params: { id: string };
+    Reply: SubscriptionGenericPostResponseType | Generic500ErrorType;
+  }>(
+    '/subscription/sms/confirm/:id',
+    {
+      schema: {
+        response: {
+          200: SubscriptionGenericPostResponse,
+          400: SmsVerificationResponse,
+          500: Generic500Error,
         },
-        { $set: { status: SubscriptionStatus.ACTIVE } },
-      );
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+      const { code } = request.body;
 
-      if (response?.modifiedCount) {
-        fastify.log.info({
-          level: 'info',
-          message: `Subscription ${id} confirmed`,
-        });
+      const verified = await findAndVerifySmsSubscription(fastify.mongo.db?.collection('subscription'), id, code);
 
-        return reply.code(200).header('Content-Type', 'application/json; charset=utf-8').send({
-          statusCode: 200,
-          statusMessage: 'Subscription enabled.',
-        });
-      } else {
-        return reply.code(404).header('Content-Type', 'application/json; charset=utf-8').send({
-          statusCode: 404,
-          statusMessage: 'Subscription not found.',
+      if (!verified) {
+        return reply.code(400).send({
+          // @fixme statusCode is totally useless.
+          statusCode: randomInt(0, 1000),
+          statusMessage: 'Invalid SMS code.',
         });
       }
+
+      try {
+        await confirmAction(fastify.mongo.db?.collection('subscription'), { _id: new ObjectId(id) }, 'sms');
+      } catch (error) {
+        if (error instanceof ActionError) {
+          const subscription = await fastify.mongo.db?.collection<SubscriptionCollectionType>('subscription')?.findOne({
+            _id: new ObjectId(id),
+            status: SubscriptionStatus.ACTIVE,
+          });
+
+          // Return 409 if subscription was already active.
+          if (subscription) {
+            return reply.code(409).send({
+              // @fixme statusCode is totally useless.
+              statusCode: randomInt(0, 1000),
+              statusMessage: 'Subscription is already confirmed',
+            });
+          }
+
+          return reply.code(error.statusCode).send({
+            // @fixme statusCode is totally useless.
+            statusCode: randomInt(0, 1000),
+            statusMessage: error.message,
+          });
+        }
+
+        throw error;
+      }
+
+      fastify.log.info({
+        level: 'info',
+        message: `Subscription ${id} confirmed`,
+      });
+
+      return reply.code(200).send({
+        // @fixme statusCode is totally useless.
+        statusCode: randomInt(0, 1000),
+        statusMessage: 'Subscription enabled.',
+      });
     },
   );
 };

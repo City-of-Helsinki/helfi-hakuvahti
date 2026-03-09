@@ -12,45 +12,56 @@ export const SubscriptionStatusResponse = Type.Object({
 });
 export type SubscriptionStatusResponseType = Static<typeof SubscriptionStatusResponse>;
 
-export const SubscriptionRenewResponse = Type.Object({
-  statusCode: Type.Number(),
-  statusMessage: Type.String(),
-  expiryDate: Type.String(), // ISO date string
-});
-export type SubscriptionRenewResponseType = Static<typeof SubscriptionRenewResponse>;
-
 export const SubscriptionCollectionLanguage = Type.Union([Type.Literal('en'), Type.Literal('fi'), Type.Literal('sv')]);
 export type SubscriptionCollectionLanguageType = Static<typeof SubscriptionCollectionLanguage>;
 
 export const SubscriptionCollection = Type.Object({
-  email: Type.String(),
+  /** Link to the ATV document where user data is stored. */
+  atv_id: Type.Optional(Type.String()),
+  /** Truthy if query information is is stored in ATV. */
+  user_data_in_atv: Type.Optional(Type.Number()),
+
   elastic_query: Type.String(),
-  elastic_query_atv: Type.Optional(Type.Number()),
   search_description: Type.Optional(Type.String()),
-  hash: Type.Optional(Type.String()),
   query: Type.String(),
+  /** Legacy, always empty string. */
+  // @todo figure out how to remove this from schema so
+  //   we don't need to store empty string to this field.
+  email: Type.String(),
+
+  /** An extra layer of protection for the email subscriptions.
+   * The User must know both database is and hash to operate on
+   * email subscription. This enables us to use database ids that
+   * are guessable */
+  hash: Type.Optional(Type.String()),
+  /** Subscription configuration id. See /conf directory. */
   site_id: Type.String(),
+
+  /** Time when the subscription was last renewed. */
   created: Type.Date(),
+  /** Time when the subscription was last modified. */
   modified: Type.Date(),
+  /** When the subscription expires. */
+  delete_after: Type.Optional(Type.Date()),
+  /** Created is updated each time the subscription is renewed. */
+  first_created: Type.Optional(Type.Date()),
+
   lang: SubscriptionCollectionLanguage,
+  /** Notifications are sent if results are newer than last_checked. */
   last_checked: Type.Optional(Type.Number()),
+  /** Flag indicating that the user was notified about an expiring subscription. */
   expiry_notification_sent: Type.Enum(SubscriptionStatus),
   status: Type.Enum(SubscriptionStatus),
-  has_sms: Type.Optional(Type.Boolean()),
-  has_email: Type.Optional(Type.Boolean()),
-  delete_after: Type.Optional(Type.Date()),
-  first_created: Type.Optional(Type.Date()),
-  sms_code: Type.Optional(Type.String()),
-  sms_code_created: Type.Optional(Type.Date()),
+
+  /** Indicates if the email subscription is confirmed. */
+  email_confirmed: Type.Optional(Type.Boolean()),
+  /** Indicates if the sms subscription is confirmed. */
+  sms_confirmed: Type.Optional(Type.Boolean()),
+
+  /** Similar to hash but for sms subscriptions. */
+  sms_secret: Type.String(),
 });
 export type SubscriptionCollectionType = Static<typeof SubscriptionCollection>;
-
-// Subscription renewal
-export const RenewalSubscription = Type.Intersect([
-  Type.Pick(SubscriptionCollection, ['email', 'site_id', 'status', 'created', 'first_created']),
-  Type.Object({ _id: Type.Unknown() }),
-]);
-export type RenewalSubscriptionType = Static<typeof RenewalSubscription>;
 
 // MongoDB response when inserting:
 export const SubscriptionResponse = Type.Object({
@@ -64,7 +75,7 @@ export type SubscriptionResponseType = Static<typeof SubscriptionResponse>;
 // Request to add new subscription (either email or sms is required, both allowed):
 const SubscriptionRequestBase = Type.Object({
   elastic_query: Type.String(),
-  elastic_query_atv: Type.Optional(Type.Number()),
+  user_data_in_atv: Type.Optional(Type.Number()),
   query: Type.String(),
   search_description: Type.Optional(Type.String()),
   site_id: Type.String(),
@@ -105,8 +116,7 @@ export type SubscriptionGenericPostResponseType = Static<typeof SubscriptionGene
 
 // SMS verification request
 export const SmsVerificationRequest = Type.Object({
-  sms_code: Type.String(),
-  number: Type.String(),
+  code: Type.String(),
 });
 export type SmsVerificationRequestType = Static<typeof SmsVerificationRequest>;
 
@@ -114,34 +124,5 @@ export type SmsVerificationRequestType = Static<typeof SmsVerificationRequest>;
 export const SmsVerificationResponse = Type.Object({
   statusCode: Type.Number(),
   statusMessage: Type.String(),
-  expiryDate: Type.Optional(Type.String()),
 });
 export type SmsVerificationResponseType = Static<typeof SmsVerificationResponse>;
-
-// Subscription document for SMS verification
-export const VerificationSubscription = Type.Intersect([
-  Type.Pick(SubscriptionCollection, [
-    'email',
-    'site_id',
-    'status',
-    'created',
-    'first_created',
-    'sms_code',
-    'sms_code_created',
-  ]),
-  Type.Object({ _id: Type.Unknown() }),
-]);
-export type VerificationSubscriptionType = Static<typeof VerificationSubscription>;
-
-// SMS verification result
-export const SmsVerificationResult = Type.Object({
-  success: Type.Boolean(),
-  subscription: Type.Optional(VerificationSubscription),
-  error: Type.Optional(
-    Type.Object({
-      statusCode: Type.Number(),
-      statusMessage: Type.String(),
-    }),
-  ),
-});
-export type SmsVerificationResultType = Static<typeof SmsVerificationResult>;

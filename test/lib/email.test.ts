@@ -165,7 +165,7 @@ test('newHitsSms renders hits through hit_item template with field formatters', 
     {
       hits,
       search_description: 'Testihaku',
-      sms_code: '123456',
+      id: '123456',
     },
     configWithFormats,
   );

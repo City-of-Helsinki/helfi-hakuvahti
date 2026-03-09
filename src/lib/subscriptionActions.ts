@@ -1,85 +1,88 @@
-import type { Collection, ObjectId } from 'mongodb';
-import type { SiteConfigurationType } from '../types/siteConfig';
-import { type RenewalSubscriptionType, SubscriptionStatus } from '../types/subscription';
+import type { Collection, Filter } from 'mongodb';
+import { type SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription';
+import { ATV } from './atv';
+import { SiteConfigurationLoader } from './siteConfigurationLoader';
 
-export interface ActionResult {
-  success: boolean;
+export type SubscriptionCollection = Collection<SubscriptionCollectionType>;
+export type SubscriptionFilter = Filter<SubscriptionCollectionType>;
+export type SubscriptionChannel = 'email' | 'sms';
+
+export class ActionError extends Error {
   statusCode: number;
-  statusMessage: string;
-  expiryDate?: string;
+  constructor(statusCode: number, message: string) {
+    super(message);
+    this.statusCode = statusCode;
+  }
 }
-
-// Type for ATV update function (injected from Fastify decorator)
-export type AtvUpdateFn = (docId: string, maxAge: number, fromDate: Date) => Promise<unknown>;
 
 /**
  * Confirms a subscription by setting status from INACTIVE to ACTIVE.
  */
-export async function confirmSubscription(collection: Collection, subscriptionId: ObjectId): Promise<ActionResult> {
-  const result = await collection.updateOne(
-    { _id: subscriptionId, status: SubscriptionStatus.INACTIVE },
-    {
-      $set: { status: SubscriptionStatus.ACTIVE },
-      $unset: { sms_code: 1, sms_code_created: 1 },
-    },
-  );
+export async function confirmSubscription(
+  collection: SubscriptionCollection | undefined,
+  filter: SubscriptionFilter,
+  channel: SubscriptionChannel,
+): Promise<void> {
+  const confirmedField = `${channel}_confirmed` as 'email_confirmed' | 'sms_confirmed';
 
-  if (result.modifiedCount === 0) {
-    return {
-      success: false,
-      statusCode: 404,
-      statusMessage: 'Subscription not found or already confirmed.',
-    };
-  }
-
-  return {
-    success: true,
-    statusCode: 200,
-    statusMessage: 'Subscription confirmed.',
+  const $set: Partial<SubscriptionCollectionType> = {
+    status: SubscriptionStatus.ACTIVE,
+    [confirmedField]: true,
+    modified: new Date(),
   };
+
+  const result = await collection?.updateOne({ [confirmedField]: false, ...filter }, { $set });
+
+  if (!result || result.modifiedCount === 0) {
+    throw new ActionError(404, 'Subscription not found or already confirmed.');
+  }
 }
 
 /**
  * Deletes a subscription.
  */
-export async function deleteSubscription(collection: Collection, subscriptionId: ObjectId): Promise<ActionResult> {
-  const result = await collection.deleteOne({ _id: subscriptionId });
+export async function deleteSubscription(
+  collection: SubscriptionCollection | undefined,
+  filter: SubscriptionFilter,
+): Promise<void> {
+  const result = await collection?.deleteOne(filter);
 
-  if (result.deletedCount === 0) {
-    return {
-      success: false,
-      statusCode: 404,
-      statusMessage: 'Subscription not found.',
-    };
+  if (!result || result.deletedCount === 0) {
+    throw new ActionError(404, 'Subscription not found.');
   }
-
-  return {
-    success: true,
-    statusCode: 200,
-    statusMessage: 'Subscription deleted.',
-  };
 }
 
 /**
  * Renews a subscription with full validation.
- * - Must be ACTIVE status
- * - Must be within renewal window (past expiry notification date)
- * - Updates ATV document delete_after
- * - Updates subscription timestamps
+ * Finds the subscription by filter, validates status and renewal window,
+ * updates ATV document, and resets subscription timestamps.
+ *
  */
 export async function renewSubscription(
-  collection: Collection,
-  subscription: RenewalSubscriptionType,
-  siteConfig: SiteConfigurationType,
-  atvUpdateFn: AtvUpdateFn,
-): Promise<ActionResult> {
+  collection: SubscriptionCollection | undefined,
+  filter: SubscriptionFilter,
+  atv: ATV,
+): Promise<void> {
+  if (!collection) {
+    throw new ActionError(404, 'Subscription not found.');
+  }
+
+  const subscription = await collection.findOne(filter);
+
+  if (!subscription) {
+    throw new ActionError(404, 'Subscription not found.');
+  }
+
   // Check ACTIVE status
   if (subscription.status !== SubscriptionStatus.ACTIVE) {
-    return {
-      success: false,
-      statusCode: 400,
-      statusMessage: 'Only active subscriptions can be renewed.',
-    };
+    throw new ActionError(400, 'Only active subscriptions can be renewed.');
+  }
+
+  // Load site configuration
+  const siteConfig = SiteConfigurationLoader.getConfiguration(subscription.site_id);
+
+  if (!siteConfig) {
+    throw new ActionError(500, 'Site configuration not found.');
   }
 
   // Check renewal window
@@ -88,57 +91,29 @@ export async function renewSubscription(
   const expiryNotificationDate = new Date(subscriptionExpiresAt - expiryNotificationDays * 24 * 60 * 60 * 1000);
 
   if (Date.now() < expiryNotificationDate.getTime()) {
-    return {
-      success: false,
-      statusCode: 400,
-      statusMessage: 'Subscription cannot be renewed yet.',
-    };
+    throw new ActionError(400, 'Subscription cannot be renewed yet.');
   }
 
   // Update ATV document delete_after
   const now = new Date();
   try {
-    await atvUpdateFn(subscription.email, maxAge, now);
+    await atv.updateDocumentDeleteAfter(ATV.getAtvId(subscription), maxAge, now);
   } catch (_error) {
-    return {
-      success: false,
-      statusCode: 500,
-      statusMessage: 'Failed to update subscription expiry in storage.',
-    };
+    throw new ActionError(500, 'Failed to update subscription expiry in storage.');
   }
 
   // Calculate new delete_after
   const newDeleteAfter = new Date(now);
   newDeleteAfter.setDate(newDeleteAfter.getDate() + maxAge);
 
-  // Build update fields
-  const updateFields: Record<string, unknown> = {
+  const $set: Partial<SubscriptionCollectionType> = {
+    // Reset created so expiration checks (created + maxAge) use the renewed date,
+    // not the original subscription creation date.
     created: now,
     modified: now,
     expiry_notification_sent: SubscriptionStatus.INACTIVE,
     delete_after: newDeleteAfter,
   };
 
-  // Preserve original created date on first renewal
-  if (!subscription.first_created) {
-    updateFields.first_created = subscription.created;
-  }
-
-  await collection.updateOne(
-    { _id: subscription._id as ObjectId },
-    {
-      $set: updateFields,
-      $unset: { sms_code: 1, sms_code_created: 1 },
-    },
-  );
-
-  // Calculate new expiry date
-  const newExpiryDate = new Date(Date.now() + maxAge * 24 * 60 * 60 * 1000);
-
-  return {
-    success: true,
-    statusCode: 200,
-    statusMessage: 'Subscription renewed successfully.',
-    expiryDate: newExpiryDate.toISOString(),
-  };
+  await collection.updateOne({ _id: subscription._id }, { $set });
 }

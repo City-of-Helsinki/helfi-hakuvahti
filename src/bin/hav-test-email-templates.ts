@@ -1,4 +1,5 @@
 import type { Collection } from 'mongodb';
+import { ATV } from '../lib/atv';
 import command from '../lib/command';
 import { confirmationEmail, expiryEmail, newHitsEmail } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
@@ -13,10 +14,12 @@ import type { SubscriptionCollectionLanguageType } from '../types/subscription';
 // Dummy data
 const DUMMY_DATA = {
   confirmation: {
+    id: '123',
     link: 'https://dummyconfirmation',
     search_description: 'Testihaku',
   },
   expiry: {
+    id: '123',
     link: 'https://dummysearch',
     search_description: 'IT-asiantuntija',
     removal_date: '31.12.2025',
@@ -25,6 +28,7 @@ const DUMMY_DATA = {
     search_link: '/fi/avoimet-tyopaikat/etsi-avoimia-tyopaikkoja',
   },
   newhits: {
+    id: '123',
     hits: [
       {
         _language: 'fi',
@@ -106,21 +110,19 @@ command(
     const subscriptionCollection = server.mongo.db.collection('subscription');
     const latestSubscription = await subscriptionCollection.findOne(
       {},
-      { sort: { _id: -1 }, projection: { email: 1 } },
+      { sort: { _id: -1 }, projection: { email: 1, atv_id: 1 } },
     );
 
-    if (!latestSubscription?.email) {
+    if (!latestSubscription) {
       throw new Error('Create test subscription first.');
     }
 
     const siteId = argv.site;
-    const testEmail = latestSubscription.email;
+    const testEmail = ATV.getAtvId(latestSubscription);
 
     console.log(`Site: ${siteId}`);
 
-    const configLoader = SiteConfigurationLoader.getInstance();
-    await configLoader.loadConfigurations();
-    const siteConfig = configLoader.getConfiguration(siteId);
+    const siteConfig = SiteConfigurationLoader.getConfiguration(siteId);
 
     if (!siteConfig) {
       throw new Error('Site configuration not found');

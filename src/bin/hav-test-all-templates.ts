@@ -73,6 +73,7 @@ const buildTestData = (siteConfig: SiteConfigurationType) => {
       expiry_date: '15.05.2026',
     },
     sms: {
+      id: '123',
       sms_code: '123456',
       search_description: 'Testihaku',
       expiry_date: '15.05.2026',
@@ -137,13 +138,13 @@ async function renderAndSendSiteTemplates(
 
     // 4. SMS templates (rendered as email for Mailpit viewing)
     if (templateExists(siteConfig, 'sms/confirmation.txt')) {
-      const confirmSms = await confirmationSms(lang, { sms_code: testData.sms.sms_code }, siteConfig);
+      const confirmSms = await confirmationSms(lang, { sms_code: testData.sms.sms_code, id: '123' }, siteConfig);
       await sendTemplate(emailSender, testEmail, wrapSmsAsHtml(confirmSms, `${siteId} / ${lang} / confirmation`));
       count++;
     }
 
     if (templateExists(siteConfig, 'sms/newhits.txt')) {
-      const newhitsSmsText = await newHitsSms(lang, { hits, ...testData.sms }, siteConfig);
+      const newhitsSmsText = await newHitsSms(lang, { hits, ...testData.sms, id: '123' }, siteConfig);
       await sendTemplate(emailSender, testEmail, wrapSmsAsHtml(newhitsSmsText, `${siteId} / ${lang} / newhits`));
       count++;
     }
@@ -166,14 +167,12 @@ command(
       throw new Error('--email parameter required. Example: npm run hav:test-all-templates -- --email=test@test.fi');
     }
 
-    const configLoader = SiteConfigurationLoader.getInstance();
-    await configLoader.loadConfigurations();
-    const siteIds = configLoader.getSiteIds();
+    const siteIds = SiteConfigurationLoader.getSiteIds();
 
     let totalSent = 0;
 
     for (const siteId of siteIds) {
-      const siteConfig = configLoader.getConfiguration(siteId);
+      const siteConfig = SiteConfigurationLoader.getConfiguration(siteId);
       if (!siteConfig) {
         console.warn(`Skipping ${siteId}: configuration not found`);
         continue;

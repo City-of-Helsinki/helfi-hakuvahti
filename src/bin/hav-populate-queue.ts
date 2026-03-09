@@ -2,16 +2,22 @@ import type { ObjectId } from '@fastify/mongodb';
 import command, { type Server } from '../lib/command';
 import { expiryEmail, newHitsEmail, newHitsSms, renewalSms } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
-import { generateUniqueSmsCode } from '../lib/smsCode';
 import atv from '../plugins/atv';
 import base64Plugin from '../plugins/base64';
 import elasticproxy from '../plugins/elasticproxy';
 import mongodb from '../plugins/mongodb';
 import '../plugins/sentry';
+import type { WithId } from 'mongodb';
+import { ATV } from '../lib/atv';
 import type { ElasticProxyJsonResponseType } from '../types/elasticproxy';
 import type { QueueInsertDocument } from '../types/queue';
 import type { SiteConfigurationType } from '../types/siteConfig';
 import { type SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription';
+
+const isEmailActive = (sub: Partial<SubscriptionCollectionType>): boolean =>
+  sub.email_confirmed !== undefined ? sub.email_confirmed === true : sub.status === SubscriptionStatus.ACTIVE; // legacy fallback
+
+const isSmsActive = (sub: Partial<SubscriptionCollectionType>): boolean => sub.sms_confirmed === true;
 
 // Statistics tracking
 interface ProcessingStats {
@@ -21,14 +27,6 @@ interface ProcessingStats {
   newResultsEmailsQueued: number;
   smsQueued: number;
 }
-
-export const getLocalizedUrl = (siteConfig: SiteConfigurationType, langCode?: string): string => {
-  const langKey = (langCode || 'fi').toLowerCase() as keyof typeof siteConfig.urls;
-  if (langKey in siteConfig.urls) {
-    return siteConfig.urls[langKey];
-  }
-  return siteConfig.urls.base;
-};
 
 // Command line/cron application
 // to query for new results for subscriptions from
@@ -41,7 +39,7 @@ export const getLocalizedUrl = (siteConfig: SiteConfigurationType, langCode?: st
  * @param modifyStatus - the status to modify subscriptions
  * @param olderThanDays - the number of days to consider for deletion
  * @param siteId - the site ID to filter subscriptions
- * @return {Promise<void>} Promise that resolves when the subscriptions are deleted
+ * @return Promise that resolves when the subscriptions are deleted
  */
 const massDeleteSubscriptions = async (
   server: Server,
@@ -128,27 +126,17 @@ export const needsDeleteAfterSync = (storedDeleteAfter: Date | undefined, expect
 };
 
 const getNewHitsFromElasticsearch = async (
-  subscription: SubscriptionCollectionType & { _id: ObjectId },
+  subscription: WithId<SubscriptionCollectionType>,
   siteConfig: SiteConfigurationType,
   server: Server,
+  resolvedElasticQuery?: string,
 ): Promise<Record<string, unknown>[]> => {
-  let elasticQuery: string;
-
-  if (subscription.elastic_query_atv) {
-    try {
-      const atvContent = await server.atvGetDocument(subscription.elastic_query as string);
-      const queryObj = typeof atvContent === 'string' ? JSON.parse(atvContent) : atvContent;
-      elasticQuery = server.b64decode(queryObj.elastic_query);
-    } catch (e) {
-      console.error(`Failed to load query from ATV for ${subscription._id}`, e);
-      return [];
-    }
-  } else if (subscription.elastic_query) {
-    elasticQuery = server.b64decode(subscription.elastic_query);
-  } else {
-    console.error(`Subscription ${subscription._id} has neither elastic_query nor elastic_query_atv`);
+  if (!resolvedElasticQuery) {
+    console.error(`Subscription ${subscription._id} has no elastic_query`);
     return [];
   }
+
+  const elasticQuery = server.b64decode(resolvedElasticQuery);
 
   const lastChecked: number = subscription.last_checked ? subscription.last_checked : Math.floor(Date.now() / 1000);
 
@@ -182,6 +170,8 @@ const getNewHitsFromElasticsearch = async (
 /**
  * Processes subscriptions for a specific site configuration.
  *
+ * @todo extract these function to a service so this can be tested.
+ *
  * @param server - Fastify server instance.
  * @param siteConfig - The site configuration to process
  * @param stats - Statistics object to track processing
@@ -202,6 +192,8 @@ const processSiteSubscriptions = async (
   }
 
   // List of all enabled subscriptions for this site
+  // @fixme This query needs to have a limit so the memory
+  //   usage doesn't grow without bounds.
   const result = await collection
     .find({
       status: SubscriptionStatus.ACTIVE,
@@ -215,7 +207,24 @@ const processSiteSubscriptions = async (
   await result.reduce(async (previousPromise, subscription) => {
     await previousPromise;
 
-    const localizedBaseUrl = getLocalizedUrl(siteConfig, subscription.lang);
+    // Resolve user data from ATV if stored there
+    let resolvedQuery: string = subscription.query;
+    let resolvedSearchDescription: string = subscription.search_description ?? '';
+    let resolvedElasticQuery: string | undefined = subscription.elastic_query;
+
+    if (subscription.user_data_in_atv) {
+      try {
+        const atvData = await server.atv.getDocument(ATV.getAtvId(subscription));
+        resolvedQuery = atvData.query ?? '';
+        resolvedSearchDescription = atvData.search_description ?? '';
+        resolvedElasticQuery = atvData.elastic_query;
+      } catch (e) {
+        console.error(`Failed to load user data from ATV for ${subscription._id}`, e);
+        return Promise.resolve();
+      }
+    }
+
+    const localizedBaseUrl = SiteConfigurationLoader.getLocalizedUrl(siteConfig, subscription.lang);
 
     // Calculate subscription expiry date
     const subscriptionValidForDays = siteConfig.subscription.maxAge;
@@ -231,8 +240,8 @@ const processSiteSubscriptions = async (
         );
       } else {
         try {
-          await server.atvUpdateDocumentDeleteAfter(
-            subscription.email,
+          await server.atv.updateDocumentDeleteAfter(
+            ATV.getAtvId(subscription),
             subscriptionValidForDays,
             new Date(subscription.created),
           );
@@ -254,7 +263,7 @@ const processSiteSubscriptions = async (
     // If subscription should expire soon, send an expiration email
     if (checkShouldSendExpiryNotification(subscription as Partial<SubscriptionCollectionType>, siteConfig)) {
       if (isDryRun) {
-        console.log(`[DRY RUN] Would send expiry email to ${subscription.email} (site: ${siteConfig.id})`);
+        console.log(`[DRY RUN] Would send expiry email to ${ATV.getAtvId(subscription)} (site: ${siteConfig.id})`);
       } else {
         await collection.updateOne({ _id: subscription._id }, { $set: { expiry_notification_sent: 1 } });
       }
@@ -262,59 +271,51 @@ const processSiteSubscriptions = async (
       const expiryEmailContent = await expiryEmail(
         subscription.lang,
         {
-          search_description: subscription.search_description,
-          link: siteConfig.urls.base + subscription.query,
+          search_description: resolvedSearchDescription,
+          link: siteConfig.urls.base + resolvedQuery,
           removal_date: formattedExpiryDate,
           remove_link: `${localizedBaseUrl}/hakuvahti/unsubscribe?subscription=${subscription._id}&hash=${subscription.hash}`,
           renewal_link: `${localizedBaseUrl}/hakuvahti/renew?subscription=${subscription._id}&hash=${subscription.hash}`,
-          search_link: subscription.query,
+          search_link: resolvedQuery,
         },
         siteConfig,
       );
 
-      const expiryEmailToQueue: QueueInsertDocument = {
-        type: 'email',
-        atv_id: subscription.email,
-        content: expiryEmailContent,
-      };
+      // Queue expiry email if email is active
+      if (isEmailActive(subscription as Partial<SubscriptionCollectionType>)) {
+        const expiryEmailToQueue: QueueInsertDocument = {
+          type: 'email',
+          atv_id: ATV.getAtvId(subscription),
+          content: expiryEmailContent,
+        };
 
-      // Add email to queue
-      if (!isDryRun) {
-        await queueCollection.insertOne(expiryEmailToQueue);
+        if (!isDryRun) {
+          await queueCollection.insertOne(expiryEmailToQueue);
+        }
+        stats.expiryEmailsQueued++;
       }
-      stats.expiryEmailsQueued++;
 
       // Queue renewal SMS if subscription has SMS and site supports it
-      if (subscription.has_sms && siteConfig.subscription.enableSms) {
+      if (isSmsActive(subscription as Partial<SubscriptionCollectionType>) && siteConfig.subscription.enableSms) {
         try {
-          const smsCode = await generateUniqueSmsCode(collection);
-          const now = new Date();
-
-          if (!isDryRun) {
-            await collection.updateOne(
-              { _id: subscription._id },
-              { $set: { sms_code: smsCode, sms_code_created: now } },
-            );
-          }
-
           const smsContent = await renewalSms(
             subscription.lang,
             {
               expiry_date: formattedExpiryDate,
-              search_description: subscription.search_description,
-              sms_code: smsCode,
+              search_description: resolvedSearchDescription,
+              id: subscription._id.toString(),
             },
             siteConfig,
           );
 
           const smsToQueue: QueueInsertDocument = {
             type: 'sms',
-            atv_id: subscription.email,
+            atv_id: ATV.getAtvId(subscription),
             content: smsContent,
           };
 
           if (isDryRun) {
-            console.log(`[DRY RUN] Would queue renewal SMS for ${subscription._id} with code ${smsCode}`);
+            console.log(`[DRY RUN] Would queue renewal SMS for ${subscription._id}`);
           } else {
             await queueCollection.insertOne(smsToQueue);
           }
@@ -329,6 +330,7 @@ const processSiteSubscriptions = async (
       subscription as SubscriptionCollectionType & { _id: ObjectId },
       siteConfig,
       server,
+      resolvedElasticQuery,
     );
 
     // No new hits
@@ -351,64 +353,59 @@ const processSiteSubscriptions = async (
       {
         created_date: formattedCreatedDate,
         expiry_date: formattedExpiryDate,
-        search_description: subscription.search_description,
-        search_link: subscription.query,
+        search_description: resolvedSearchDescription,
+        search_link: resolvedQuery,
         remove_link: `${localizedBaseUrl}/hakuvahti/unsubscribe?subscription=${subscription._id}&hash=${subscription.hash}`,
         hits: hitsForEmail,
       },
       siteConfig,
     );
 
-    const email: QueueInsertDocument = {
-      type: 'email',
-      atv_id: subscription.email,
-      content: emailContent,
-    };
+    // Queue new hits email if email is active
+    if (isEmailActive(subscription as Partial<SubscriptionCollectionType>)) {
+      const email: QueueInsertDocument = {
+        type: 'email',
+        atv_id: ATV.getAtvId(subscription),
+        content: emailContent,
+      };
 
-    if (isDryRun) {
-      console.log(
-        `[DRY RUN] Would queue email for ${subscription.email}: ${newHits.length} new result(s) (site: ${siteConfig.id})`,
-      );
-    } else {
-      // Add email to queue
-      await queueCollection.insertOne(email);
+      if (isDryRun) {
+        console.log(
+          `[DRY RUN] Would queue email for ${ATV.getAtvId(subscription)}: ${newHits.length} new result(s) (site: ${siteConfig.id})`,
+        );
+      } else {
+        await queueCollection.insertOne(email);
+      }
+      stats.newResultsEmailsQueued++;
+    }
 
-      // Set last checked timestamp to this moment
+    // Update last_checked regardless of channel
+    if (!isDryRun) {
       const dateUnixtime: number = Math.floor(Date.now() / 1000);
       await collection.updateOne({ _id: subscription._id }, { $set: { last_checked: dateUnixtime } });
     }
-    stats.newResultsEmailsQueued++;
 
-    // Queue SMS if subscription has SMS flag and SMS is enabled for site
-    if (subscription.has_sms && siteConfig.subscription.enableSms) {
+    // Queue SMS if subscription has SMS confirmed and SMS is enabled for site
+    if (isSmsActive(subscription as Partial<SubscriptionCollectionType>) && siteConfig.subscription.enableSms) {
       try {
-        // Regenerate SMS code for this notification
-        const smsCode = await generateUniqueSmsCode(collection);
-        const now = new Date();
-
-        // Update subscription with new SMS code
-        if (!isDryRun) {
-          await collection.updateOne({ _id: subscription._id }, { $set: { sms_code: smsCode, sms_code_created: now } });
-        }
-
         const smsContent = await newHitsSms(
           subscription.lang,
           {
+            search_description: resolvedSearchDescription,
+            id: subscription._id.toString(),
             hits: hitsForEmail,
-            search_description: subscription.search_description,
-            sms_code: smsCode,
           },
           siteConfig,
         );
 
         const smsToQueue: QueueInsertDocument = {
           type: 'sms',
-          atv_id: subscription.email,
+          atv_id: ATV.getAtvId(subscription),
           content: smsContent,
         };
 
         if (isDryRun) {
-          console.log(`[DRY RUN] Would queue SMS for ${subscription._id} with code ${smsCode}`);
+          console.log(`[DRY RUN] Would queue SMS for ${subscription._id}`);
         } else {
           await queueCollection.insertOne(smsToQueue);
         }
@@ -451,9 +448,7 @@ const app = async (targetSite: string | undefined, isDryRun: boolean, server: Se
     console.log('Loading site configurations...');
 
     // Load site configurations
-    const configLoader = SiteConfigurationLoader.getInstance();
-    await configLoader.loadConfigurations();
-    const allSiteConfigs = configLoader.getConfigurations();
+    const allSiteConfigs = SiteConfigurationLoader.getConfigurations();
 
     // Filter by --site parameter if provided
     let siteConfigsToProcess = Object.entries(allSiteConfigs);
@@ -509,9 +504,7 @@ command(
     const isDryRun: boolean = argv['dry-run'] === true;
 
     // Load site configurations
-    const configLoader = SiteConfigurationLoader.getInstance();
-    await configLoader.loadConfigurations();
-    const siteConfigs = configLoader.getConfigurations();
+    const siteConfigs = SiteConfigurationLoader.getConfigurations();
 
     // Clean up expired subscriptions for each site
     await Object.entries(siteConfigs).reduce(async (previousPromise, [siteId, siteConfig]) => {

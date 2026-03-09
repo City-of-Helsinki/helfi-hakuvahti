@@ -9,7 +9,7 @@ describe('/subscription/renew', () => {
     const app = await build(t);
 
     const res = await app.inject({
-      method: 'GET',
+      method: 'POST',
       url: `/subscription/renew/${new ObjectId()}/invalidhash`,
       headers: { Authorization: 'api-key test' },
     });
@@ -31,7 +31,7 @@ describe('/subscription/renew', () => {
     });
 
     const res = await app.inject({
-      method: 'GET',
+      method: 'POST',
       url: `/subscription/renew/${subscriptionId}/${hash}`,
       headers: { Authorization: 'api-key test' },
     });
@@ -52,7 +52,7 @@ describe('/subscription/renew', () => {
     });
 
     // Mock ATV update to always succeed
-    (app as any).atvUpdateDocumentDeleteAfter = atvMock;
+    (app as any).atv.updateDocumentDeleteAfter = atvMock;
 
     // Create a subscription that's old enough to renew (87 days ago)
     const oldDate = new Date(Date.now() - 87 * 24 * 60 * 60 * 1000);
@@ -69,7 +69,7 @@ describe('/subscription/renew', () => {
     });
 
     const res = await app.inject({
-      method: 'GET',
+      method: 'POST',
       url: `/subscription/renew/${subscriptionId}/${hash}`,
       headers: { Authorization: 'api-key test' },
     });
@@ -78,21 +78,14 @@ describe('/subscription/renew', () => {
     const body = JSON.parse(res.payload);
     assert.strictEqual(body.statusCode, 200);
     assert.strictEqual(body.statusMessage, 'Subscription renewed successfully.');
-    assert.ok(body.expiryDate, 'Should return new expiry date');
 
     const updated = await collection?.findOne({ _id: subscriptionId });
     assert.ok(updated, 'Subscription should exist');
-    assert.ok(updated?.created.getTime() > oldDate.getTime(), 'Created date should be updated');
-    assert.ok(updated?.first_created, 'first_created should be set');
-    assert.strictEqual(updated?.first_created.getTime(), oldDate.getTime(), 'Original date should be archived');
+    assert.ok(updated?.modified.getTime() > oldDate.getTime(), 'Modified date should be updated');
     assert.strictEqual(updated?.expiry_notification_sent, 0, 'Expiry notification should be reset');
 
     // Verify delete_after is updated on renewal
     assert.ok(updated?.delete_after, 'delete_after should be set after renewal');
-    assert.ok(
-      updated?.delete_after.getTime() > updated?.created.getTime(),
-      'delete_after should be after new created date',
-    );
 
     assert.ok(atvMock.mock.callCount() >= 1);
   });

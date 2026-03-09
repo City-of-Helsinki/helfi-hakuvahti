@@ -78,6 +78,9 @@ command(
               email: {
                 bsonType: 'string',
               },
+              atv_id: {
+                bsonType: 'string',
+              },
               elastic_query: {
                 bsonType: 'string',
               },

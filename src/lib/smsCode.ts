@@ -1,123 +1,57 @@
-import { randomInt } from 'node:crypto';
+import { createHmac } from 'node:crypto';
+import { ObjectId } from '@fastify/mongodb';
 import type { Collection } from 'mongodb';
-import type { AtvDocumentType } from '../types/atv';
-import type { SmsVerificationResultType, VerificationSubscriptionType } from '../types/subscription';
+import type { SubscriptionCollectionType } from '../types/subscription';
 
-// Type for ATV query function (matches Fastify decorator return type)
-export type AtvQueryFn = (docId: string) => Promise<Partial<AtvDocumentType>>;
+export const TIME_WINDOW_MS = 30 * 60 * 1000;
 
-/**
- * Generates a unique 6-digit SMS verification code.
- * Retries up to maxAttempts to avoid collisions with existing active codes.
- */
-export async function generateUniqueSmsCode(collection: Collection | undefined): Promise<string> {
-  const maxAttempts = 10;
+export function hotp(secret: Buffer, counter: number, algorithm: string = 'sha1', digits: number = 6): string {
+  const stepBuffer = Buffer.alloc(8);
 
-  for (let i = 0; i < maxAttempts; i++) {
-    const code = String(randomInt(1000000)).padStart(6, '0');
+  stepBuffer.writeBigUInt64BE(BigInt(counter));
 
-    // Check if code exists among active subscriptions
-    const existing = await collection?.findOne({
-      sms_code: code,
-      sms_code_created: { $exists: true },
-    });
+  const hmac = createHmac(algorithm, secret).update(stepBuffer).digest();
 
-    if (!existing) {
-      return code;
-    }
-  }
+  // HOTP dynamic truncation (RFC 4226)
+  const offset = hmac[hmac.length - 1] & 0x0f;
+  const code =
+    ((hmac[offset] & 0x7f) << 24) |
+    ((hmac[offset + 1] & 0xff) << 16) |
+    ((hmac[offset + 2] & 0xff) << 8) |
+    (hmac[offset + 3] & 0xff);
 
-  throw new Error('Failed to generate unique SMS code after maximum attempts');
+  // code = truncation results % (10 ^ digits).
+  return (code % 10 ** digits).toString().padStart(6, '0');
 }
 
 /**
- * Validates that the input matches the last 3 digits of the stored phone number.
- */
-export function validatePhoneSuffix(storedPhone: string, inputSuffix: string): boolean {
-  if (!storedPhone || !inputSuffix) {
-    return false;
-  }
-
-  // Extract digits only
-  const phoneDigits = storedPhone.replace(/\D/g, '');
-  const inputDigits = inputSuffix.replace(/\D/g, '');
-
-  // Get last 3 digits of stored phone
-  const last3 = phoneDigits.slice(-3);
-
-  return last3 === inputDigits;
-}
-
-/**
- * Checks if an SMS code has expired based on creation time and expiry minutes.
- */
-export function isCodeExpired(codeCreated: Date, expireMinutes: number): boolean {
-  const expiresAt = new Date(codeCreated).getTime() + expireMinutes * 60 * 1000;
-  return Date.now() > expiresAt;
-}
-
-/**
- * Find a subscription by its SMS verification code.
- */
-export async function findSubscriptionByCode(
-  collection: Collection,
-  smsCode: string,
-): Promise<VerificationSubscriptionType | null> {
-  return (await collection.findOne({
-    sms_code: smsCode,
-    sms_code_created: { $exists: true },
-  })) as VerificationSubscriptionType | null;
-}
-
-/**
- * Validates an SMS verification request.
- * 1. Check code expiry
- * 2. Fetch phone from ATV and validate suffix
+ * Generate a 6-digit TOTP-like code from a secret.
  *
- * @param subscription - The subscription found by sms_code
- * @param phoneSuffix - Last 3 digits of phone from user
- * @param expireMinutes - Minutes until code expires
- * @param atvQueryFn - Function to fetch ATV document content
- * @returns Verification result with subscription or error
+ * Based on RFC 6238 (TOTP) and RFC 4226 (HOTP).
  */
-export async function verifySmsRequest(
-  subscription: VerificationSubscriptionType,
-  phoneSuffix: string,
-  expireMinutes: number,
-  atvQueryFn: AtvQueryFn,
-): Promise<SmsVerificationResultType> {
-  // Check code expiry
-  if (!subscription.sms_code_created || isCodeExpired(new Date(subscription.sms_code_created), expireMinutes)) {
-    return {
-      success: false,
-      error: { statusCode: 400, statusMessage: 'Verification code has expired.' },
-    };
-  }
+export function generateSmsCode(secret: string, timeStep?: number): string {
+  const step = timeStep ?? Math.floor(Date.now() / TIME_WINDOW_MS);
+  return hotp(Buffer.from(secret, 'hex'), step);
+}
 
-  // Fetch phone number from ATV document content
-  let storedPhone: string | undefined;
-  try {
-    // atvGetDocument returns unwrapped content (response.data.content)
-    const atvContent = await atvQueryFn(subscription.email);
-    const content = atvContent as { sms?: string } | undefined;
-    storedPhone = content?.sms;
-  } catch (_error) {
-    return {
-      success: false,
-      error: { statusCode: 500, statusMessage: 'Failed to verify phone number.' },
-    };
-  }
+/**
+ * Verify a 6-digit code against a secret.
+ * Accepts the current and the previous time window for tolerance.
+ */
+export function verifySmsCode(secret: string, code: string): boolean {
+  const currentStep = Math.floor(Date.now() / TIME_WINDOW_MS);
+  return code === generateSmsCode(secret, currentStep) || code === generateSmsCode(secret, currentStep - 1);
+}
 
-  // Validate phone suffix
-  if (!storedPhone || !validatePhoneSuffix(storedPhone, phoneSuffix)) {
-    return {
-      success: false,
-      error: { statusCode: 401, statusMessage: 'Invalid verification.' },
-    };
-  }
+/**
+ * Find a subscription by ID and verify the SMS code.
+ */
+export async function findAndVerifySmsSubscription(
+  collection: Collection<SubscriptionCollectionType> | undefined,
+  id: string,
+  smsCode: string,
+): Promise<boolean> {
+  const subscription = await collection?.findOne({ _id: new ObjectId(id) });
 
-  return {
-    success: true,
-    subscription,
-  };
+  return !(!subscription || !verifySmsCode(subscription.sms_secret, smsCode));
 }

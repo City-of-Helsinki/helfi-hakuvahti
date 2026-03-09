@@ -2,14 +2,14 @@ import * as assert from 'node:assert';
 import { after, before, beforeEach, describe, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';
 import { Int32, MongoClient } from 'mongodb';
+import type { ATV } from '../../src/lib/atv';
 import {
-  type AtvUpdateFn,
+  ActionError,
   confirmSubscription,
   deleteSubscription,
   renewSubscription,
 } from '../../src/lib/subscriptionActions';
-import type { SiteConfigurationType } from '../../src/types/siteConfig';
-import { SubscriptionStatus } from '../../src/types/subscription';
+import { type SubscriptionCollectionType, SubscriptionStatus } from '../../src/types/subscription';
 
 describe('subscriptionActions', () => {
   assert.ok(process.env.MONGODB);
@@ -24,142 +24,147 @@ describe('subscriptionActions', () => {
   });
 
   beforeEach(async () => {
-    await mongo.db().collection('subscription').deleteMany({});
+    await mongo.db().collection<SubscriptionCollectionType>('subscription').deleteMany({});
   });
 
   // Helper to insert a subscription (matching MongoDB JSON Schema validation)
   const insertSubscription = async (data: Record<string, unknown> = {}) => {
     const id = new ObjectId();
     const now = new Date();
-    await mongo.db().collection('subscription').insertOne({
+    await mongo.db().collection<SubscriptionCollectionType>('subscription').insertOne({
       _id: id,
       email: 'test-atv-doc-id',
+      atv_id: 'test-atv-doc-id',
       elastic_query: 'test-query',
       query: '/search?q=test',
       site_id: 'rekry',
       hash: 'test-hash',
-      status: new Int32(SubscriptionStatus.INACTIVE),
-      expiry_notification_sent: new Int32(0),
+      lang: 'fi',
+      status: SubscriptionStatus.INACTIVE,
+      expiry_notification_sent: SubscriptionStatus.INACTIVE,
       created: now,
       modified: now,
-      sms_code: '123456',
-      sms_code_created: now,
+      sms_secret: 'test-secret',
       ...data,
-    });
+    } as SubscriptionCollectionType);
     return id;
   };
 
   describe('confirmSubscription', () => {
-    test('confirms INACTIVE subscription and clears SMS fields', async () => {
-      const id = await insertSubscription();
-      const collection = mongo.db().collection('subscription');
+    test('confirms SMS subscription with sms_confirmed: false', async () => {
+      const beforeConfirm = new Date();
+      const id = await insertSubscription({ sms_confirmed: false });
+      const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
-      const result = await confirmSubscription(collection, id);
-
-      assert.strictEqual(result.success, true);
-      assert.strictEqual(result.statusCode, 200);
+      await confirmSubscription(collection, { _id: id }, 'sms');
 
       const doc = await collection.findOne({ _id: id });
       assert.ok(doc);
       assert.strictEqual(doc.status, SubscriptionStatus.ACTIVE);
-      assert.strictEqual(doc.sms_code, undefined);
-      assert.strictEqual(doc.sms_code_created, undefined);
+      assert.strictEqual(doc.sms_confirmed, true);
+      assert.ok(doc.modified >= beforeConfirm, 'modified should be updated');
     });
 
-    test('returns 404 when subscription cannot be confirmed', async () => {
-      const collection = mongo.db().collection('subscription');
+    test('confirms email subscription without touching SMS fields', async () => {
+      const id = await insertSubscription({ email_confirmed: false, sms_confirmed: false });
+      const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
-      // Already ACTIVE
-      const activeId = await insertSubscription({ status: new Int32(SubscriptionStatus.ACTIVE) });
-      const result1 = await confirmSubscription(collection, activeId);
-      assert.strictEqual(result1.success, false);
-      assert.strictEqual(result1.statusCode, 404);
+      await confirmSubscription(collection, { _id: id }, 'email');
+
+      const doc = await collection.findOne({ _id: id });
+      assert.ok(doc);
+      assert.strictEqual(doc.status, SubscriptionStatus.ACTIVE);
+      assert.strictEqual(doc.email_confirmed, true);
+      assert.strictEqual(doc.sms_confirmed, false, 'sms_confirmed should remain false');
+    });
+
+    test('throws 404 when subscription is already confirmed', async () => {
+      const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
+
+      // Already confirmed (sms_confirmed: true)
+      const confirmedId = await insertSubscription({
+        status: new Int32(SubscriptionStatus.ACTIVE),
+        sms_confirmed: true,
+      });
+      await assert.rejects(() => confirmSubscription(collection, { _id: confirmedId }, 'sms'), (error: ActionError) => {
+        assert.strictEqual(error.statusCode, 404);
+        return true;
+      });
 
       // Non-existent
-      const result2 = await confirmSubscription(collection, new ObjectId());
-      assert.strictEqual(result2.success, false);
-      assert.strictEqual(result2.statusCode, 404);
+      await assert.rejects(() => confirmSubscription(collection, { _id: new ObjectId() }, 'sms'), (error: ActionError) => {
+        assert.strictEqual(error.statusCode, 404);
+        return true;
+      });
+    });
+
+    test('confirming SMS does not set email_confirmed', async () => {
+      const id = await insertSubscription({ sms_confirmed: false, email_confirmed: false });
+      const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
+
+      await confirmSubscription(collection, { _id: id }, 'sms');
+
+      const doc = await collection.findOne({ _id: id });
+      assert.ok(doc);
+      assert.strictEqual(doc.sms_confirmed, true);
+      assert.strictEqual(doc.email_confirmed, false, 'email_confirmed should remain false');
     });
   });
 
   describe('deleteSubscription', () => {
     test('deletes existing subscription', async () => {
       const id = await insertSubscription();
-      const collection = mongo.db().collection('subscription');
+      const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
-      const result = await deleteSubscription(collection, id);
+      await deleteSubscription(collection, { _id: id });
 
-      assert.strictEqual(result.success, true);
-      assert.strictEqual(result.statusCode, 200);
       assert.strictEqual(await collection.findOne({ _id: id }), null);
     });
 
-    test('returns 404 for non-existent subscription', async () => {
-      const collection = mongo.db().collection('subscription');
-      const result = await deleteSubscription(collection, new ObjectId());
+    test('throws 404 for non-existent subscription', async () => {
+      const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
-      assert.strictEqual(result.success, false);
-      assert.strictEqual(result.statusCode, 404);
+      await assert.rejects(() => deleteSubscription(collection, { _id: new ObjectId() }), (error: ActionError) => {
+        assert.strictEqual(error.statusCode, 404);
+        return true;
+      });
     });
   });
 
   describe('renewSubscription', () => {
-    const siteConfig = {
-      subscription: { maxAge: 90, expiryNotificationDays: 3 },
-    } as SiteConfigurationType;
+    const noOpAtv = { updateDocumentDeleteAfter: async () => ({}) } as unknown as ATV;
 
-    const noOpAtvFn: AtvUpdateFn = async () => ({}) as any;
-
-    test('rejects non-ACTIVE or not-yet-renewable subscriptions', async () => {
-      const collection = mongo.db().collection('subscription');
+    test('throws 400 for non-ACTIVE or not-yet-renewable subscriptions', async () => {
+      const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
       // Non-ACTIVE subscription
       const inactiveId = await insertSubscription();
-      const inactiveSub = {
-        _id: inactiveId,
-        email: 'test-atv-doc-id',
-        site_id: 'rekry',
-        status: SubscriptionStatus.INACTIVE,
-        created: new Date(),
-      };
-      const result1 = await renewSubscription(collection, inactiveSub, siteConfig, noOpAtvFn);
-      assert.strictEqual(result1.success, false);
-      assert.strictEqual(result1.statusCode, 400);
+      await assert.rejects(() => renewSubscription(collection, { _id: inactiveId }, noOpAtv), (error: ActionError) => {
+        assert.strictEqual(error.statusCode, 400);
+        return true;
+      });
 
       // ACTIVE but outside renewal window (just created)
       const activeId = await insertSubscription({ status: new Int32(SubscriptionStatus.ACTIVE) });
-      const activeSub = {
-        _id: activeId,
-        email: 'test-atv-doc-id',
-        site_id: 'rekry',
-        status: SubscriptionStatus.ACTIVE,
-        created: new Date(),
-      };
-      const result2 = await renewSubscription(collection, activeSub, siteConfig, noOpAtvFn);
-      assert.strictEqual(result2.success, false);
-      assert.strictEqual(result2.statusCode, 400);
+      await assert.rejects(() => renewSubscription(collection, { _id: activeId }, noOpAtv), (error: ActionError) => {
+        assert.strictEqual(error.statusCode, 400);
+        return true;
+      });
     });
 
-    test('returns 500 when ATV update fails during renewal', async () => {
+    test('throws 500 when ATV update fails during renewal', async () => {
       const created = new Date(Date.now() - 88 * 24 * 60 * 60 * 1000);
       const id = await insertSubscription({ status: new Int32(SubscriptionStatus.ACTIVE), created });
-      const collection = mongo.db().collection('subscription');
+      const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
-      const failingAtvFn: AtvUpdateFn = async () => {
-        throw new Error('ATV unavailable');
-      };
+      const failingAtv = {
+        updateDocumentDeleteAfter: async () => { throw new Error('ATV unavailable'); },
+      } as unknown as ATV;
 
-      const subscription = {
-        _id: id,
-        email: 'test-atv-doc-id',
-        site_id: 'rekry',
-        status: SubscriptionStatus.ACTIVE,
-        created,
-      };
-
-      const result = await renewSubscription(collection, subscription, siteConfig, failingAtvFn);
-      assert.strictEqual(result.success, false);
-      assert.strictEqual(result.statusCode, 500);
+      await assert.rejects(() => renewSubscription(collection, { _id: id }, failingAtv), (error: ActionError) => {
+        assert.strictEqual(error.statusCode, 500);
+        return true;
+      });
     });
 
     test('successfully renews and updates all fields', async () => {
@@ -168,38 +173,22 @@ describe('subscriptionActions', () => {
         status: new Int32(SubscriptionStatus.ACTIVE),
         created,
         expiry_notification_sent: new Int32(1),
-        sms_code: '654321',
-        sms_code_created: new Date(),
       });
-      const collection = mongo.db().collection('subscription');
+      const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
-      const subscription = {
-        _id: id,
-        email: 'test-atv-doc-id',
-        site_id: 'rekry',
-        status: SubscriptionStatus.ACTIVE,
-        created,
-      };
-
-      const result = await renewSubscription(collection, subscription, siteConfig, noOpAtvFn);
-      assert.strictEqual(result.success, true);
-      assert.strictEqual(result.statusCode, 200);
-      assert.ok(result.expiryDate);
+      await renewSubscription(collection, { _id: id }, noOpAtv);
 
       const doc = await collection.findOne({ _id: id });
       assert.ok(doc);
 
-      // Created date should be refreshed
-      assert.ok(Date.now() - new Date(doc.created).getTime() < 60 * 1000);
+      // created should be reset so expiration checks (created + maxAge) restart from now
+      assert.ok(Date.now() - new Date(doc.created).getTime() < 60 * 1000, 'created should be reset on renewal');
+      // Modified date should be refreshed
+      assert.ok(Date.now() - new Date(doc.modified).getTime() < 60 * 1000);
       // Expiry notification reset
       assert.strictEqual(doc.expiry_notification_sent, SubscriptionStatus.INACTIVE);
-      // delete_after and first_created set
+      // delete_after set
       assert.ok(doc.delete_after);
-      assert.ok(doc.first_created);
-      assert.strictEqual(new Date(doc.first_created).getTime(), created.getTime());
-      // SMS fields cleared
-      assert.strictEqual(doc.sms_code, undefined);
-      assert.strictEqual(doc.sms_code_created, undefined);
     });
   });
 });

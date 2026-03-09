@@ -1,155 +1,131 @@
 import * as assert from 'node:assert';
-import { describe, test } from 'node:test';
-import {
-  type AtvQueryFn,
-  generateUniqueSmsCode,
-  isCodeExpired,
-  validatePhoneSuffix,
-  verifySmsRequest,
-} from '../../src/lib/smsCode';
-import type { VerificationSubscriptionType } from '../../src/types/subscription';
+import { after, before, describe, test } from 'node:test';
+import { ObjectId } from '@fastify/mongodb';
+import { MongoClient } from 'mongodb';
+import { TIME_WINDOW_MS, findAndVerifySmsSubscription, generateSmsCode, verifySmsCode } from '../../src/lib/smsCode';
+import { type SubscriptionCollectionType, SubscriptionStatus } from '../../src/types/subscription';
 
-describe('smsCode', () => {
-  describe('validatePhoneSuffix', () => {
-    test('returns true for matching last 3 digits', () => {
-      assert.strictEqual(validatePhoneSuffix('+358401234567', '567'), true);
-      assert.strictEqual(validatePhoneSuffix('0401234567', '567'), true);
-    });
+const SECRET = 'a'.repeat(64);
 
-    test('returns false for non-matching digits', () => {
-      assert.strictEqual(validatePhoneSuffix('+358401234567', '123'), false);
-      assert.strictEqual(validatePhoneSuffix('+358401234567', '566'), false);
-    });
-
-    test('handles edge cases', () => {
-      assert.strictEqual(validatePhoneSuffix('', '567'), false);
-      assert.strictEqual(validatePhoneSuffix('+358401234567', ''), false);
-      // With spaces in phone number
-      assert.strictEqual(validatePhoneSuffix('+358 40 123 4567', '567'), true);
-    });
+describe('generateSmsCode', () => {
+  test('same secret and time step produce the same code', () => {
+    const a = generateSmsCode(SECRET, 1000);
+    const b = generateSmsCode(SECRET, 1000);
+    assert.strictEqual(a, b);
   });
 
-  describe('isCodeExpired', () => {
-    test('returns false for non-expired code', () => {
-      const now = new Date();
-      assert.strictEqual(isCodeExpired(now, 60), false);
-    });
-
-    test('returns true for expired code', () => {
-      const oneHourAgo = new Date(Date.now() - 61 * 60 * 1000);
-      assert.strictEqual(isCodeExpired(oneHourAgo, 60), true);
-    });
-
-    test('handles boundary correctly', () => {
-      const justUnder = new Date(Date.now() - 59 * 60 * 1000);
-      assert.strictEqual(isCodeExpired(justUnder, 60), false);
-
-      const justOver = new Date(Date.now() - 61 * 60 * 1000);
-      assert.strictEqual(isCodeExpired(justOver, 60), true);
-    });
+  test('different time steps produce different codes', () => {
+    const a = generateSmsCode(SECRET, 1000);
+    const b = generateSmsCode(SECRET, 1001);
+    assert.notStrictEqual(a, b);
   });
 
-  describe('generateUniqueSmsCode', () => {
-    test('generates a 6-digit zero-padded string', async () => {
-      const mockCollection = {
-        findOne: () => Promise.resolve(null),
-      };
+  test('different secrets produce different codes', () => {
+    const a = generateSmsCode(SECRET, 1000);
+    const b = generateSmsCode('b'.repeat(64), 1000);
+    assert.notStrictEqual(a, b);
+  });
+});
 
-      const code = await generateUniqueSmsCode(mockCollection as any);
-
-      assert.strictEqual(code.length, 6, 'Code should be 6 characters');
-      assert.match(code, /^\d{6}$/, 'Code should be 6 digits');
-    });
-
-    test('retries on collision and throws after max attempts', async () => {
-      // Test retry behavior
-      let retryCallCount = 0;
-      const retryCollection = {
-        findOne: () => {
-          retryCallCount++;
-          return Promise.resolve(retryCallCount <= 2 ? { sms_code: '123456' } : null);
-        },
-      };
-      const code = await generateUniqueSmsCode(retryCollection as any);
-      assert.strictEqual(code.length, 6);
-      assert.strictEqual(retryCallCount, 3, 'Should have retried until no collision');
-
-      // Test max attempts failure
-      const alwaysCollides = {
-        findOne: () => Promise.resolve({ sms_code: '123456' }),
-      };
-      await assert.rejects(() => generateUniqueSmsCode(alwaysCollides as any), {
-        message: 'Failed to generate unique SMS code after maximum attempts',
-      });
-    });
+describe('verifySmsCode', () => {
+  test('accepts code for the current time window', () => {
+    const code = generateSmsCode(SECRET);
+    assert.strictEqual(verifySmsCode(SECRET, code), true);
   });
 
-  describe('verifySmsRequest', () => {
-    const makeSubscription = (overrides: Partial<VerificationSubscriptionType> = {}): VerificationSubscriptionType => ({
-      _id: 'test-id',
-      email: 'test-atv-doc-id',
+  test('accepts code from the previous time window', () => {
+    const previousStep = Math.floor(Date.now() / TIME_WINDOW_MS) - 1;
+    const code = generateSmsCode(SECRET, previousStep);
+    assert.strictEqual(verifySmsCode(SECRET, code), true);
+  });
+
+  test('rejects wrong code', () => {
+    assert.strictEqual(verifySmsCode(SECRET, '000000'), false);
+  });
+});
+
+describe('rfc4226 HOTP test values', () => {
+  // See: Appendix D - HOTP Algorithm: Test Values
+  const expectedCounterValues = [
+    755224,
+    287082,
+    359152,
+    969429,
+    338314,
+    254676,
+    287922,
+    162583,
+    399871,
+    520489,
+  ];
+
+  test('Test values', () => {
+    expectedCounterValues.forEach((value, counter) => {
+      const code = generateSmsCode('3132333435363738393031323334353637383930', counter);
+      assert.notStrictEqual(code, value);
+    })
+  })
+})
+
+describe('findAndVerifySmsSubscription', () => {
+  assert.ok(process.env.MONGODB);
+  const mongo = new MongoClient(process.env.MONGODB);
+
+  before(async () => {
+    await mongo.connect();
+  });
+
+  after(async () => {
+    await mongo.close();
+  });
+
+  const insertSubscription = async (smsSecret: string) => {
+    const id = new ObjectId();
+    const now = new Date();
+    await mongo.db().collection<SubscriptionCollectionType>('subscription').insertOne({
+      _id: id,
+      email: '',
+      atv_id: 'test-atv',
+      elastic_query: 'test',
+      query: '/search?q=test',
       site_id: 'rekry',
-      status: 1,
-      created: new Date(),
-      sms_code: '123456',
-      sms_code_created: new Date(),
-      ...overrides,
-    });
+      lang: 'fi',
+      status: SubscriptionStatus.INACTIVE,
+      expiry_notification_sent: SubscriptionStatus.INACTIVE,
+      created: now,
+      modified: now,
+      sms_secret: smsSecret,
+    } as SubscriptionCollectionType);
+    return id;
+  };
 
-    const makeAtvQueryFn = (phone?: string, shouldThrow = false): AtvQueryFn => {
-      return async (_docId: string) => {
-        if (shouldThrow) {
-          throw new Error('ATV unavailable');
-        }
-        return { sms: phone } as any;
-      };
-    };
+  test('returns true when code is valid', async () => {
+    const id = await insertSubscription(SECRET);
+    const code = generateSmsCode(SECRET);
+    const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
-    test('rejects expired or missing verification code', async () => {
-      // Missing sms_code_created
-      const noCreated = makeSubscription({ sms_code_created: undefined });
-      const result1 = await verifySmsRequest(noCreated, '567', 60, makeAtvQueryFn('+358401234567'));
-      assert.strictEqual(result1.success, false);
-      assert.strictEqual(result1.error?.statusCode, 400);
+    const result = await findAndVerifySmsSubscription(collection, id.toString(), code);
+    assert.strictEqual(result, true);
+  });
 
-      // Expired code
-      const twoHoursAgo = new Date(Date.now() - 120 * 60 * 1000);
-      const expired = makeSubscription({ sms_code_created: twoHoursAgo });
-      const result2 = await verifySmsRequest(expired, '567', 60, makeAtvQueryFn('+358401234567'));
-      assert.strictEqual(result2.success, false);
-      assert.strictEqual(result2.error?.statusCode, 400);
-    });
+  test('returns false when code is invalid', async () => {
+    const id = await insertSubscription(SECRET);
+    const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
-    test('returns 500 when ATV query fails', async () => {
-      const subscription = makeSubscription();
-      const result = await verifySmsRequest(subscription, '567', 60, makeAtvQueryFn(undefined, true));
+    const result = await findAndVerifySmsSubscription(collection, id.toString(), '000000');
+    assert.strictEqual(result, false);
+  });
 
-      assert.strictEqual(result.success, false);
-      assert.strictEqual(result.error?.statusCode, 500);
-    });
+  test('returns false when subscription does not exist', async () => {
+    const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
+    const fakeId = new ObjectId().toString();
 
-    test('rejects invalid phone verification', async () => {
-      const subscription = makeSubscription();
+    const result = await findAndVerifySmsSubscription(collection, fakeId, '123456');
+    assert.strictEqual(result, false);
+  });
 
-      // Wrong suffix
-      const result1 = await verifySmsRequest(subscription, '999', 60, makeAtvQueryFn('+358401234567'));
-      assert.strictEqual(result1.success, false);
-      assert.strictEqual(result1.error?.statusCode, 401);
-
-      // Missing phone in ATV
-      const result2 = await verifySmsRequest(subscription, '567', 60, makeAtvQueryFn(undefined));
-      assert.strictEqual(result2.success, false);
-      assert.strictEqual(result2.error?.statusCode, 401);
-    });
-
-    test('returns success when everything validates', async () => {
-      const subscription = makeSubscription();
-      const result = await verifySmsRequest(subscription, '567', 60, makeAtvQueryFn('+358401234567'));
-
-      assert.strictEqual(result.success, true);
-      assert.ok(result.subscription);
-      assert.strictEqual(result.subscription._id, 'test-id');
-      assert.strictEqual(result.error, undefined);
-    });
+  test('returns false when collection is undefined', async () => {
+    const result = await findAndVerifySmsSubscription(undefined, new ObjectId().toString(), '123456');
+    assert.strictEqual(result, false);
   });
 });
