@@ -4,7 +4,7 @@ import command from '../lib/command';
 import { confirmationEmail, expiryEmail, newHitsEmail } from '../lib/email';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
 import mongodb from '../plugins/mongodb';
-import type { PartialDrupalNodeType } from '../types/elasticproxy';
+
 import type { QueueInsertDocument } from '../types/queue';
 import type { SiteConfigurationType } from '../types/siteConfig';
 import type { SubscriptionCollectionLanguageType } from '../types/subscription';
@@ -14,10 +14,12 @@ import type { SubscriptionCollectionLanguageType } from '../types/subscription';
 // Dummy data
 const DUMMY_DATA = {
   confirmation: {
+    id: '123',
     link: 'https://dummyconfirmation',
     search_description: 'Testihaku',
   },
   expiry: {
+    id: '123',
     link: 'https://dummysearch',
     search_description: 'IT-asiantuntija',
     removal_date: '31.12.2025',
@@ -26,6 +28,7 @@ const DUMMY_DATA = {
     search_link: '/fi/avoimet-tyopaikat/etsi-avoimia-tyopaikkoja',
   },
   newhits: {
+    id: '123',
     hits: [
       {
         _language: 'fi',
@@ -34,7 +37,7 @@ const DUMMY_DATA = {
         langcode: ['fi'],
         title: 'IT-asiantuntija, Kaupunkiympäristön toimiala',
         field_publication_starts: [Date.now()],
-      } as unknown as PartialDrupalNodeType,
+      },
       {
         _language: 'fi',
         entity_type: ['node'],
@@ -42,7 +45,7 @@ const DUMMY_DATA = {
         langcode: ['fi'],
         title: 'Ohjelmistokehittäjä',
         field_publication_starts: [Date.now()],
-      } as unknown as PartialDrupalNodeType,
+      },
       {
         _language: 'fi',
         entity_type: ['node'],
@@ -50,7 +53,7 @@ const DUMMY_DATA = {
         langcode: ['fi'],
         title: 'Tietoturva-asiantuntija, Keskushallinto',
         field_publication_starts: [Date.now()],
-      } as unknown as PartialDrupalNodeType,
+      },
     ],
     search_description: 'IT-asiantuntija',
     search_link: '/fi/avoimet-tyopaikat/etsi-avoimia-tyopaikkoja',

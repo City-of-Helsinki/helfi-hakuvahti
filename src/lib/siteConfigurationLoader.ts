@@ -95,6 +95,7 @@ export class SiteConfigurationLoader {
       }
 
       const translations = rawConfig.translations ?? undefined;
+      const fieldFormats = rawConfig.fieldFormats ?? undefined;
 
       // Flatten to runtime configuration
       this.configurations[siteId] = {
@@ -105,6 +106,8 @@ export class SiteConfigurationLoader {
         mail: envConfig.mail,
         elasticProxyUrl: envConfig.elasticProxyUrl,
         translations,
+        matchField: rawConfig.matchField,
+        fieldFormats,
       };
     }
 

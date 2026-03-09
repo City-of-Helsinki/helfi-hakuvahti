@@ -9,7 +9,7 @@ import mongodb from '../plugins/mongodb';
 import '../plugins/sentry';
 import type { WithId } from 'mongodb';
 import { ATV } from '../lib/atv';
-import type { ElasticProxyJsonResponseType, PartialDrupalNodeType } from '../types/elasticproxy';
+import type { ElasticProxyJsonResponseType } from '../types/elasticproxy';
 import type { QueueInsertDocument } from '../types/queue';
 import type { SiteConfigurationType } from '../types/siteConfig';
 import { type SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription';
@@ -130,7 +130,7 @@ const getNewHitsFromElasticsearch = async (
   siteConfig: SiteConfigurationType,
   server: Server,
   resolvedElasticQuery?: string,
-): Promise<PartialDrupalNodeType[]> => {
+): Promise<Record<string, unknown>[]> => {
   if (!resolvedElasticQuery) {
     console.error(`Subscription ${subscription._id} has no elastic_query`);
     return [];
@@ -147,16 +147,18 @@ const getNewHitsFromElasticsearch = async (
       elasticQuery,
     );
 
+    const matchField = siteConfig.matchField;
+
     // Filter out new hits:
     return (elasticResponse?.hits?.hits ?? [])
-      .filter((hit: { _source?: PartialDrupalNodeType }) => {
-        const publicationStarts = hit?._source?.field_publication_starts;
+      .filter((hit: { _source?: Record<string, unknown> }) => {
+        const publicationStarts = hit?._source?.[matchField];
         if (!Array.isArray(publicationStarts) || publicationStarts.length === 0) {
           return false;
         }
-        return publicationStarts[0] >= lastChecked;
+        return (publicationStarts[0] as number) >= lastChecked;
       })
-      .map((hit: { _source: PartialDrupalNodeType }) => hit._source);
+      .map((hit: { _source: Record<string, unknown> }) => hit._source);
   } catch (err) {
     console.error(`Query ${elasticQuery} for ${subscription._id} failed`);
     server.Sentry?.captureException(err);
@@ -391,6 +393,7 @@ const processSiteSubscriptions = async (
           {
             search_description: resolvedSearchDescription,
             id: subscription._id.toString(),
+            hits: hitsForEmail,
           },
           siteConfig,
         );

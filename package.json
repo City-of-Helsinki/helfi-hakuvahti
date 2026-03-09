@@ -23,6 +23,7 @@
     "hav:send-queue": "node dist/bin/hav-send-queue.js",
     "hav:test-sms-sending": "node dist/bin/hav-test-sms-sending.js",
     "hav:test-email-templates": "node dist/bin/hav-test-email-templates.js",
+    "hav:test-all-templates": "node dist/bin/hav-test-all-templates.js",
     "hav:run-dialogi-test-server": "node dist/bin/hav-dialogi-test-server.js"
   },
   "keywords": [],
