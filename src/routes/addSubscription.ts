@@ -5,6 +5,7 @@ import type { ATV } from '../lib/atv';
 import { confirmationEmail, confirmationSms } from '../lib/email';
 import { getRandHash } from '../lib/randhash';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
+import { generateSmsCode } from '../lib/smsCode';
 import { Generic400Error, type Generic400ErrorType, Generic500Error, type Generic500ErrorType } from '../types/error';
 import type { QueueInsertDocument } from '../types/queue';
 import {
@@ -226,6 +227,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
                 request.body.lang,
                 {
                   id: response.insertedId.toString(),
+                  sms_code: generateSmsCode(subscriptionData.sms_secret),
                 },
                 siteConfig,
               ),

@@ -18,6 +18,7 @@ services:
     environment:
       FASTIFY_PORT: 3000
       MONGODB: mongodb://mongodb:27017/hakuvahti
+      HAKUVAHTI_API_KEY: '123'
     volumes:
       - .:/app:delegated
     ports:

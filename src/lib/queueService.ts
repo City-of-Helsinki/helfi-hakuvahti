@@ -122,7 +122,7 @@ export class QueueService {
   private async sendSms(item: QueueItem, atvDoc: AtvDocumentType | undefined): Promise<void> {
     const phoneNumber = atvDoc?.content?.sms as string | undefined;
 
-    console.info('Sending SMS to', item.atv_id);
+    console.info('Sending SMS to', item.atv_id, item.content);
 
     if (!phoneNumber) {
       console.warn(`Phone number not found for ATV ID ${item.atv_id}`);

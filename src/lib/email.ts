@@ -66,11 +66,12 @@ export const verifySms = async (
 // Subscription confirmation SMS
 export const confirmationSms = async (
   lang: SubscriptionCollectionLanguageType,
-  data: { id: string },
+  data: { id: string; sms_code: string },
   siteConfig: SiteConfigurationType,
 ) =>
   sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/confirmation.txt`, {
     ...buildTranslationContext(lang, siteConfig),
+    sms_code: data.sms_code,
     id: data.id,
   });
 

@@ -1,14 +1,9 @@
 import { randomInt } from 'node:crypto';
 import { ObjectId } from '@fastify/mongodb';
 import type { FastifyPluginAsync } from 'fastify';
-import { findAndVerifySmsSubscription } from '../lib/smsCode';
 import { ActionError, deleteSubscription as deleteAction } from '../lib/subscriptionActions';
 import { Generic500Error, type Generic500ErrorType } from '../types/error';
-import {
-  type SmsVerificationRequestType,
-  SubscriptionGenericPostResponse,
-  type SubscriptionGenericPostResponseType,
-} from '../types/subscription';
+import { SubscriptionGenericPostResponse, type SubscriptionGenericPostResponseType } from '../types/subscription';
 
 // Deletes subscription
 const deleteSubscription: FastifyPluginAsync = async (fastify, _opts) => {
@@ -53,9 +48,15 @@ const deleteSubscription: FastifyPluginAsync = async (fastify, _opts) => {
     },
   );
 
+  /**
+   * This endpoint does not ask for any secrets from the user.
+   * We assume that database id and rate limiting are enough to
+   * secure the endpoint.
+   *
+   * Caller MUST rate limit this endpoint.
+   */
   fastify.delete<{
     Params: { id: string };
-    Body: SmsVerificationRequestType;
     Reply: SubscriptionGenericPostResponseType | Generic500ErrorType;
   }>(
     '/subscription/sms/delete/:id',
@@ -69,17 +70,6 @@ const deleteSubscription: FastifyPluginAsync = async (fastify, _opts) => {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { sms_code } = request.body;
-
-      const verified = await findAndVerifySmsSubscription(fastify.mongo.db?.collection('subscription'), id, sms_code);
-
-      if (!verified) {
-        return reply.code(400).send({
-          // @fixme statusCode is totally useless.
-          statusCode: randomInt(0, 1000),
-          statusMessage: 'Invalid SMS code.',
-        });
-      }
 
       try {
         await deleteAction(fastify.mongo.db?.collection('subscription'), { _id: new ObjectId(id) });

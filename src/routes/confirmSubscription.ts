@@ -10,6 +10,7 @@ import {
   type SubscriptionCollectionType,
   SubscriptionGenericPostResponse,
   type SubscriptionGenericPostResponseType,
+  SubscriptionStatus,
 } from '../types/subscription';
 
 // Confirms subscription
@@ -78,9 +79,9 @@ const confirmSubscription: FastifyPluginAsync = async (fastify, _opts) => {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { sms_code } = request.body;
+      const { code } = request.body;
 
-      const verified = await findAndVerifySmsSubscription(fastify.mongo.db?.collection('subscription'), id, sms_code);
+      const verified = await findAndVerifySmsSubscription(fastify.mongo.db?.collection('subscription'), id, code);
 
       if (!verified) {
         return reply.code(400).send({
@@ -94,6 +95,20 @@ const confirmSubscription: FastifyPluginAsync = async (fastify, _opts) => {
         await confirmAction(fastify.mongo.db?.collection('subscription'), { _id: new ObjectId(id) }, 'sms');
       } catch (error) {
         if (error instanceof ActionError) {
+          const subscription = await fastify.mongo.db?.collection<SubscriptionCollectionType>('subscription')?.findOne({
+            _id: new ObjectId(id),
+            status: SubscriptionStatus.ACTIVE,
+          });
+
+          // Return 400 if subscription was already active.
+          if (subscription) {
+            return reply.code(400).send({
+              // @fixme statusCode is totally useless.
+              statusCode: randomInt(0, 1000),
+              statusMessage: 'Subscription is already confirmed',
+            });
+          }
+
           return reply.code(error.statusCode).send({
             // @fixme statusCode is totally useless.
             statusCode: randomInt(0, 1000),

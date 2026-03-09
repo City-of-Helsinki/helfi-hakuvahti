@@ -2,7 +2,7 @@ import * as assert from 'node:assert';
 import { after, before, describe, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';
 import { MongoClient } from 'mongodb';
-import { findAndVerifySmsSubscription, generateSmsCode, verifySmsCode } from '../../src/lib/smsCode';
+import { TIME_WINDOW_MS, findAndVerifySmsSubscription, generateSmsCode, verifySmsCode } from '../../src/lib/smsCode';
 import { type SubscriptionCollectionType, SubscriptionStatus } from '../../src/types/subscription';
 
 const SECRET = 'a'.repeat(64);
@@ -34,7 +34,6 @@ describe('verifySmsCode', () => {
   });
 
   test('accepts code from the previous time window', () => {
-    const TIME_WINDOW_MS = 15 * 60 * 1000;
     const previousStep = Math.floor(Date.now() / TIME_WINDOW_MS) - 1;
     const code = generateSmsCode(SECRET, previousStep);
     assert.strictEqual(verifySmsCode(SECRET, code), true);

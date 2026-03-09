@@ -3,7 +3,7 @@ import { ObjectId } from '@fastify/mongodb';
 import type { Collection } from 'mongodb';
 import type { SubscriptionCollectionType } from '../types/subscription';
 
-const TIME_WINDOW_MS = 15 * 60 * 1000;
+export const TIME_WINDOW_MS = 30 * 60 * 1000;
 
 export function hotp(secret: Buffer, counter: number, algorithm: string = 'sha1', digits: number = 6): string {
   const stepBuffer = Buffer.alloc(8);
@@ -53,9 +53,5 @@ export async function findAndVerifySmsSubscription(
 ): Promise<boolean> {
   const subscription = await collection?.findOne({ _id: new ObjectId(id) });
 
-  if (!subscription || !verifySmsCode(subscription.sms_secret, smsCode)) {
-    return false;
-  }
-
-  return true;
+  return !(!subscription || !verifySmsCode(subscription.sms_secret, smsCode));
 }

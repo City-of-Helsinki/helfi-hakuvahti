@@ -1,1 +1,1 @@
-{{ sms_confirmation_intro }} {{ sms_confirmation_link }}?id={{ id }}
+{{ sms_confirmation_intro }} {{ sms_confirmation_code_label }} {{ sms_code }} {{ sms_confirmation_code_validity }} {{ sms_confirmation_link }}?id={{ id }}

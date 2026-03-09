@@ -116,7 +116,7 @@ export type SubscriptionGenericPostResponseType = Static<typeof SubscriptionGene
 
 // SMS verification request
 export const SmsVerificationRequest = Type.Object({
-  sms_code: Type.String(),
+  code: Type.String(),
 });
 export type SmsVerificationRequestType = Static<typeof SmsVerificationRequest>;
 

@@ -1,11 +1,9 @@
 import { randomInt } from 'node:crypto';
 import { ObjectId } from '@fastify/mongodb';
 import type { FastifyPluginAsync } from 'fastify';
-import { findAndVerifySmsSubscription } from '../lib/smsCode';
 import { ActionError, renewSubscription as renewAction } from '../lib/subscriptionActions';
 import { Generic500Error, type Generic500ErrorType } from '../types/error';
 import {
-  type SmsVerificationRequestType,
   type SubscriptionCollectionType,
   SubscriptionGenericPostResponse,
   type SubscriptionGenericPostResponseType,
@@ -50,11 +48,14 @@ const renewSubscription: FastifyPluginAsync = async (fastify, _opts) => {
   );
 
   /**
+   * This endpoint does not ask for any secrets from the user.
+   * We assume that database id and rate limiting are enough to
+   * secure the endpoint.
+   *
    * Caller MUST rate limit this endpoint.
    */
   fastify.post<{
     Params: { id: string };
-    Body: SmsVerificationRequestType;
     Reply: SubscriptionGenericPostResponseType | Generic500ErrorType;
   }>(
     '/subscription/sms/renew/:id',
@@ -69,17 +70,6 @@ const renewSubscription: FastifyPluginAsync = async (fastify, _opts) => {
     async (request, reply) => {
       const collection = fastify.mongo.db?.collection<SubscriptionCollectionType>('subscription');
       const { id } = request.params;
-      const { sms_code } = request.body;
-
-      const verified = await findAndVerifySmsSubscription(collection, id, sms_code);
-
-      if (!verified) {
-        return reply.code(400).send({
-          // @fixme statusCode is totally useless.
-          statusCode: randomInt(0, 1000),
-          statusMessage: 'Invalid SMS code.',
-        });
-      }
 
       try {
         await renewAction(collection, { _id: new ObjectId(id) }, fastify.atv);
