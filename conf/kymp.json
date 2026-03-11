@@ -26,16 +26,6 @@
       "en": "The Vehicle Removal Alert Service has found new matches for you",
       "sv": "Nya träffar från din flyttningsvakt för fordon"
     },
-    "instructions_text": {
-      "fi": "Työpaikkojen hakuvahdin käyttöohjeet",
-      "en": "Instructions for using saved searches for jobs",
-      "sv": "Anvisning för användning av sökvakten för arbetsplatser"
-    },
-    "instructions_link": {
-      "fi": "https://www.hel.fi/fi/avoimet-tyopaikat/nain-me-rekrytoimme/hakuvahdin-ohjeet",
-      "en": "https://www.hel.fi/en/open-jobs/this-is-how-we-recruit/job-alert-instructions",
-      "sv": "https://www.hel.fi/sv/lediga-jobb/sa-har-rekryterar-vi/sokvaktens-anvisningar"
-    },
     "email_confirmation_title": {
       "fi": "Vahvista ajoneuvojen siirtovahdin tilaus Helsingin kaupungilta",
       "en": "Confirm your Vehicle Removal Alert Service subscription with the City of Helsinki",
