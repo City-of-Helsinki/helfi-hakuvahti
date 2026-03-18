@@ -220,6 +220,11 @@
       "fi": "www.test.hel.ninja/fi/kaupunkiymparisto-ja-liikenne/pysakointi/jatka-siirtovahti",
       "en": "www.test.hel.ninja/en/urban-environment-and-traffic/parking/extend-vehicle-removal-alert",
       "sv": "www.test.hel.ninja/sv/stadsmiljo-och-trafik/parkering/forlang-flyttningsvakten"
+    },
+    "removal_sign_location": {
+      "fi": "Hakutuloksissa kerrotaan siirtokehotusmerkin sijainti.",
+      "en": "Search results will tell you where the vehicle removal request sign is located.",
+      "sv": "I sökresultaten anges var förflyttningsuppmaningsmärket är placerat."
     }
   },
   "matchField": "created_at",
