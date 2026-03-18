@@ -12,22 +12,22 @@
       "sv": "https://makasiini.hel.ninja/helsinki-logos/helsinki-logo-black-sv-h45.png"
     },
     "email_subject_confirmation": {
-      "fi": "Vahvista ajoneuvojen siirtovahdin tilaus",
+      "fi": "Vahvista ajoneuvojen Siirtovahdin tilaus",
       "en": "Confirm your Vehicle Removal Alert Service subscription",
       "sv": "Bekräfta beställningen av flyttningsvakten för fordon"
     },
     "email_subject_expiry": {
-      "fi": "Ajoneuvojen siirtovahtisi on vanhentumassa",
+      "fi": "Ajoneuvojen Siirtovahtisi on vanhentumassa",
       "en": "Your Vehicle Removal Alert Service subscription is about to expire",
       "sv": "Din flyttningsvakt för fordon håller på att gå ut"
     },
     "email_subject_newhits": {
-      "fi": "Uusia osumia ajoneuvojen siirtovahdillasi",
+      "fi": "Uusia osumia ajoneuvojen Siirtovahdillasi",
       "en": "The Vehicle Removal Alert Service has found new matches for you",
       "sv": "Nya träffar från din flyttningsvakt för fordon"
     },
     "email_confirmation_title": {
-      "fi": "Vahvista ajoneuvojen siirtovahdin tilaus Helsingin kaupungilta",
+      "fi": "Vahvista ajoneuvojen Siirtovahdin tilaus Helsingin kaupungilta",
       "en": "Confirm your Vehicle Removal Alert Service subscription with the City of Helsinki",
       "sv": "Bekräfta beställning av flyttningsvakten för fordon från Helsingfors stad"
     },
