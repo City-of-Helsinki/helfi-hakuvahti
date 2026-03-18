@@ -3,7 +3,7 @@ import { describe, test } from 'node:test';
 import {
   calculateExpectedDeleteAfter,
   needsDeleteAfterSync,
-} from '../../src/bin/hav-populate-queue';
+} from '../../src/lib/subscriptionProcessor';
 
 describe('ATV delete_after sync helpers', () => {
   test('calculateExpectedDeleteAfter adds maxAge days to created date', () => {
