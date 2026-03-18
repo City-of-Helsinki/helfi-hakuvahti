@@ -149,7 +149,9 @@ const getNewHitsFromElasticsearch = async (
 
     const matchField = siteConfig.matchField;
 
-    console.info(`Matched ${elasticResponse?.hits?.total?.value ?? 0} hits for ${subscription._id} from ${siteConfig.name}`);
+    console.info(
+      `Matched ${elasticResponse?.hits?.total?.value ?? 0} hits for ${subscription._id} from ${siteConfig.name}`,
+    );
 
     // Filter out new hits:
     return (elasticResponse?.hits?.hits ?? [])
