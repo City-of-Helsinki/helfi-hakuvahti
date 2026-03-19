@@ -1,84 +1,102 @@
-import { 
-  FastifyPluginAsync, 
-  FastifyReply, 
-  FastifyInstance, 
-  FastifyRequest
-} from 'fastify'
-
-import { 
-  Generic500Error, 
-  Generic500ErrorType 
-} from '../types/error'
-
-import { 
-  SubscriptionGenericPostResponse, 
-  SubscriptionGenericPostResponseType 
-} from '../types/subscription'
-import { ObjectId } from '@fastify/mongodb'
+import { randomInt } from 'node:crypto';
+import { ObjectId } from '@fastify/mongodb';
+import type { FastifyPluginAsync } from 'fastify';
+import { ActionError, deleteSubscription as deleteAction } from '../lib/subscriptionActions';
+import { Generic500Error, type Generic500ErrorType } from '../types/error';
+import { SubscriptionGenericPostResponse, type SubscriptionGenericPostResponseType } from '../types/subscription';
 
 // Deletes subscription
-
-const deleteSubscription: FastifyPluginAsync = async (
-  fastify: FastifyInstance,
-  opts: object
-): Promise<void> => {
+const deleteSubscription: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.delete<{
-    Reply: SubscriptionGenericPostResponseType | Generic500ErrorType
-  }>('/subscription/delete/:id/:hash', {
-    schema: {
-      response: {
-        200: SubscriptionGenericPostResponse,
-        500: Generic500Error
+    Params: { id: string; hash: string };
+    Reply: SubscriptionGenericPostResponseType | Generic500ErrorType;
+  }>(
+    '/subscription/delete/:id/:hash',
+    {
+      schema: {
+        response: {
+          200: SubscriptionGenericPostResponse,
+          500: Generic500Error,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id, hash } = request.params;
+
+      try {
+        await deleteAction(fastify.mongo.db?.collection('subscription'), { _id: new ObjectId(id), hash });
+      } catch (error) {
+        if (error instanceof ActionError) {
+          return reply.code(error.statusCode).send({
+            statusCode: error.statusCode,
+            statusMessage: error.message,
+          });
+        }
+
+        throw error;
       }
-    }
-  }, async (
-    request: FastifyRequest,
-    reply: FastifyReply
-  ) => {
-    const mongodb = fastify.mongo
-    const collection = mongodb.db?.collection('subscription');
-    const { id, hash } = <{ id: string, hash: string }>request.params
 
-    // Check that subscription exists and hash matches
-    const subscription = await collection?.findOne({
-      _id: new ObjectId(id), 
-      hash: hash
-    });
+      fastify.log.info({
+        level: 'info',
+        message: `Subscription ${id} deleted`,
+      });
 
-    if (!subscription) {
-      return reply
-        .code(404)
-        .send({ 
-          statusCode: 404, 
-          statusMessage: 'Subscription not found.' 
-        })
-    }
-
-    // Delete subscription
-    const result = await collection?.deleteOne({ _id: new ObjectId(id) })
-
-    fastify.log.info({ 
-      level: 'info', 
-      message: 'Subscription deleted',
-      result: result
-    })
-
-    if (result?.deletedCount === 0) {
-      return reply
-        .code(404)
-        .send({ 
-          statusCode: 404, 
-          statusMessage: 'Subscription not found.' 
-        })
-    }
-
-    return reply
-      .code(200)
-      .send({ 
+      return reply.code(200).send({
         statusCode: 200,
-        message: 'Subscription deleted'
-      })
-  })
-}
+        statusMessage: 'Subscription deleted',
+      });
+    },
+  );
 
-export default deleteSubscription
+  /**
+   * This endpoint does not ask for any secrets from the user.
+   * We assume that database id and rate limiting are enough to
+   * secure the endpoint.
+   *
+   * Caller MUST rate limit this endpoint.
+   */
+  fastify.delete<{
+    Params: { id: string };
+    Reply: SubscriptionGenericPostResponseType | Generic500ErrorType;
+  }>(
+    '/subscription/sms/delete/:id',
+    {
+      schema: {
+        response: {
+          200: SubscriptionGenericPostResponse,
+          500: Generic500Error,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+
+      try {
+        await deleteAction(fastify.mongo.db?.collection('subscription'), { _id: new ObjectId(id) });
+      } catch (error) {
+        if (error instanceof ActionError) {
+          return reply.code(error.statusCode).send({
+            // @fixme statusCode is totally useless.
+            statusCode: randomInt(0, 1000),
+            statusMessage: error.message,
+          });
+        }
+
+        throw error;
+      }
+
+      fastify.log.info({
+        level: 'info',
+        message: `Subscription ${id} deleted`,
+      });
+
+      return reply.code(200).send({
+        // @fixme statusCode is totally useless.
+        statusCode: randomInt(0, 1000),
+        statusMessage: 'Subscription deleted',
+      });
+    },
+  );
+};
+
+export default deleteSubscription;

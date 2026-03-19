@@ -1,7 +1,7 @@
-import Sentry from '@sentry/core'
+import type * as Sentry from '@sentry/node';
 
 declare module 'fastify' {
-    export interface FastifyInstance {
-        Sentry: typeof Sentry
-    }
+  export interface FastifyInstance {
+    Sentry: typeof Sentry;
+  }
 }

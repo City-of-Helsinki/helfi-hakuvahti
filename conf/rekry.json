@@ -1,0 +1,273 @@
+{
+  "name": "rekry",
+  "translations": {
+    "copyright_holder": {
+      "fi": "Helsingin kaupunki",
+      "en": "City of Helsinki",
+      "sv": "Helsingfors stad"
+    },
+    "email_logo": {
+      "fi": "https://makasiini.hel.ninja/helsinki-logos/helsinki-logo-black-h45.png",
+      "en": "https://makasiini.hel.ninja/helsinki-logos/helsinki-logo-black-h45.png",
+      "sv": "https://makasiini.hel.ninja/helsinki-logos/helsinki-logo-black-sv-h45.png"
+    },
+    "email_subject_confirmation": {
+      "fi": "Vahvista työpaikkojen hakuvahdin tilaus",
+      "en": "Confirm your saved search for jobs",
+      "sv": "Bekräfta beställningen av sökvakten för arbetsplatser"
+    },
+    "email_subject_expiry": {
+      "fi": "Työpaikkojen hakuvahtisi on vanhentumassa",
+      "en": "Your saved search for jobs is about to expire",
+      "sv": "Tiden för din sökvakt för arbetsplatser håller på att gå ut"
+    },
+    "email_subject_newhits": {
+      "fi": "Uusia osumia työpaikkojen hakuvahdillasi",
+      "en": "New jobs corresponding to your saved search",
+      "sv": "Nya träffar med din sökvakt för arbetsplatser"
+    },
+    "instructions_text": {
+      "fi": "Työpaikkojen hakuvahdin käyttöohjeet",
+      "en": "Instructions for using saved searches for jobs",
+      "sv": "Anvisning för användning av sökvakten för arbetsplatser"
+    },
+    "instructions_link": {
+      "fi": "https://www.hel.fi/fi/avoimet-tyopaikat/nain-me-rekrytoimme/hakuvahdin-ohjeet",
+      "en": "https://www.hel.fi/en/open-jobs/this-is-how-we-recruit/job-alert-instructions",
+      "sv": "https://www.hel.fi/sv/lediga-jobb/sa-har-rekryterar-vi/sokvaktens-anvisningar"
+    },
+    "email_confirmation_title": {
+      "fi": "Vahvista työpaikkojen hakuvahdin tilaus Helsingin kaupungilta",
+      "en": "Confirm your saved search for City of Helsinki jobs",
+      "sv": "Bekräfta beställningen av sökvakten för arbetsplatser från Helsingfors stad"
+    },
+    "email_confirmation_intro": {
+      "fi": "Tälle sähköpostille luotiin hakuvahti Helsingin kaupungin verkkosivustolla.",
+      "en": "This email address was used to save a search on the City of Helsinki website.",
+      "sv": "En sökvakt på Helsingfors stads webbplats har skapats för den här e-postadressen."
+    },
+    "email_confirmation_search_description": {
+      "fi": "Hakuehdot",
+      "en": "Search criteria",
+      "sv": "Sökvillkor"
+    },
+    "email_confirmation_button": {
+      "fi": "Vahvista hakuvahti",
+      "en": "Confirm saved search",
+      "sv": "Bekräfta sökvakten"
+    },
+    "email_confirmation_ignore": {
+      "fi": "Jos et tilannut hakuvahtia, voit jättää tämän sähköpostin huomiotta.",
+      "en": "If you did not save a search, you can ignore this message.",
+      "sv": "Om du inte har beställt sökvakten, kan du strunta i det här e-postmeddelandet."
+    },
+    "email_generic_automatically_sent": {
+      "fi": "Tämä viesti on lähetetty automaattisesti, eikä siihen voi vastata.",
+      "en": "This message was sent automatically and cannot be replied to.",
+      "sv": "Detta meddelande har skickats automatiskt och kan inte besvaras."
+    },
+    "email_generic_kind_regards": {
+      "fi": "Ystävällisin terveisin,",
+      "en": "Kind regards,",
+      "sv": "Med vänlig hälsning,"
+    },
+    "email_generic_signature": {
+      "fi": "Helsingin kaupunki",
+      "en": "City of Helsinki",
+      "sv": "Helsingfors stad"
+    },
+    "email_generic_remove_link": {
+      "fi": "Poista hakuvahti",
+      "en": "Delete saved search",
+      "sv": "Radera sökvakten"
+    },
+    "email_generic_your_search_terms": {
+      "fi": "Hakuehtosi",
+      "en": "Your search criteria",
+      "sv": "Dina sökvillkor"
+    },
+    "email_expiry_intro_before_date": {
+      "fi": "Hakuvahtisi Helsingin kaupungin sivustolla on päättymässä",
+      "en": "Your saved search on the City of Helsinki website is about to expire on",
+      "sv": "Din sökvakt på Helsingfors stads webbplats kommer att gå ut den"
+    },
+    "email_expiry_intro_after_date": {
+      "fi": "mutta voit tehdä sen uudelleen.",
+      "en": "but you can renew it, if you wish.",
+      "sv": "men du kan skapa den på nytt."
+    },
+    "email_expiry_intro_before_search_description": {
+      "fi": "Hakuehdot:",
+      "en": "Search criteria:",
+      "sv": "Sökvillkor:"
+    },
+    "email_expiry_intro_after_search_description": {
+      "fi": ".",
+      "en": ".",
+      "sv": "."
+    },
+    "email_expiry_button": {
+      "fi": "Tee uusi hakuvahti",
+      "en": "Save a new search",
+      "sv": "Spara en ny sökvakt"
+    },
+    "email_expiry_title_header": {
+      "fi": "Työpaikkojen hakuvahtisi Helsingin kaupungilta on vanhentumassa",
+      "en": "Your saved search for City of Helsinki jobs is about to expire",
+      "sv": "Tiden för din sökvakt för arbetsplatser från Helsingfors stad håller på att gå ut"
+    },
+    "email_expiry_prefix": {
+      "fi": "Hakuvahtisi Helsingin kaupungin verkkosivustolla päättyy",
+      "en": "Your saved search on the City of Helsinki website will expire on",
+      "sv": "Din sökvakt på Helsingfors stads webbplats upphör den"
+    },
+    "email_expiry_suffix": {
+      "fi": ". Voit halutessasi jatkaa hakuvahdin tilausta niin kauan kuin se on voimassa. Hakuvahdin vanhenemisen jälkeen voit tehdä uuden hakuvahdin.",
+      "en": ". If you wish, you can extend the saved search during its period of validity. Once your saved search expires, you can save a new search.",
+      "sv": ". Du kan valfritt förlänga beställningen av sökvakten så länge den är i kraft. Efter att sökvakten gått ut kan du skapa en ny sökvakt."
+    },
+    "email_expiry_renewal_button": {
+      "fi": "Jatka hakuvahdin tilausta",
+      "en": "Extend your saved search",
+      "sv": "Förläng beställningen av sökvakten"
+    },
+    "email_expiry_new_link": {
+      "fi": "Tee uusi hakuvahti",
+      "en": "Save a new search",
+      "sv": "Skapa en ny sökvakt"
+    },
+    "email_newhits_intro_prefix": {
+      "fi": "Listauksessa näytetään enintään kymmenen uutta hakuvahtiosumaa.",
+      "en": "The list shows up to ten new results corresponding to your saved search.",
+      "sv": "I listan visas högst tio nya träffar med sökvakten."
+    },
+    "email_newhits_header": {
+      "fi": "Uusia työpaikkojen hakuvahtiosumia Helsingin kaupungilta",
+      "en": "The City of Helsinki has new job listings corresponding to your saved search",
+      "sv": "Nya träffar med sökvakten för arbetsplatser från Helsingfors stad"
+    },
+    "email_newhits_link_text": {
+      "fi": "Katso kaikki hakuvahtitulokset",
+      "en": "See all saved search results",
+      "sv": "Se alla sökvaktens resultat"
+    },
+    "email_newhits_expiry_prefix": {
+      "fi": "Hakuvahti on voimassa",
+      "en": "This saved search is valid until",
+      "sv": "Sökvakten är i kraft fram till"
+    },
+    "email_newhits_expiry_suffix": {
+      "fi": " saakka.",
+      "en": ".",
+      "sv": "."
+    },
+    "email_newhits_expiry_instructions": {
+      "fi": "Sait tämän sähköpostin, koska olet tilannut Helsingin kaupungin hakuvahdin. Jos et enää halua saada ilmoituksia, voit lopettaa hakuvahdin tilauksen alla olevasta linkistä. Voit tilata hakuvahdin uudelleen milloin tahansa.",
+      "en": "You received this email because you have saved a search for City of Helsinki jobs. If you no longer wish to receive these alerts, you can unsubscribe by clicking the link below. You can save your search again at any time.",
+      "sv": "Du fick detta e-postmeddelande eftersom du har beställt Helsingfors stads sökvakt. Om du inte längre vill få meddelanden kan du radera sökvakten via länken nedan. Du kan beställa en ny sökvakt när som helst."
+    },
+    "email_newhits_do_not_reply": {
+      "fi": "Tähän viestiin ei voi vastata.",
+      "en": "Please do not reply to this message.",
+      "sv": "Detta meddelande kan inte besvaras."
+    },
+    "sms_newhits_intro": {
+      "fi": "Hakuvahti: Uusia tuloksia haulle",
+      "en": "Search alert: New results for",
+      "sv": "Sökbevakning: Nya resultat för sökningen"
+    },
+    "sms_newhits_cta": {
+      "fi": "Katso tulokset",
+      "en": "View results",
+      "sv": "Se resultat"
+    }
+  },
+  "matchField": "field_publication_starts",
+  "fieldFormats": {
+    "url": "url"
+  },
+  "local": {
+    "urls": {
+      "base": "https://helfi-rekry.docker.so",
+      "en": "https://helfi-rekry.docker.so/en",
+      "fi": "https://helfi-rekry.docker.so/fi",
+      "sv": "https://helfi-rekry.docker.so/sv"
+    },
+    "subscription": {
+      "maxAge": 90,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 3,
+      "enableSms": true,
+      "smsCodeExpireConfirmMinutes": 60,
+      "smsCodeExpireActionMinutes": 720
+    },
+    "mail": {
+      "templatePath": "rekry",
+      "maxHitsInEmail": 10
+    },
+    "elasticProxyUrl": "http://helfi-rekry-elastic-proxy:8080/job_listings"
+  },
+  "dev": {
+    "urls": {
+      "base": "https://www.test.hel.ninja",
+      "en": "https://www.test.hel.ninja/en/open-jobs",
+      "fi": "https://www.test.hel.ninja/fi/avoimet-tyopaikat",
+      "sv": "https://www.test.hel.ninja/sv/lediga-jobb"
+    },
+    "subscription": {
+      "maxAge": 5,
+      "unconfirmedMaxAge": 2,
+      "expiryNotificationDays": 4,
+      "enableSms": false,
+      "smsCodeExpireConfirmMinutes": 60,
+      "smsCodeExpireActionMinutes": 720
+    },
+    "mail": {
+      "templatePath": "rekry",
+      "maxHitsInEmail": 10
+    },
+    "elasticProxyUrl": "https://helfi-rekry-elastic-proxy.test.hel.ninja/job_listings"
+  },
+  "staging": {
+    "urls": {
+      "base": "https://www.stage.hel.ninja",
+      "en": "https://www.stage.hel.ninja/en/open-jobs",
+      "fi": "https://www.stage.hel.ninja/fi/avoimet-tyopaikat",
+      "sv": "https://www.stage.hel.ninja/sv/lediga-jobb"
+    },
+    "subscription": {
+      "maxAge": 5,
+      "unconfirmedMaxAge": 2,
+      "expiryNotificationDays": 4,
+      "enableSms": false,
+      "smsCodeExpireConfirmMinutes": 60,
+      "smsCodeExpireActionMinutes": 720
+    },
+    "mail": {
+      "templatePath": "rekry",
+      "maxHitsInEmail": 10
+    },
+    "elasticProxyUrl": "https://rekry-elastic-proxy-staging.api.hel.ninja/job_listings"
+  },
+  "production": {
+    "urls": {
+      "base": "https://www.hel.fi",
+      "en": "https://www.hel.fi/en/open-jobs",
+      "fi": "https://www.hel.fi/fi/avoimet-tyopaikat",
+      "sv": "https://www.hel.fi/sv/lediga-jobb"
+    },
+    "subscription": {
+      "maxAge": 180,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 5,
+      "enableSms": false,
+      "smsCodeExpireConfirmMinutes": 60,
+      "smsCodeExpireActionMinutes": 720
+    },
+    "mail": {
+      "templatePath": "rekry",
+      "maxHitsInEmail": 10
+    },
+    "elasticProxyUrl": "https://helfi-rekry-elastic-proxy.api.hel.ninja/job_listings"
+  }
+}

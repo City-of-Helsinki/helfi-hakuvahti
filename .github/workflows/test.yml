@@ -1,0 +1,36 @@
+on:
+  pull_request:
+  push:
+    branches: ['main', 'dev']
+name: CI
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          repository: druidfi/stonehenge
+
+      - name: Install and start Stonehenge
+        run: make up
+
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Start hakuvahti
+        run: make fresh
+
+      - name: Lint
+        run: docker compose exec app bash -c "npx biome ci src --reporter=github --colors=off"
+
+      - name: Run tests
+        run: make test-ci
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: NPM Audit
+        run: docker compose exec app bash -c "npm audit"

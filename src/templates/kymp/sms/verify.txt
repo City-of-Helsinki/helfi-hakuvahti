@@ -1,0 +1,3 @@
+{{ sms_verify_intro }}
+
+{{ code }}

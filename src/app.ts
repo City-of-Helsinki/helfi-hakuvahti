@@ -1,50 +1,67 @@
-import { join } from 'path';
-import AutoLoad, { AutoloadPluginOptions } from '@fastify/autoload';
-import { FastifyPluginAsync, FastifyServerOptions } from 'fastify';
+import { join } from 'node:path';
+import AutoLoad, { type AutoloadPluginOptions } from '@fastify/autoload';
+import fastifySentry from '@immobiliarelabs/fastify-sentry';
+import type { FastifyPluginAsync, FastifyPluginOptions } from 'fastify';
 import { Environment } from './types/environment';
 
-export interface AppOptions extends FastifyServerOptions, Partial<AutoloadPluginOptions> {
+export interface AppOptions extends FastifyPluginOptions, Partial<AutoloadPluginOptions> {}
 
-}
 // Pass --options via CLI arguments in command to enable these options.
-const options: AppOptions = {
-}
+export const options: AppOptions = {};
 
-const app: FastifyPluginAsync<AppOptions> = async (
-    fastify,
-    opts
-): Promise<void> => {
-  if (process.env.ENVIRONMENT === undefined) {
-    throw new Error('ENVIRONMENT environment variable is not set')
+const requiredEnvironmentVariables = ['ENVIRONMENT', 'HAKUVAHTI_API_KEY'];
+
+const app: FastifyPluginAsync<AppOptions> = async (fastify, opts) => {
+  // Skip override option breaks fastify encapsulation.
+  // This is used by tests to get access to plugins
+  // registered by application.
+  delete opts.skipOverride;
+
+  for (const envVar of requiredEnvironmentVariables) {
+    if (process.env[envVar] === undefined) {
+      throw new Error(`${envVar} environment variable is not set`);
+    }
   }
 
-  const env = process.env.ENVIRONMENT as Environment
+  const env = process.env.ENVIRONMENT as Environment;
 
   if (!Object.values(Environment).includes(env)) {
-    throw new Error('ENVIRONMENT environment variable is not valid')
+    throw new Error('ENVIRONMENT environment variable is not valid');
   }
 
-  const release = process.env.SENTRY_RELEASE ?? '';
-  fastify.register(require('@immobiliarelabs/fastify-sentry'), {
+  fastify.register(fastifySentry, {
     dsn: process.env.SENTRY_DSN,
-    environment: env,
-    release: release,
-    setErrorHandler: true
-  })
+    beforeSend: (event) => {
+      if (!event?.request?.data) {
+        return event;
+      }
 
-  await Promise.all([
-    fastify.register(AutoLoad, {
-      dir: join(__dirname, 'plugins'),
-      options: opts,
-      ignorePattern: /(^|\/|\\)(index|.d).*\.ts$/
-    }),
-    fastify.register(AutoLoad, {
-      dir: join(__dirname, 'routes'),
-      options: opts,
-      ignorePattern: /(^|\/|\\)(index|.d).*\.ts$/
-    })
-  ])
-}
+      const data = JSON.parse(event.request.data);
+
+      if (!data.email) {
+        return event;
+      }
+
+      delete data.email;
+      event.request.data = JSON.stringify(data);
+
+      return event;
+    },
+    environment: env,
+    release: process.env.SENTRY_RELEASE ?? '',
+    setErrorHandler: true,
+  });
+
+  fastify.register(AutoLoad, {
+    dir: join(__dirname, 'plugins'),
+    options: opts,
+    ignorePattern: /(^|\/|\\)(index|\.d).*\.ts$/,
+  });
+  fastify.register(AutoLoad, {
+    dir: join(__dirname, 'routes'),
+    options: opts,
+    ignorePattern: /(^|\/|\\)(index|\.d).*\.ts$/,
+  });
+};
 
 export default app;
-export { app, options }

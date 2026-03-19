@@ -6,30 +6,45 @@ services:
     ports:
       - "27017:27017"
     networks:
-      - hav-internal
-      - helfi-hakuvahti-network
+      - internal
 
-  nodejs:
-    user: root
+  app:
+    user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: openshift/Dockerfile
+      target: development
+    hostname: hakuvahti
+    environment:
+      FASTIFY_PORT: 3000
+      MONGODB: mongodb://mongodb:27017/hakuvahti
+      HAKUVAHTI_API_KEY: '123'
     volumes:
-      - .:/opt/app-root/src:delegated
+      - .:/app:delegated
     ports:
       - "3000:3000"
     depends_on:
       - mongodb
     networks:
-      - hav-internal
-      - helfi-hakuvahti-network
+      - internal
+      - stonehenge-network
     extra_hosts:
       - "helfi-rekry.docker.so:host-gateway"
       - "elastic-helfi-rekry.docker.so:host-gateway"
       - "host-machine.local:host-gateway"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.hakuvahti-app.entrypoints=https"
+      - "traefik.http.routers.hakuvahti-app.rule=Host(`hakuvahti.docker.so`)"
+      - "traefik.http.routers.hakuvahti-app.tls=true"
+      - "traefik.http.services.hakuvahti-app.loadbalancer.server.port=3000"
+      - "traefik.docker.network=stonehenge-network"
+
+volumes:
+  node_modules:
 
 networks:
-  hav-internal:
+  internal:
     internal: true
-  helfi-hakuvahti-network:
-    driver: bridge
+  stonehenge-network:
+    external: true

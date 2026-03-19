@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="x-apple-disable-message-reformatting">
+    <title>{{ title }}</title>
+    <style>
+      @media only screen and (max-width: 600px) {
+        .header-branding td.stack-column {
+          display: block !important;
+          padding-right: 0 !important;
+          width: 100% !important;
+        }
+
+        .header-branding .logo {
+          height: 56px !important;
+        }
+
+        .header-branding td.logo-text {
+          padding-top: 16px !important;
+        }
+      }
+    </style>
+  </head>
+  <body style="font-family: Arial, Helvetica, sans-serif; margin-bottom: 0; margin-left: auto; margin-right: auto; margin-top: 0; padding-bottom: 0; padding-left: 0; padding-right: 0; padding-top: 0;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse; margin-bottom: 0; margin-left: auto; margin-right: auto; margin-top: 0; padding-bottom: 0; padding-left: 0; padding-right: 0; padding-top: 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-collapse: collapse; margin-bottom: 0; margin-left: auto; margin-right: auto; margin-top: 0; max-width: 800px; width: 100%;">
+            <!-- Header -->
+            <tr>
+              <td style="border-bottom-color: #cccccc; border-bottom-style: solid; border-bottom-width: 1px; padding-bottom: 16px; padding-left: 16px; padding-right: 16px; padding-top: 16px;" align="left">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;" class="header-branding">
+                  <tr>
+                    <td class="stack-column" style="padding-bottom: 0; padding-left: 0; padding-right: 16px; padding-top: 0; vertical-align: middle; width: 1%;" align="left">
+                      <img src="{{ email_logo }}" alt="{{ copyright_holder }} logo" height="45" class="logo" style="display: block; height: 45px;" />
+                    </td>
+                    <td class="stack-column logo-text" style="padding: 0; vertical-align: middle;" align="left">
+                      <span style="color: #000000; display: block; font-family: Arial, Helvetica, sans-serif; font-size: 20px; font-weight: 700; line-height: 30px;">{{ copyright_holder }}</span>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Content -->
+            <tr>
+              <td style="padding-bottom: 48px; padding-left: 16px; padding-right: 16px; padding-top: 48px;">
+                {{ content }}
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="border-top-color: #cccccc; border-top-style: solid; border-top-width: 1px; padding-bottom: 48px; padding-left: 16px; padding-right: 16px; padding-top: 48px;" align="left">
+                <img src="{{ email_logo }}" alt="Helsinki logo" height="40" style="display: block; height: 40px; margin-bottom: 24px;" />
+                <p style="font-family:Arial, Helvetica, sans-serif; font-size:16px; font-weight:400; line-height:24px; margin-bottom:0; margin-left:0; margin-right:0; margin-top:0;">&copy; {{ copyright_holder }} {{ year }}</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

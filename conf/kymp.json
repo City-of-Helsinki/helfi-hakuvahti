@@ -1,0 +1,319 @@
+{
+  "name": "kymp",
+  "translations": {
+    "copyright_holder": {
+      "fi": "Helsingin kaupunki",
+      "en": "City of Helsinki",
+      "sv": "Helsingfors stad"
+    },
+    "email_logo": {
+      "fi": "https://makasiini.hel.ninja/helsinki-logos/helsinki-logo-black-h45.png",
+      "en": "https://makasiini.hel.ninja/helsinki-logos/helsinki-logo-black-h45.png",
+      "sv": "https://makasiini.hel.ninja/helsinki-logos/helsinki-logo-black-sv-h45.png"
+    },
+    "email_subject_confirmation": {
+      "fi": "Vahvista ajoneuvojen Siirtovahdin tilaus",
+      "en": "Confirm your Vehicle Removal Alert Service subscription",
+      "sv": "Bekräfta beställningen av flyttningsvakten för fordon"
+    },
+    "email_subject_expiry": {
+      "fi": "Ajoneuvojen Siirtovahtisi on vanhentumassa",
+      "en": "Your Vehicle Removal Alert Service subscription is about to expire",
+      "sv": "Din flyttningsvakt för fordon håller på att gå ut"
+    },
+    "email_subject_newhits": {
+      "fi": "Uusia osumia ajoneuvojen Siirtovahdillasi",
+      "en": "The Vehicle Removal Alert Service has found new matches for you",
+      "sv": "Nya träffar från din flyttningsvakt för fordon"
+    },
+    "email_confirmation_title": {
+      "fi": "Vahvista ajoneuvojen Siirtovahdin tilaus Helsingin kaupungilta",
+      "en": "Confirm your Vehicle Removal Alert Service subscription with the City of Helsinki",
+      "sv": "Bekräfta beställning av flyttningsvakten för fordon från Helsingfors stad"
+    },
+    "email_confirmation_intro": {
+      "fi": "Tälle sähköpostille luotiin hakuvahti Helsingin kaupungin verkkosivustolla.",
+      "en": "A search alert was created with this email address on the City of Helsinki website.",
+      "sv": "En sökvakt på Helsingfors stads webbplats har skapats för den här e-postadressen."
+    },
+    "email_confirmation_search_description": {
+      "fi": "Hakuehdot",
+      "en": "Search criteria",
+      "sv": "Sökvillkor"
+    },
+    "email_confirmation_no_criteria": {
+      "fi": "Et ole valinnut yhtään hakuehtoa.",
+      "en": "You have not selected any search criteria.",
+      "sv": "Du har inte valt några sökvillkor."
+    },
+    "email_confirmation_button": {
+      "fi": "Vahvista hakuvahti",
+      "en": "Confirm your search alert",
+      "sv": "Bekräfta sökvakten"
+    },
+    "email_confirmation_ignore": {
+      "fi": "Jos et tilannut hakuvahtia, voit jättää tämän sähköpostin huomiotta.",
+      "en": "If you did not subscribe to the search alert, you can ignore this email.",
+      "sv": "Om du inte har beställt sökvakten, kan du strunta i det här e-postmeddelandet."
+    },
+    "email_generic_automatically_sent": {
+      "fi": "Tämä viesti on lähetetty automaattisesti, eikä siihen voi vastata.",
+      "en": "This message has been sent automatically and cannot be replied to.",
+      "sv": "Detta meddelande har skickats automatiskt och kan inte besvaras."
+    },
+    "email_generic_kind_regards": {
+      "fi": "Ystävällisin terveisin,",
+      "en": "Kind regards,",
+      "sv": "Med vänlig hälsning,"
+    },
+    "email_generic_signature": {
+      "fi": "Helsingin kaupunki",
+      "en": "City of Helsinki",
+      "sv": "Helsingfors stad"
+    },
+    "email_generic_remove_link": {
+      "fi": "Poista hakuvahti",
+      "en": "Remove the search alert",
+      "sv": "Radera sökvakten"
+    },
+    "email_generic_your_search_terms": {
+      "fi": "Hakuehtosi",
+      "en": "Your search criteria",
+      "sv": "Dina sökvillkor"
+    },
+    "email_expiry_intro_before_date": {
+      "fi": "Hakuvahtisi Helsingin kaupungin sivustolla on päättymässä",
+      "en": "Your saved search on the City of Helsinki website is about to expire on",
+      "sv": "Din sökvakt på Helsingfors stads webbplats kommer att gå ut den"
+    },
+    "email_expiry_intro_after_date": {
+      "fi": "mutta voit tehdä sen uudelleen.",
+      "en": "but you can renew it, if you wish.",
+      "sv": "men du kan skapa den på nytt."
+    },
+    "email_expiry_intro_before_search_description": {
+      "fi": "Hakuehdot:",
+      "en": "Search criteria:",
+      "sv": "Sökvillkor:"
+    },
+    "email_expiry_intro_after_search_description": {
+      "fi": ".",
+      "en": ".",
+      "sv": "."
+    },
+    "email_expiry_button": {
+      "fi": "Tee uusi hakuvahti",
+      "en": "Save a new search",
+      "sv": "Spara en ny sökvakt"
+    },
+    "email_expiry_title_header": {
+      "fi": "Ajoneuvojen siirtovahtisi Helsingin kaupungilta on vanhentumassa",
+      "en": "Your Vehicle Removal Alert Service subscription with the City of Helsinki is about to expire",
+      "sv": "Din flyttningsvakt för fordon från Helsingfors stad håller på att gå ut"
+    },
+    "email_expiry_prefix": {
+      "fi": "Hakuvahtisi voimassaolo päättyy",
+      "en": "Your subscription will expire on",
+      "sv": "Din sökvakt på Helsingfors stads webbplats upphör den"
+    },
+    "email_expiry_suffix": {
+      "fi": ". Voit jatkaa hakuvahdin tilausta sen voimassaoloaikana. Hakuvahdin vanhenemisen jälkeen voit tehdä uuden hakuvahdin.",
+      "en": ". You can extend your subscription to the search alert during its period of validity. When the search alert expires, you can create a new one.",
+      "sv": ". Du kan valfritt förlänga beställningen av sökvakten så länge den är i kraft. Efter att sökvakten gått ut kan du skapa en ny sökvakt."
+    },
+    "email_expiry_renewal_button": {
+      "fi": "Jatka hakuvahdin tilausta",
+      "en": "Continue your search alert subscription",
+      "sv": "Förläng beställningen av sökvakten"
+    },
+    "email_expiry_new_link": {
+      "fi": "Tee uusi hakuvahti",
+      "en": "Create a new search alert",
+      "sv": "Skapa en ny sökvakt"
+    },
+    "email_newhits_intro_prefix": {
+      "fi": "Listauksessa näytetään enintään kymmenen uutta hakuvahtiosumaa.",
+      "en": "The list shows up to ten new results corresponding to your saved search.",
+      "sv": "I listan visas högst tio nya träffar med sökvakten."
+    },
+    "email_newhits_header": {
+      "fi": "Uusia ajoneuvojen siirtovahdin osumia Helsingin kaupungilta",
+      "en": "New Vehicle Removal Alert Service matches from the City of Helsinki",
+      "sv": "Nya träffar från din flyttningsvakt för fordon från Helsingfors stad"
+    },
+    "email_newhits_link_text": {
+      "fi": "Katso kaikki hakuvahtitulokset",
+      "en": "See all saved search results",
+      "sv": "Se alla sökvaktens resultat"
+    },
+    "email_newhits_expiry_prefix": {
+      "fi": "Hakuvahti on voimassa",
+      "en": "The search alert will be valid until",
+      "sv": "Sökvakten är i kraft fram till"
+    },
+    "email_newhits_expiry_suffix": {
+      "fi": " saakka.",
+      "en": ".",
+      "sv": "."
+    },
+    "email_newhits_expiry_instructions": {
+      "fi": "Sait tämän sähköpostin, koska olet tilannut Helsingin kaupungin hakuvahdin. Jos et enää halua saada ilmoituksia, voit perua hakuvahdin tilauksen alla olevasta linkistä. Voit koska tahansa tilata uusia hakuvahteja.",
+      "en": "You have received this email because you have subscribed to the City of Helsinki's search alert service. If you no longer wish to receive notifications, you can unsubscribe to the service via the link below. You can subscribe to new search alerts at any time.",
+      "sv": "Du fick detta e-postmeddelande eftersom du har beställt Helsingfors stads sökvakt. Om du inte längre vill få meddelanden kan du radera sökvakten via länken nedan. Du kan när som helst beställa nya sökvakter."
+    },
+    "email_newhits_do_not_reply": {
+      "fi": "Tähän viestiin ei voi vastata.",
+      "en": "Please do not reply to this message.",
+      "sv": "Detta meddelande kan inte besvaras."
+    },
+    "sms_confirmation_intro": {
+      "fi": "Vahvista ajoneuvojen siirtovahdin tilaus Helsingin kaupungilta",
+      "en": "Confirm your Vehicle Removal Alert Service subscription with the City of Helsinki",
+      "sv": "Bekräfta beställningen av flyttningsvakten för fordon från Helsingfors stad"
+    },
+    "sms_confirmation_code_label": {
+      "fi": "Vahvistuskoodi:",
+      "en": "Confirmation code:",
+      "sv": "Bekräftelsekod:"
+    },
+    "sms_confirmation_code_validity": {
+      "fi": "Vahvistuskoodi on voimassa 60 minuuttia",
+      "en": "The confirmation code will be valid for 60 minutes",
+      "sv": "Bekräftelsekoden är giltig i 60 minuter"
+    },
+    "sms_confirmation_link": {
+      "fi": "hel.fi/vahvista-siirtovahti",
+      "en": "hel.fi/confirm-vehicle-removal-alert",
+      "sv": "hel.fi/bekrafta-flyttningsvakten"
+    },
+    "sms_newhits_intro": {
+      "fi": "Uusia osumia ajoneuvojen siirtovahdillasi",
+      "en": "The Vehicle Removal Alert Service has found new matches for you",
+      "sv": "Nya träffar från din flyttningsvakt för fordon"
+    },
+    "sms_newhits_remove_text": {
+      "fi": "Poista hakuvahti osoitteessa",
+      "en": "Remove your search alert at",
+      "sv": "Radera sökvakten på adressen"
+    },
+    "sms_newhits_remove_link": {
+      "fi": "hel.fi/poista-siirtovahti",
+      "en": "hel.fi/remove-vehicle-removal-alert",
+      "sv": "hel.fi/redigera-flyttningsvakten"
+    },
+    "sms_renewal_intro": {
+      "fi": "Ajoneuvojen siirtovahtisi Helsingin kaupungilta on vanhentumassa",
+      "en": "Your Vehicle Removal Alert Service subscription with the City of Helsinki will expire on",
+      "sv": "Din flyttningsvakt för fordon från Helsingfors stad går ut"
+    },
+    "sms_renewal_search_label": {
+      "fi": "Hakuehtosi:",
+      "en": "Your search criteria:",
+      "sv": "Dina sökvillkor:"
+    },
+    "sms_renewal_text": {
+      "fi": "Voit jatkaa hakuvahdin tilausta osoitteessa",
+      "en": "You can continue your search alert subscription at",
+      "sv": "Du kan fortsätta beställningen av sökvakten på adressen"
+    },
+    "sms_renewal_link": {
+      "fi": "hel.fi/jatka-siirtovahti",
+      "en": "hel.fi/extend-vehicle-removal-alert",
+      "sv": "hel.fi/forlang-flyttningsvakten"
+    },
+    "removal_sign_location": {
+      "fi": "Hakutuloksissa kerrotaan siirtokehotusmerkin sijainti.",
+      "en": "Search results will tell you where the vehicle removal request sign is located.",
+      "sv": "I sökresultaten anges var förflyttningsuppmaningsmärket är placerat."
+    }
+  },
+  "matchField": "created_at",
+  "fieldFormats": {
+    "valid_from": "date",
+    "valid_to": "date"
+  },
+  "dev": {
+    "urls": {
+      "base": "https://www.test.hel.ninja/",
+      "en": "https://www.test.hel.ninja/en/urban-environment-and-traffic",
+      "fi": "https://www.test.hel.ninja/fi/kaupunkiymparisto-ja-liikenne",
+      "sv": "https://www.test.hel.ninja/sv/stadsmiljo-och-trafik"
+    },
+    "subscription": {
+      "maxAge": 365,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 5,
+      "enableSms": true,
+      "smsCodeExpireConfirmMinutes": 60,
+      "smsCodeExpireActionMinutes": 2440
+    },
+    "mail": {
+      "templatePath": "kymp",
+      "maxHitsInEmail": 10
+    },
+    "elasticProxyUrl": "https://liikenne-elastic-proxy.test.hel.ninja/mobilenote_data"
+  },
+  "staging": {
+    "urls": {
+      "base": "https://www.stage.hel.ninja",
+      "en": "https://www.stage.hel.ninja/en/urban-environment-and-traffic",
+      "fi": "https://www.stage.hel.ninja/fi/kaupunkiymparisto-ja-liikenne",
+      "sv": "https://www.stage.hel.ninja/sv/stadsmiljo-och-trafik"
+    },
+    "subscription": {
+      "maxAge": 365,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 5,
+      "enableSms": true,
+      "smsCodeExpireConfirmMinutes": 60,
+      "smsCodeExpireActionMinutes": 2440
+    },
+    "mail": {
+      "templatePath": "kymp",
+      "maxHitsInEmail": 10
+    },
+    "elasticProxyUrl": "https://liikenne-elastic-proxy.stage.hel.ninja/mobilenote_data"
+  },
+  "production": {
+    "urls": {
+      "base": "https://www.hel.fi",
+      "en": "https://www.hel.fi/en/urban-environment-and-traffic",
+      "fi": "https://www.hel.fi/fi/kaupunkiymparisto-ja-liikenne",
+      "sv": "https://www.hel.fi/sv/stadsmiljo-och-trafik"
+    },
+    "subscription": {
+      "maxAge": 365,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 5,
+      "enableSms": true,
+      "smsCodeExpireConfirmMinutes": 60,
+      "smsCodeExpireActionMinutes": 2440
+    },
+    "mail": {
+      "templatePath": "kymp",
+      "maxHitsInEmail": 10
+    },
+    "elasticProxyUrl": "https://liikenne-elastic-proxy.api.hel.ninja/mobilenote_data"
+  },
+  "local": {
+    "urls": {
+      "base": "https://helfi-kymp.docker.so",
+      "en": "https://helfi-kymp.docker.so/en",
+      "fi": "https://helfi-kymp.docker.so/fi",
+      "sv": "https://helfi-kymp.docker.so/sv"
+    },
+    "subscription": {
+      "maxAge": 90,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 3,
+      "enableSms": true,
+      "smsCodeExpireConfirmMinutes": 60,
+      "smsCodeExpireActionMinutes": 720
+    },
+    "mail": {
+      "templatePath": "kymp",
+      "maxHitsInEmail": 10
+    },
+    "elasticProxyUrl": "http://helfi-kymp-elastic-proxy:8080/mobilenote_data"
+  }
+}

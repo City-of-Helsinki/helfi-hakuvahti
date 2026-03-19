@@ -1,10 +1,24 @@
-import { Static, Type } from '@sinclair/typebox'
+import { type Static, Type } from '@sinclair/typebox';
 
 export const AtvResponse = Type.Object({
-  atvDocumentId: Type.String()
-})
+  atvDocumentId: Type.String(),
+  hasSms: Type.Optional(Type.Boolean()),
+});
 
-export type AtvResponseType = Static<typeof AtvResponse>
+export type AtvResponseType = Static<typeof AtvResponse>;
+
+export const AtvDocumentContent = Type.Object({
+  email: Type.Optional(Type.String()),
+  sms: Type.Optional(Type.String()),
+  /** Base64 encoded elasticsearch query. */
+  elastic_query: Type.Optional(Type.String()),
+  /** Path and query string where user created the hakuvahti. */
+  query: Type.Optional(Type.String()),
+  /** String describing the search. */
+  search_description: Type.Optional(Type.String()),
+});
+
+export type AtvDocumentContentType = Static<typeof AtvDocumentContent>;
 
 export const AtvDocument = Type.Object({
   id: Type.Optional(Type.String()),
@@ -40,7 +54,7 @@ export const AtvDocument = Type.Object({
 
   metadata: Type.Optional(Type.Any()),
 
-  content: Type.Any(),
+  content: AtvDocumentContent,
 
   // Is this document a draft or not. Drafts can be modified by a user.
   // Draft is actually a boolean but we must send it to the api as 'string'
@@ -63,13 +77,13 @@ export const AtvDocument = Type.Object({
   content_schema_url: Type.Optional(Type.String()),
 
   // Attachments
-  attachments: Type.Optional(Type.Array(Type.Any()))
-})
+  attachments: Type.Optional(Type.Array(Type.Any())),
+});
 
-export type AtvDocumentType = Static<typeof AtvDocument>
+export type AtvDocumentType = Static<typeof AtvDocument>;
 
 export const AtvDocumentBatch = Type.Object({
-  document_ids: Type.Array(Type.String())
-})
+  document_ids: Type.Array(Type.String()),
+});
 
-export type AtvDocumentBatchType = Static<typeof AtvDocumentBatch>
+export type AtvDocumentBatchType = Static<typeof AtvDocumentBatch>;

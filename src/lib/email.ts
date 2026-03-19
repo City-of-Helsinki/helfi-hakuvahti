@@ -1,70 +1,239 @@
-import { sprightly } from "sprightly";
-import { SubscriptionCollectionLanguageType } from "../types/subscription"
-import { PartialDrupalNodeType } from "../types/elasticproxy"
-import dotenv from 'dotenv'
+import * as fs from 'node:fs';
+import { sprightly } from 'sprightly';
 
-dotenv.config()
+import type { SiteConfigurationType } from '../types/siteConfig';
+import type { SubscriptionCollectionLanguageType } from '../types/subscription';
 
-// Base dir for email templates
-const dir = process.env.MAIL_TEMPLATE_PATH || 'dist/templates'
+const TEMPLATE_BASE_PATH = 'dist/templates';
 
-// Base url for the website (not HAV)
-const baseUrl: string = process.env.BASE_URL || 'http://localhost:3000'
+// Formatter registry for converting elastic field values.
+const fieldFormatters: Record<string, (val: unknown, siteConfig: SiteConfigurationType) => string> = {
+  date: (val) => {
+    if (typeof val !== 'number') return '';
+    return new Date(val * 1000).toLocaleDateString('fi-FI', {
+      timeZone: 'Europe/Helsinki',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  },
+  url: (val, siteConfig) => siteConfig.urls.base + String(val ?? ''),
+};
+
+// Flatten elastic _source fields (arrays → first element) and apply configured formatters.
+const flattenHitForTemplate = (
+  item: Record<string, unknown>,
+  siteConfig: SiteConfigurationType,
+): Record<string, string> => {
+  const vars: Record<string, string> = {};
+  const formats = siteConfig.fieldFormats ?? {};
+
+  Object.entries(item).forEach(([key, value]) => {
+    const val = Array.isArray(value) ? value[0] : value;
+    const formatter = formats[key] ? fieldFormatters[formats[key]] : undefined;
+    vars[key] = formatter ? formatter(val, siteConfig) : String(val ?? '');
+  });
+
+  return vars;
+};
+
+export const translate = (
+  key: string,
+  lang: SubscriptionCollectionLanguageType,
+  siteConfig: SiteConfigurationType,
+): string => siteConfig.translations?.[key]?.[lang] ?? '';
+
+type SprightlyContext = Record<string, string>;
+
+export const buildTranslationContext = (
+  lang: SubscriptionCollectionLanguageType,
+  siteConfig: SiteConfigurationType,
+): SprightlyContext => {
+  const context: SprightlyContext = {};
+  const entries = siteConfig.translations ? Object.entries(siteConfig.translations) : [];
+  entries.forEach(([key, value]) => {
+    context[key] = value[lang] ?? '';
+  });
+  return context;
+};
+
+export const wrapWithLayout = (
+  innerTemplatePath: string,
+  innerTemplateData: SprightlyContext,
+  lang: SubscriptionCollectionLanguageType,
+  title: string,
+  siteConfig: SiteConfigurationType,
+) => {
+  const translations = buildTranslationContext(lang, siteConfig);
+  const templateData: SprightlyContext = {
+    ...translations,
+    ...innerTemplateData,
+  };
+  const innerContent = sprightly(innerTemplatePath, templateData);
+  const now = new Date();
+  const year = String(now.getFullYear());
+
+  const layoutData: SprightlyContext = {
+    ...translations,
+    lang,
+    title,
+    content: innerContent,
+    year,
+  };
+
+  return sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/index.html`, layoutData);
+};
+
+// SMS verification code
+export const verifySms = async (
+  lang: SubscriptionCollectionLanguageType,
+  data: { code: string },
+  siteConfig: SiteConfigurationType,
+) =>
+  sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/verify.txt`, {
+    ...buildTranslationContext(lang, siteConfig),
+    code: data.code,
+  });
+
+// Subscription confirmation SMS
+export const confirmationSms = async (
+  lang: SubscriptionCollectionLanguageType,
+  data: { id: string; sms_code: string },
+  siteConfig: SiteConfigurationType,
+) =>
+  sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/confirmation.txt`, {
+    ...buildTranslationContext(lang, siteConfig),
+    sms_code: data.sms_code,
+    id: data.id,
+  });
 
 // Subscription confirmation email
-export const confirmationEmail = async (lang: SubscriptionCollectionLanguageType, data: { link: string; }) => {
-  try {
-    return sprightly('dist/templates/' + dir + '/confirmation_' + lang + '.html', {
-      lang: lang,
+export const confirmationEmail = async (
+  lang: SubscriptionCollectionLanguageType,
+  data: { link: string; search_description: string | undefined },
+  siteConfig: SiteConfigurationType,
+) =>
+  wrapWithLayout(
+    `${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/confirmation.html`,
+    {
+      lang,
       link: data.link,
-    });
-  } catch (error) {
-    throw error
-  }
-}
+      search_description: data.search_description?.toLowerCase() ?? '',
+    },
+    lang,
+    translate('email_subject_confirmation', lang, siteConfig),
+    siteConfig,
+  );
 
 // Notification before subscription expires
-export const expiryEmail = async (lang: SubscriptionCollectionLanguageType, data: { 
-  link: string, 
-  search_description: string,
-  removal_date: string,
-  remove_link: string }) => {
-  try {
-    return sprightly('dist/templates/' + dir + '/expiry_notification_' + lang + '.html', {
-      lang: lang,
+export const expiryEmail = async (
+  lang: SubscriptionCollectionLanguageType,
+  data: {
+    link: string;
+    search_description: string;
+    removal_date: string;
+    remove_link: string;
+    renewal_link: string;
+    search_link: string;
+  },
+  siteConfig: SiteConfigurationType,
+) =>
+  wrapWithLayout(
+    `${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/expiry_notification.html`,
+    {
+      lang,
       link: data.link,
       search_description: data.search_description,
       remove_link: data.remove_link,
-      removal_date: data.removal_date
-    });
-  } catch (error) {
-    throw error
-  }
-}
+      removal_date: data.removal_date,
+      renewal_link: data.renewal_link,
+      search_link: siteConfig.urls.base + data.search_link,
+    },
+    lang,
+    translate('email_subject_expiry', lang, siteConfig),
+    siteConfig,
+  );
 
 // Email with list of new search monitor hits
-export const newHitsEmail = async (lang: SubscriptionCollectionLanguageType, data: {
-  hits: PartialDrupalNodeType[], 
-  search_description: string,
-  search_link: string,
-  remove_link: string,
-  created_date: string }) => {
+export const newHitsEmail = async (
+  lang: SubscriptionCollectionLanguageType,
+  data: {
+    hits: Record<string, unknown>[];
+    search_description: string;
+    search_link: string;
+    remove_link: string;
+    created_date: string;
+    expiry_date: string;
+  },
+  siteConfig: SiteConfigurationType,
+) => {
   try {
-    const hitsContent = data.hits.map(item => sprightly('dist/templates/link_text.html', {
-      link: baseUrl + item.url,
-      content: item.title,
-    })).join('')
+    const hitsContent = data.hits
+      .map((item) =>
+        sprightly(
+          `${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/hit_item.html`,
+          flattenHitForTemplate(item, siteConfig),
+        ),
+      )
+      .join('');
 
-    return sprightly(`dist/templates/${dir}/newhits_${lang}.html`, {
-      lang: lang,
-      hits: hitsContent,
-      search_link: baseUrl + data.search_link,
-      remove_link: data.remove_link,
-      search_description: data.search_description,
-      created_date: data.created_date
-    })
+    return wrapWithLayout(
+      `${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/newhits.html`,
+      {
+        lang,
+        hits: hitsContent,
+        search_link: siteConfig.urls.base + data.search_link,
+        remove_link: data.remove_link,
+        search_description: data.search_description,
+        created_date: data.created_date,
+        expiry_date: data.expiry_date,
+      },
+      lang,
+      translate('email_subject_newhits', lang, siteConfig),
+      siteConfig,
+    );
   } catch (error) {
-    console.error(error)
-    throw error
+    console.error(error);
+    throw error;
   }
-}
+};
+
+// SMS notification for new search results
+export const newHitsSms = async (
+  lang: SubscriptionCollectionLanguageType,
+  data: {
+    hits: Record<string, unknown>[];
+    search_description: string;
+    id: string;
+  },
+  siteConfig: SiteConfigurationType,
+) => {
+  const smsHitTemplate = `${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/hit_item.txt`;
+  const hitsContent = fs.existsSync(smsHitTemplate)
+    ? data.hits.map((item) => sprightly(smsHitTemplate, flattenHitForTemplate(item, siteConfig))).join('')
+    : '';
+
+  return sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/newhits.txt`, {
+    ...buildTranslationContext(lang, siteConfig),
+    search_description: data.search_description,
+    id: data.id,
+    hits: hitsContent,
+  });
+};
+
+// SMS notification for subscription renewal
+export const renewalSms = async (
+  lang: SubscriptionCollectionLanguageType,
+  data: {
+    expiry_date: string;
+    search_description: string;
+    id: string;
+  },
+  siteConfig: SiteConfigurationType,
+) =>
+  sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/renew.txt`, {
+    ...buildTranslationContext(lang, siteConfig),
+    expiry_date: data.expiry_date,
+    search_description: data.search_description,
+    id: data.id,
+  });
