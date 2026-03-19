@@ -1,1 +1,9 @@
-{{ sms_newhits_intro }} {{ email_generic_your_search_terms }}: {{ search_description }} {{ hits }} {{ sms_newhits_remove_text }} {{ sms_newhits_remove_link }}?id={{ id }}
+{{ sms_newhits_intro }}
+
+{{ removal_sign_location }}
+
+{{ email_generic_your_search_terms }}: {{ search_description }}
+
+{{ hits }}
+
+{{ sms_newhits_remove_text }} {{ sms_newhits_remove_link }}?id={{ id }}

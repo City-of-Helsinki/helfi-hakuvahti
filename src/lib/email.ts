@@ -10,9 +10,12 @@ const TEMPLATE_BASE_PATH = 'dist/templates';
 const fieldFormatters: Record<string, (val: unknown, siteConfig: SiteConfigurationType) => string> = {
   date: (val) => {
     if (typeof val !== 'number') return '';
-    const d = new Date(val * 1000);
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
+    return new Date(val * 1000).toLocaleDateString('fi-FI', {
+      timeZone: 'Europe/Helsinki',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
   },
   url: (val, siteConfig) => siteConfig.urls.base + String(val ?? ''),
 };

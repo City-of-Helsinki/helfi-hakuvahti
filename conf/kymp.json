@@ -12,32 +12,22 @@
       "sv": "https://makasiini.hel.ninja/helsinki-logos/helsinki-logo-black-sv-h45.png"
     },
     "email_subject_confirmation": {
-      "fi": "Vahvista ajoneuvojen siirtovahdin tilaus",
+      "fi": "Vahvista ajoneuvojen Siirtovahdin tilaus",
       "en": "Confirm your Vehicle Removal Alert Service subscription",
       "sv": "Bekräfta beställningen av flyttningsvakten för fordon"
     },
     "email_subject_expiry": {
-      "fi": "Ajoneuvojen siirtovahtisi on vanhentumassa",
+      "fi": "Ajoneuvojen Siirtovahtisi on vanhentumassa",
       "en": "Your Vehicle Removal Alert Service subscription is about to expire",
       "sv": "Din flyttningsvakt för fordon håller på att gå ut"
     },
     "email_subject_newhits": {
-      "fi": "Uusia osumia ajoneuvojen siirtovahdillasi",
+      "fi": "Uusia osumia ajoneuvojen Siirtovahdillasi",
       "en": "The Vehicle Removal Alert Service has found new matches for you",
       "sv": "Nya träffar från din flyttningsvakt för fordon"
     },
-    "instructions_text": {
-      "fi": "Työpaikkojen hakuvahdin käyttöohjeet",
-      "en": "Instructions for using saved searches for jobs",
-      "sv": "Anvisning för användning av sökvakten för arbetsplatser"
-    },
-    "instructions_link": {
-      "fi": "https://www.hel.fi/fi/avoimet-tyopaikat/nain-me-rekrytoimme/hakuvahdin-ohjeet",
-      "en": "https://www.hel.fi/en/open-jobs/this-is-how-we-recruit/job-alert-instructions",
-      "sv": "https://www.hel.fi/sv/lediga-jobb/sa-har-rekryterar-vi/sokvaktens-anvisningar"
-    },
     "email_confirmation_title": {
-      "fi": "Vahvista ajoneuvojen siirtovahdin tilaus Helsingin kaupungilta",
+      "fi": "Vahvista ajoneuvojen Siirtovahdin tilaus Helsingin kaupungilta",
       "en": "Confirm your Vehicle Removal Alert Service subscription with the City of Helsinki",
       "sv": "Bekräfta beställning av flyttningsvakten för fordon från Helsingfors stad"
     },
@@ -230,6 +220,11 @@
       "fi": "hel.fi/jatka-siirtovahti",
       "en": "hel.fi/extend-vehicle-removal-alert",
       "sv": "hel.fi/forlang-flyttningsvakten"
+    },
+    "removal_sign_location": {
+      "fi": "Hakutuloksissa kerrotaan siirtokehotusmerkin sijainti.",
+      "en": "Search results will tell you where the vehicle removal request sign is located.",
+      "sv": "I sökresultaten anges var förflyttningsuppmaningsmärket är placerat."
     }
   },
   "matchField": "created_at",
