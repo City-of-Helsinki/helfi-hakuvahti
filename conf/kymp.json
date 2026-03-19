@@ -182,9 +182,9 @@
       "sv": "Bekräftelsekoden är giltig i 60 minuter"
     },
     "sms_confirmation_link": {
-      "fi": "www.test.hel.ninja/fi/kaupunkiymparisto-ja-liikenne/pysakointi/vahvista-siirtovahti",
-      "en": "www.test.hel.ninja/en/urban-environment-and-traffic/parking/confirm-vehicle-removal-alert",
-      "sv": "www.test.hel.ninja/sv/stadsmiljo-och-trafik/parkering/bekrafta-flyttningsvakten"
+      "fi": "hel.fi/vahvista-siirtovahti",
+      "en": "hel.fi/confirm-vehicle-removal-alert",
+      "sv": "hel.fi/bekrafta-flyttningsvakten"
     },
     "sms_newhits_intro": {
       "fi": "Uusia osumia ajoneuvojen siirtovahdillasi",
@@ -197,9 +197,9 @@
       "sv": "Radera sökvakten på adressen"
     },
     "sms_newhits_remove_link": {
-      "fi": "www.test.hel.ninja/fi/kaupunkiymparisto-ja-liikenne/pysakointi/poista-siirtovahti",
-      "en": "www.test.hel.ninja/en/urban-environment-and-traffic/parking/remove-vehicle-removal-alert",
-      "sv": "www.test.hel.ninja/sv/stadsmiljo-och-trafik/parkering/redigera-flyttningsvakten"
+      "fi": "hel.fi/poista-siirtovahti",
+      "en": "hel.fi/remove-vehicle-removal-alert",
+      "sv": "hel.fi/redigera-flyttningsvakten"
     },
     "sms_renewal_intro": {
       "fi": "Ajoneuvojen siirtovahtisi Helsingin kaupungilta on vanhentumassa",
@@ -217,9 +217,9 @@
       "sv": "Du kan fortsätta beställningen av sökvakten på adressen"
     },
     "sms_renewal_link": {
-      "fi": "www.test.hel.ninja/fi/kaupunkiymparisto-ja-liikenne/pysakointi/jatka-siirtovahti",
-      "en": "www.test.hel.ninja/en/urban-environment-and-traffic/parking/extend-vehicle-removal-alert",
-      "sv": "www.test.hel.ninja/sv/stadsmiljo-och-trafik/parkering/forlang-flyttningsvakten"
+      "fi": "hel.fi/jatka-siirtovahti",
+      "en": "hel.fi/extend-vehicle-removal-alert",
+      "sv": "hel.fi/forlang-flyttningsvakten"
     },
     "removal_sign_location": {
       "fi": "Hakutuloksissa kerrotaan siirtokehotusmerkin sijainti.",
