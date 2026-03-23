@@ -96,15 +96,13 @@ export async function renewSubscription(
 
   // Update ATV document delete_after
   const now = new Date();
+  const newDeleteAfter = new Date(now);
+  newDeleteAfter.setDate(newDeleteAfter.getDate() + maxAge);
   try {
-    await atv.updateDocumentDeleteAfter(ATV.getAtvId(subscription), maxAge, now);
+    await atv.updateDocumentDeleteAfter(ATV.getAtvId(subscription), newDeleteAfter);
   } catch (_error) {
     throw new ActionError(500, 'Failed to update subscription expiry in storage.');
   }
-
-  // Calculate new delete_after
-  const newDeleteAfter = new Date(now);
-  newDeleteAfter.setDate(newDeleteAfter.getDate() + maxAge);
 
   const $set: Partial<SubscriptionCollectionType> = {
     // Reset created so expiration checks (created + maxAge) use the renewed date,

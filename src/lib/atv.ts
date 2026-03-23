@@ -30,22 +30,12 @@ export class ATV {
    * Fetches the existing document first to preserve all content and required fields.
    *
    * @param atvDocumentId - The id of the ATV document to update
-   * @param maxAge - The number of days until deletion (defaults to defaultMaxAge from config)
-   * @param fromDate - The date to calculate deletion from (defaults to current date)
+   * @param deleteAfter - The date after which the document should be deleted
    * @return The updated document
    */
-  async updateDocumentDeleteAfter(
-    atvDocumentId: string,
-    maxAge?: number,
-    fromDate?: Date,
-  ): Promise<Partial<AtvDocumentType>> {
+  async updateDocumentDeleteAfter(atvDocumentId: string, deleteAfter: Date): Promise<Partial<AtvDocumentType>> {
     // First, fetch the existing document to preserve all content
     const existingDoc: Partial<AtvDocumentType> = await this.makeRequest('get', `/v1/documents/${atvDocumentId}`);
-
-    // Calculate new delete_after date
-    const deleteAfter = fromDate ? new Date(fromDate) : new Date();
-    const daysUntilDeletion: number = maxAge || this.defaultMaxAge;
-    deleteAfter.setDate(deleteAfter.getDate() + daysUntilDeletion);
 
     const updateObject: Partial<AtvDocumentType> = {
       tos_function_id: existingDoc.tos_function_id,

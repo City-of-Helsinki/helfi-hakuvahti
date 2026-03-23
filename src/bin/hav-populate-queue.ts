@@ -252,11 +252,7 @@ const processSiteSubscriptions = async (
 
       if (!isDryRun) {
         try {
-          await server.atv.updateDocumentDeleteAfter(
-            ATV.getAtvId(subscription),
-            subscriptionValidForDays,
-            new Date(subscription.created),
-          );
+          await server.atv.updateDocumentDeleteAfter(ATV.getAtvId(subscription), expectedDeleteAfter);
           await collection.updateOne({ _id: subscription._id }, { $set: { delete_after: expectedDeleteAfter } });
         } catch (error) {
           console.error(`Failed to sync ATV delete_after for subscription ${subscription._id}:`, error);

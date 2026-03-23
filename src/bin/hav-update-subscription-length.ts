@@ -145,7 +145,7 @@ export const updateSubscriptionLength = async (server: Server, options: Migratio
 
         if (!dryRun) {
           // Update ATV document with calculated delete_after
-          await server.atv.updateDocumentDeleteAfter(ATV.getAtvId(subscription), maxAge, createdDate);
+          await server.atv.updateDocumentDeleteAfter(ATV.getAtvId(subscription), deleteAfter);
         }
 
         stats.updated += 1;
