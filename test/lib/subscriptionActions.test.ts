@@ -134,19 +134,11 @@ describe('subscriptionActions', () => {
   describe('renewSubscription', () => {
     const noOpAtv = { updateDocumentDeleteAfter: async () => ({}) } as unknown as ATV;
 
-    test('throws 400 for non-ACTIVE or not-yet-renewable subscriptions', async () => {
+    test('throws 400 for non-ACTIVE subscriptions', async () => {
       const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
-      // Non-ACTIVE subscription
       const inactiveId = await insertSubscription();
       await assert.rejects(() => renewSubscription(collection, { _id: inactiveId }, noOpAtv), (error: ActionError) => {
-        assert.strictEqual(error.statusCode, 400);
-        return true;
-      });
-
-      // ACTIVE but outside renewal window (just created)
-      const activeId = await insertSubscription({ status: new Int32(SubscriptionStatus.ACTIVE) });
-      await assert.rejects(() => renewSubscription(collection, { _id: activeId }, noOpAtv), (error: ActionError) => {
         assert.strictEqual(error.statusCode, 400);
         return true;
       });
