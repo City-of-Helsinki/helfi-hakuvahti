@@ -63,13 +63,8 @@ export async function renewSubscription(
   filter: SubscriptionFilter,
   atv: ATV,
 ): Promise<void> {
-  if (!collection) {
-    throw new ActionError(404, 'Subscription not found.');
-  }
-
-  const subscription = await collection.findOne(filter);
-
-  if (!subscription) {
+  const subscription = await collection?.findOne(filter);
+  if (!collection || !subscription) {
     throw new ActionError(404, 'Subscription not found.');
   }
 
@@ -80,31 +75,21 @@ export async function renewSubscription(
 
   // Load site configuration
   const siteConfig = SiteConfigurationLoader.getConfiguration(subscription.site_id);
-
   if (!siteConfig) {
     throw new ActionError(500, 'Site configuration not found.');
   }
 
-  // Check renewal window
-  const { maxAge, expiryNotificationDays } = siteConfig.subscription;
-  const subscriptionExpiresAt = new Date(subscription.created).getTime() + maxAge * 24 * 60 * 60 * 1000;
-  const expiryNotificationDate = new Date(subscriptionExpiresAt - expiryNotificationDays * 24 * 60 * 60 * 1000);
-
-  if (Date.now() < expiryNotificationDate.getTime()) {
-    throw new ActionError(400, 'Subscription cannot be renewed yet.');
-  }
+  const { maxAge } = siteConfig.subscription;
 
   // Update ATV document delete_after
   const now = new Date();
+  const newDeleteAfter = new Date(now);
+  newDeleteAfter.setDate(newDeleteAfter.getDate() + maxAge);
   try {
-    await atv.updateDocumentDeleteAfter(ATV.getAtvId(subscription), maxAge, now);
+    await atv.updateDocumentDeleteAfter(ATV.getAtvId(subscription), newDeleteAfter);
   } catch (_error) {
     throw new ActionError(500, 'Failed to update subscription expiry in storage.');
   }
-
-  // Calculate new delete_after
-  const newDeleteAfter = new Date(now);
-  newDeleteAfter.setDate(newDeleteAfter.getDate() + maxAge);
 
   const $set: Partial<SubscriptionCollectionType> = {
     // Reset created so expiration checks (created + maxAge) use the renewed date,

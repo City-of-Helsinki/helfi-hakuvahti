@@ -166,7 +166,7 @@ describe('ATV', () => {
       });
 
       const atv = new ATV(defaultConfig);
-      const result = await atv.updateDocumentDeleteAfter('doc-123', 90, new Date(2024, 0, 1));
+      const result = await atv.updateDocumentDeleteAfter('doc-123', new Date(2024, 2, 31));
 
       assert.strictEqual(mockRequest.mock.callCount(), 2);
 
@@ -183,7 +183,7 @@ describe('ATV', () => {
       assert.deepStrictEqual(result, patchedDoc);
     });
 
-    test('calculates delete_after from fromDate plus maxAge', async () => {
+    test('sets delete_after to the provided date', async () => {
       let callCount = 0;
       const mockRequest = mock.method(axios, 'request', async () => {
         callCount++;
@@ -192,22 +192,7 @@ describe('ATV', () => {
       });
 
       const atv = new ATV(defaultConfig);
-      await atv.updateDocumentDeleteAfter('doc-123', 60, new Date(2024, 0, 1));
-
-      const patchCall = getCallArgs(mockRequest, 1);
-      assert.strictEqual(patchCall.data.delete_after, '2024-03-01');
-    });
-
-    test('uses defaultMaxAge when maxAge is not provided', async () => {
-      let callCount = 0;
-      const mockRequest = mock.method(axios, 'request', async () => {
-        callCount++;
-        if (callCount === 1) return { data: existingDoc };
-        return { data: {} };
-      });
-
-      const atv = new ATV({ ...defaultConfig, defaultMaxAge: 60 });
-      await atv.updateDocumentDeleteAfter('doc-123', undefined, new Date(2024, 0, 1));
+      await atv.updateDocumentDeleteAfter('doc-123', new Date(2024, 2, 1));
 
       const patchCall = getCallArgs(mockRequest, 1);
       assert.strictEqual(patchCall.data.delete_after, '2024-03-01');
@@ -219,7 +204,7 @@ describe('ATV', () => {
 
       const atv = new ATV(defaultConfig);
       await assert.rejects(
-        () => atv.updateDocumentDeleteAfter('doc-123'),
+        () => atv.updateDocumentDeleteAfter('doc-123', new Date()),
         (err: Error) => {
           assert.strictEqual(err.message, 'ATV request failed');
           assert.strictEqual(err.cause, originalError);

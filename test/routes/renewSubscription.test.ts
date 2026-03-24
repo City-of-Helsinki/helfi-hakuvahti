@@ -43,11 +43,10 @@ describe('/subscription/renew', () => {
   test('renewSubscription - successfully renews old subscription', async (t) => {
     const app = await build(t);
 
-    const atvMock = mock.fn(async (atvDocId: string, maxAge?: number, fromDate?: Date) => {
-      const baseDate = fromDate || new Date();
+    const atvMock = mock.fn(async (atvDocId: string, deleteAfter: Date) => {
       return {
         id: atvDocId,
-        delete_after: new Date(baseDate.getTime() + (maxAge || 90) * 24 * 60 * 60 * 1000).toISOString().substring(0, 10),
+        delete_after: deleteAfter.toISOString().substring(0, 10),
       };
     });
 
