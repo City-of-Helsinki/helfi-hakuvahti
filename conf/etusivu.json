@@ -1,0 +1,246 @@
+{
+  "name": "etusivu",
+  "translations": {
+    "copyright_holder": {
+      "fi": "Helsingin kaupunki",
+      "en": "City of Helsinki",
+      "sv": "Helsingfors stad"
+    },
+    "email_logo": {
+      "fi": "https://makasiini.hel.ninja/helsinki-logos/helsinki-logo-black-h45.png",
+      "en": "https://makasiini.hel.ninja/helsinki-logos/helsinki-logo-black-h45.png",
+      "sv": "https://makasiini.hel.ninja/helsinki-logos/helsinki-logo-black-sv-h45.png"
+    },
+    "email_subject_confirmation": {
+      "fi": "Vahvista hakuvahdin tilaus",
+      "en": "Confirm your search alert subscription",
+      "sv": "Bekräfta beställningen av sökvakten"
+    },
+    "email_subject_expiry": {
+      "fi": "Hakuvahtisi on vanhentumassa",
+      "en": "Your search alert is about to expire",
+      "sv": "Din sökvakt håller på att gå ut"
+    },
+    "email_subject_newhits": {
+      "fi": "Uusia osumia hakuvahdillasi",
+      "en": "New matches from your search alert",
+      "sv": "Nya träffar från din sökvakt"
+    },
+    "email_confirmation_title": {
+      "fi": "Vahvista hakuvahdin tilaus Helsingin kaupungilta",
+      "en": "Confirm your search alert subscription with the City of Helsinki",
+      "sv": "Bekräfta beställningen av sökvakten från Helsingfors stad"
+    },
+    "email_confirmation_intro": {
+      "fi": "Tälle sähköpostille luotiin hakuvahti Helsingin kaupungin verkkosivustolla.",
+      "en": "A search alert was created with this email address on the City of Helsinki website.",
+      "sv": "En sökvakt på Helsingfors stads webbplats har skapats för den här e-postadressen."
+    },
+    "email_confirmation_search_description": {
+      "fi": "Hakuehdot",
+      "en": "Search criteria",
+      "sv": "Sökvillkor"
+    },
+    "email_confirmation_button": {
+      "fi": "Vahvista hakuvahti",
+      "en": "Confirm your search alert",
+      "sv": "Bekräfta sökvakten"
+    },
+    "email_confirmation_ignore": {
+      "fi": "Jos et tilannut hakuvahtia, voit jättää tämän sähköpostin huomiotta.",
+      "en": "If you did not subscribe to the search alert, you can ignore this email.",
+      "sv": "Om du inte har beställt sökvakten, kan du strunta i det här e-postmeddelandet."
+    },
+    "email_generic_automatically_sent": {
+      "fi": "Tämä viesti on lähetetty automaattisesti, eikä siihen voi vastata.",
+      "en": "This message has been sent automatically and cannot be replied to.",
+      "sv": "Detta meddelande har skickats automatiskt och kan inte besvaras."
+    },
+    "email_generic_kind_regards": {
+      "fi": "Ystävällisin terveisin,",
+      "en": "Kind regards,",
+      "sv": "Med vänlig hälsning,"
+    },
+    "email_generic_signature": {
+      "fi": "Helsingin kaupunki",
+      "en": "City of Helsinki",
+      "sv": "Helsingfors stad"
+    },
+    "email_generic_remove_link": {
+      "fi": "Poista hakuvahti",
+      "en": "Remove the search alert",
+      "sv": "Radera sökvakten"
+    },
+    "email_generic_your_search_terms": {
+      "fi": "Hakuehtosi",
+      "en": "Your search criteria",
+      "sv": "Dina sökvillkor"
+    },
+    "email_expiry_intro_before_date": {
+      "fi": "Hakuvahtisi Helsingin kaupungin sivustolla on päättymässä",
+      "en": "Your search alert on the City of Helsinki website is about to expire on",
+      "sv": "Din sökvakt på Helsingfors stads webbplats kommer att gå ut den"
+    },
+    "email_expiry_intro_after_date": {
+      "fi": "mutta voit tehdä sen uudelleen.",
+      "en": "but you can renew it, if you wish.",
+      "sv": "men du kan skapa den på nytt."
+    },
+    "email_expiry_intro_before_search_description": {
+      "fi": "Hakuehdot:",
+      "en": "Search criteria:",
+      "sv": "Sökvillkor:"
+    },
+    "email_expiry_intro_after_search_description": {
+      "fi": ".",
+      "en": ".",
+      "sv": "."
+    },
+    "email_expiry_button": {
+      "fi": "Tee uusi hakuvahti",
+      "en": "Save a new search",
+      "sv": "Spara en ny sökvakt"
+    },
+    "email_expiry_title_header": {
+      "fi": "Hakuvahtisi Helsingin kaupungilta on vanhentumassa",
+      "en": "Your search alert with the City of Helsinki is about to expire",
+      "sv": "Din sökvakt från Helsingfors stad håller på att gå ut"
+    },
+    "email_expiry_prefix": {
+      "fi": "Hakuvahtisi voimassaolo päättyy",
+      "en": "Your search alert will expire on",
+      "sv": "Din sökvakt på Helsingfors stads webbplats upphör den"
+    },
+    "email_expiry_suffix": {
+      "fi": ". Voit jatkaa hakuvahdin tilausta sen voimassaoloaikana. Hakuvahdin vanhenemisen jälkeen voit tehdä uuden hakuvahdin.",
+      "en": ". You can extend your subscription to the search alert during its period of validity. When the search alert expires, you can create a new one.",
+      "sv": ". Du kan valfritt förlänga beställningen av sökvakten så länge den är i kraft. Efter att sökvakten gått ut kan du skapa en ny sökvakt."
+    },
+    "email_expiry_renewal_button": {
+      "fi": "Jatka hakuvahdin tilausta",
+      "en": "Continue your search alert subscription",
+      "sv": "Förläng beställningen av sökvakten"
+    },
+    "email_expiry_new_link": {
+      "fi": "Tee uusi hakuvahti",
+      "en": "Create a new search alert",
+      "sv": "Skapa en ny sökvakt"
+    },
+    "email_newhits_intro_prefix": {
+      "fi": "Listauksessa näytetään enintään kymmenen uutta hakuvahtiosumaa.",
+      "en": "The list shows up to ten new results corresponding to your search alert.",
+      "sv": "I listan visas högst tio nya träffar med sökvakten."
+    },
+    "email_newhits_header": {
+      "fi": "Uusia hakuvahtiosumia Helsingin kaupungilta",
+      "en": "New search alert matches from the City of Helsinki",
+      "sv": "Nya träffar från din sökvakt från Helsingfors stad"
+    },
+    "email_newhits_link_text": {
+      "fi": "Katso kaikki hakuvahtitulokset",
+      "en": "See all search alert results",
+      "sv": "Se alla sökvaktens resultat"
+    },
+    "email_newhits_expiry_prefix": {
+      "fi": "Hakuvahti on voimassa",
+      "en": "The search alert will be valid until",
+      "sv": "Sökvakten är i kraft fram till"
+    },
+    "email_newhits_expiry_suffix": {
+      "fi": " saakka.",
+      "en": ".",
+      "sv": "."
+    },
+    "email_newhits_expiry_instructions": {
+      "fi": "Sait tämän sähköpostin, koska olet tilannut Helsingin kaupungin hakuvahdin. Jos et enää halua saada ilmoituksia, voit perua hakuvahdin tilauksen alla olevasta linkistä. Voit koska tahansa tilata uusia hakuvahteja.",
+      "en": "You have received this email because you have subscribed to the City of Helsinki's search alert service. If you no longer wish to receive notifications, you can unsubscribe via the link below. You can subscribe to new search alerts at any time.",
+      "sv": "Du fick detta e-postmeddelande eftersom du har beställt Helsingfors stads sökvakt. Om du inte längre vill få meddelanden kan du radera sökvakten via länken nedan. Du kan när som helst beställa nya sökvakter."
+    },
+    "email_newhits_do_not_reply": {
+      "fi": "Tähän viestiin ei voi vastata.",
+      "en": "Please do not reply to this message.",
+      "sv": "Detta meddelande kan inte besvaras."
+    }
+  },
+  "matchField": "created_at",
+  "fieldFormats": {
+    "valid_from": "date",
+    "valid_to": "date"
+  },
+  "local": {
+    "urls": {
+      "base": "https://helfi-etusivu.docker.so",
+      "en": "https://helfi-etusivu.docker.so/en",
+      "fi": "https://helfi-etusivu.docker.so/fi",
+      "sv": "https://helfi-etusivu.docker.so/sv"
+    },
+    "subscription": {
+      "maxAge": 90,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 3,
+      "enableSms": false
+    },
+    "mail": {
+      "templatePath": "etusivu",
+      "maxHitsInEmail": 10
+    },
+    "elasticProxyUrl": "http://helfi-etusivu-elastic-proxy:8080/news"
+  },
+  "dev": {
+    "urls": {
+      "base": "https://www.test.hel.ninja",
+      "en": "https://www.test.hel.ninja/en",
+      "fi": "https://www.test.hel.ninja/fi",
+      "sv": "https://www.test.hel.ninja/sv"
+    },
+    "subscription": {
+      "maxAge": 365,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 5,
+      "enableSms": false
+    },
+    "mail": {
+      "templatePath": "etusivu",
+      "maxHitsInEmail": 10
+    },
+    "elasticProxyUrl": "https://helfi-etusivu-elastic-proxy.test.hel.ninja/news"
+  },
+  "staging": {
+    "urls": {
+      "base": "https://www.stage.hel.ninja",
+      "en": "https://www.stage.hel.ninja/en",
+      "fi": "https://www.stage.hel.ninja/fi",
+      "sv": "https://www.stage.hel.ninja/sv"
+    },
+    "subscription": {
+      "maxAge": 365,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 5,
+      "enableSms": false
+    },
+    "mail": {
+      "templatePath": "etusivu",
+      "maxHitsInEmail": 10
+    },
+    "elasticProxyUrl": "https://helfi-etusivu-elastic-proxy.stage.hel.ninja/news"
+  },
+  "production": {
+    "urls": {
+      "base": "https://www.hel.fi",
+      "en": "https://www.hel.fi/en",
+      "fi": "https://www.hel.fi/fi",
+      "sv": "https://www.hel.fi/sv"
+    },
+    "subscription": {
+      "maxAge": 365,
+      "unconfirmedMaxAge": 5,
+      "expiryNotificationDays": 5,
+      "enableSms": false
+    },
+    "mail": {
+      "templatePath": "etusivu",
+      "maxHitsInEmail": 10
+    },
+    "elasticProxyUrl": "https://helfi-etusivu-elastic-proxy.api.hel.ninja/news"
+  }
+}
