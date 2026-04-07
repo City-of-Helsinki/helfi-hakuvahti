@@ -17,14 +17,14 @@
       "sv": "Bekräfta beställningen av sökvakten"
     },
     "email_subject_expiry": {
-      "fi": "Hakuvahtisi on vanhentumassa",
-      "en": "Your search alert is about to expire",
-      "sv": "Din sökvakt håller på att gå ut"
+      "fi": "Uutisten hakuvahtisi on vanhentumassa",
+      "en": "Your news search alert subscription is about to expire",
+      "sv": "Tiden för din sökvakt för nyheter håller på att gå ut"
     },
     "email_subject_newhits": {
-      "fi": "Uusia osumia hakuvahdillasi",
-      "en": "New matches from your search alert",
-      "sv": "Nya träffar från din sökvakt"
+      "fi": "Uusia osumia uutisten hakuvahdillasi",
+      "en": "New news search alert subscription matches",
+      "sv": "Nya träffar med din sökvakt för nyheter"
     },
     "email_confirmation_title": {
       "fi": "Vahvista hakuvahdin tilaus Helsingin kaupungilta",
@@ -102,9 +102,9 @@
       "sv": "Spara en ny sökvakt"
     },
     "email_expiry_title_header": {
-      "fi": "Hakuvahtisi Helsingin kaupungilta on vanhentumassa",
-      "en": "Your search alert with the City of Helsinki is about to expire",
-      "sv": "Din sökvakt från Helsingfors stad håller på att gå ut"
+      "fi": "Uutisten hakuvahtisi Helsingin kaupungilta on vanhentumassa",
+      "en": "Your City of Helsinki news search alert subscription is about to expire",
+      "sv": "Tiden för din sökvakt för nyheter från Helsingfors stad håller på att gå ut"
     },
     "email_expiry_prefix": {
       "fi": "Hakuvahtisi voimassaolo päättyy",
@@ -127,9 +127,9 @@
       "sv": "Skapa en ny sökvakt"
     },
     "email_newhits_intro_prefix": {
-      "fi": "Listauksessa näytetään enintään kymmenen uutta hakuvahtiosumaa.",
-      "en": "The list shows up to ten new results corresponding to your search alert.",
-      "sv": "I listan visas högst tio nya träffar med sökvakten."
+      "fi": "Listauksessa näytetään enintään kymmenen uutta uutista.",
+      "en": "The list shows up to ten new results corresponding to your news alert subscription.",
+      "sv": "I listan visas högst tio nya nyheter."
     },
     "email_newhits_header": {
       "fi": "Uusia hakuvahtiosumia Helsingin kaupungilta",
