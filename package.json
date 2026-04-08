@@ -45,7 +45,7 @@
     "google-libphonenumber": "^3.2.44",
     "jsdom": "^24.0.0",
     "minimist": "^1.2.8",
-    "nodemailer": "^7.0.10",
+    "nodemailer": "^8.0.5",
     "sprightly": "^2.0.1"
   },
   "devDependencies": {
