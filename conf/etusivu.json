@@ -12,9 +12,9 @@
       "sv": "https://makasiini.hel.ninja/helsinki-logos/helsinki-logo-black-sv-h45.png"
     },
     "email_subject_confirmation": {
-      "fi": "Vahvista hakuvahdin tilaus",
-      "en": "Confirm your search alert subscription",
-      "sv": "Bekräfta beställningen av sökvakten"
+      "fi": "Vahvista uutisten hakuvahdin tilaus",
+      "en": "Confirm news search alert subscription",
+      "sv": "Bekräfta beställningen av sökvakten för nyheter"
     },
     "email_subject_expiry": {
       "fi": "Uutisten hakuvahtisi on vanhentumassa",
@@ -27,12 +27,12 @@
       "sv": "Nya träffar med din sökvakt för nyheter"
     },
     "email_confirmation_title": {
-      "fi": "Vahvista hakuvahdin tilaus Helsingin kaupungilta",
-      "en": "Confirm your search alert subscription with the City of Helsinki",
-      "sv": "Bekräfta beställningen av sökvakten från Helsingfors stad"
+      "fi": "Vahvista uutisten hakuvahdin tilaus Helsingin kaupungilta",
+      "en": "Confirm your search alert subscription for City of Helsinki news",
+      "sv": "Bekräfta beställningen av sökvakten för nyheter från Helsingfors stad"
     },
     "email_confirmation_intro": {
-      "fi": "Tälle sähköpostille luotiin hakuvahti Helsingin kaupungin verkkosivustolla.",
+      "fi": "Tälle sähköpostille luotiin uutisten hakuvahti Helsingin kaupungin verkkosivustolla.",
       "en": "A search alert was created with this email address on the City of Helsinki website.",
       "sv": "En sökvakt på Helsingfors stads webbplats har skapats för den här e-postadressen."
     },
@@ -108,7 +108,7 @@
     },
     "email_expiry_prefix": {
       "fi": "Hakuvahtisi voimassaolo päättyy",
-      "en": "Your search alert will expire on",
+      "en": "Your search alert subscription will expire on",
       "sv": "Din sökvakt på Helsingfors stads webbplats upphör den"
     },
     "email_expiry_suffix": {
@@ -132,9 +132,9 @@
       "sv": "I listan visas högst tio nya nyheter."
     },
     "email_newhits_header": {
-      "fi": "Uusia hakuvahtiosumia Helsingin kaupungilta",
-      "en": "New search alert matches from the City of Helsinki",
-      "sv": "Nya träffar från din sökvakt från Helsingfors stad"
+      "fi": "Uusia uutisten hakuvahdin osumia Helsingin kaupungilta",
+      "en": "New news search alert subscription matches from the City of Helsinki",
+      "sv": "Nya träffar med sökvakten för nyheter från Helsingfors stad"
     },
     "email_newhits_link_text": {
       "fi": "Katso kaikki hakuvahtitulokset",
