@@ -162,7 +162,7 @@
       "sv": "Detta meddelande kan inte besvaras."
     }
   },
-  "matchField": "created_at",
+  "matchField": "published_at",
   "fieldFormats": {
     "valid_from": "date",
     "valid_to": "date"
