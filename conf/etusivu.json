@@ -175,7 +175,7 @@
       "sv": "https://helfi-etusivu.docker.so/sv"
     },
     "subscription": {
-      "maxAge": 90,
+      "maxAge": 180,
       "unconfirmedMaxAge": 5,
       "expiryNotificationDays": 3,
       "enableSms": false
@@ -194,7 +194,7 @@
       "sv": "https://www.test.hel.ninja/sv"
     },
     "subscription": {
-      "maxAge": 365,
+      "maxAge": 180,
       "unconfirmedMaxAge": 5,
       "expiryNotificationDays": 5,
       "enableSms": false
@@ -213,7 +213,7 @@
       "sv": "https://www.stage.hel.ninja/sv"
     },
     "subscription": {
-      "maxAge": 365,
+      "maxAge": 180,
       "unconfirmedMaxAge": 5,
       "expiryNotificationDays": 5,
       "enableSms": false
@@ -232,7 +232,7 @@
       "sv": "https://www.hel.fi/sv"
     },
     "subscription": {
-      "maxAge": 365,
+      "maxAge": 180,
       "unconfirmedMaxAge": 5,
       "expiryNotificationDays": 5,
       "enableSms": false
