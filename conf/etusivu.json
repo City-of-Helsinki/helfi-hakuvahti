@@ -137,8 +137,8 @@
       "sv": "Nya träffar med sökvakten för nyheter från Helsingfors stad"
     },
     "email_newhits_link_text": {
-      "fi": "Katso kaikki hakuvahtitulokset",
-      "en": "See all search alert results",
+      "fi": "Katso kaikki hakuvahdin tulokset",
+      "en": "See all search alert subscription matches",
       "sv": "Se alla sökvaktens resultat"
     },
     "email_newhits_expiry_prefix": {
