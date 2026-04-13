@@ -1,0 +1,1 @@
+{{ sms_newhits_intro }} "{{ search_description }}". {{ sms_newhits_cta }}: {{ search_link }}
