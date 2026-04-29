@@ -3,6 +3,11 @@ on:
   push:
     branches: ['main', 'dev']
 name: CI
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+  security-events: write
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -17,6 +22,22 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+
+      - name: Manticore Scanner
+        uses: TazarSec/ManticoreScanner@ae1d98830b458330844ef64aeda6e8d6fb21cdb3 # v0.1.1
+        with:
+          version: v0.1.1
+          fail-on: 50
+          format: sarif
+          output: manticore.sarif
+          vcs-comment: true
+
+      - name: Upload Manticore SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: manticore.sarif
+          category: manticore
 
       - name: Start hakuvahti
         run: make fresh
