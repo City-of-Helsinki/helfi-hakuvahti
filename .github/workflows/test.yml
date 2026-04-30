@@ -23,7 +23,10 @@ jobs:
           fetch-depth: 0
 
       - name: Manticore Scanner
-        uses: TazarSec/ManticoreScanner@v0.1.1
+        uses: TazarSec/ManticoreScanner@ae1d98830b458330844ef64aeda6e8d6fb21cdb3
+        with:
+          version: v0.1.1
+          vcs-comment: true
 
       - name: Start hakuvahti
         run: make fresh
