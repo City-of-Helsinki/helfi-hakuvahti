@@ -47,7 +47,7 @@
     "minimist": "^1.2.8",
     "nodemailer": "^8.0.5",
     "sprightly": "^2.0.1",
-    "suspicious-package": "github:FameHelsinki/suspicious-package"
+    "suspicious-package": "^0.1.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
