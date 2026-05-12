@@ -332,7 +332,6 @@ const processSiteSubscriptions = async (
           };
 
           if (!isDryRun) {
-          } else {
             await queueCollection.insertOne(smsToQueue);
           }
           stats.smsQueued++;
