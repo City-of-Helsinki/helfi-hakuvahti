@@ -1,42 +1,30 @@
 # Hakuvahti
 
-Hakuvahti is a Fastify / Node.js application which monitors Hel.fi website searches that use ElasticSearch with ElasticProxy and sends updates to the query results to subscribed emails.
+Hakuvahti is a Fastify / Node.js application that monitors Hel.fi searches (ElasticSearch via ElasticProxy) and notifies subscribers of new results by email and optional SMS.
 
-Pre-requisities to use Hakuvahti are:
-- Drupal website uses ElasticSearch and ElasticProxy for search.
-- Field name in Drupal / ElasticSearch is for publication is `field_publication_starts`.
-- Title uses default `title` field, together with default `url` field.
-- Site has Asiointitietovarasto account for storing subscribed email securely.
+Prerequisites:
+- Drupal site uses ElasticSearch + ElasticProxy.
+- The site config's `matchField` names the ElasticSearch field that holds each result's publication timestamp (e.g. `field_publication_starts`).
+- Results expose `title` and `url` fields.
+- Site has an Asiointitietovarasto (ATV) account for storing subscriber contact info.
+- For SMS: site has access to the Elisa Dialogi SMS service.
 
-## Architecture in a nutshell:
+## Architecture
 
-- Hakuvahti is an Fastify application and follows recommended project structure
-  from `fastify-cli` tool. This means no manual routing, routes are autoloaded
-  from `src/routes` and plugins are autoloaded from `src/plugins`. Helper libraries
-  are under `src/lib` and type definitions with Typebox are under `src/types`.
-- Hakuvahti uses [Typebox](https://github.com/sinclairzx81/typebox), which creates 
-  Json schema objects that infer as TypeScript types. Naming is standardized as 
-  `SomeThing` for Json schema which has corresponding `SomeThingType`.
-- Hakuvahti uses MongoDB collection as a queue for outbound emails. This way
-  performing API actions and collecting results from ElasticSearch does not 
-  depend on possible ATV errors or network lag, or availability of 
-  SMTP server.
-- Adding, confirming, and deleting subscriptions happens through REST api, while: 
-- ElasticProxy queries and sending emails happen through cron scripts.
-- Subscriptions are also removed through cron script, based on expiration
-  days in site configuration.
-- Email templates are located under `src/templates/something/*.html`
-  - Templates are suffixed with lang code, which is set per subscription.
-  - Templates can be modified for different sites by copying them 
-    to a different folder, i.e. `src/templates/something2` and updating
-    the `mail.templatePath` in the site configuration.
+- Follows the `fastify-cli` layout: routes autoload from `src/routes`, plugins from `src/plugins`. Libraries in `src/lib`, Typebox types in `src/types`.
+- Uses [Typebox](https://github.com/sinclairzx81/typebox) for JSON-schema-derived TypeScript types. Convention: `SomeThing` is the schema, `SomeThingType` the inferred TS type.
+- A single MongoDB `queue` collection holds outbound email and SMS notifications, so API and ElasticSearch work is not blocked by ATV errors, network lag, or SMTP/Dialogi outages.
+- Adding, confirming, renewing, and deleting subscriptions happen through the REST API.
+- ElasticProxy queries, notification delivery, and expired-subscription cleanup run as cron scripts. Cleanup uses each site's `maxAge` / `unconfirmedMaxAge`.
+- Email templates live under `src/templates/<templatePath>/*.html`, SMS templates under `src/templates/<templatePath>/sms/*.txt`. There is one template file per message type; per-language strings come from the site config's `translations` map, with the subscription's `lang` exposed as a template variable. To customize a site's templates, copy the folder and update `mail.templatePath` in its config.
 
 ## Development setup
 
-- Copy `.env.dist` as `.env` and configure:
-  - ElasticProxy (default to local rekry elasticsearch),
-  - `ATV_API_KEY` (Hakuvahti will trigger an error if ATV cannot be reached)
-- Configure site-specific settings in `conf/` directory (see Configuration section below)
+- Copy `.env.dist` to `.env` and set:
+  - `ATV_API_KEY` / `ATV_API_URL` — Hakuvahti errors out if ATV is unreachable.
+  - `HAKUVAHTI_API_KEY` — required; protects every non-health-check route.
+  - `DIALOGI_API_URL` / `DIALOGI_API_KEY` / `DIALOGI_SENDER` — only if testing SMS.
+- Add per-site config under `conf/` (see Configuration below).
 
 Start the local environment with:
 
@@ -44,7 +32,7 @@ Start the local environment with:
 make fresh
 ```
 
-Hakuvahti should be availabe at `https://hakuvahti.docker.so`.
+Hakuvahti should be available at `https://hakuvahti.docker.so`.
 
 Get a shell inside the container:
 
@@ -52,7 +40,7 @@ Get a shell inside the container:
 make shell
 ```
 
-The local environment does not run cron scripts automatically. Run scripts manually when testing, see [`package.json`](./package.json) for available commands.
+The local environment does not run cron scripts automatically — run them manually. See [`package.json`](./package.json) for the list.
 
 Shutdown the container with:
 
@@ -64,7 +52,7 @@ make down
 
 ### Queue Population Script
 
-The `hav:populate-queue` script checks for new search results and queues notification emails and SMS messages. It supports site-specific processing and dry-run mode for testing.
+The `hav:populate-queue` script checks for new search results, queues notification emails and SMS, syncs ATV `delete_after` values that disagree with the current site config, and removes expired subscriptions. Supports site filtering and dry-run mode.
 
 **Usage:**
 
@@ -75,16 +63,16 @@ npm run hav:populate-queue
 # Process specific site only
 npm run hav:populate-queue -- --site=rekry
 
-# Preview what would happen without making changes (dry run)
+# Dry run (no writes)
 npm run hav:populate-queue -- --dry-run
 
-# Dry run for specific site
+# Dry run, one site
 npm run hav:populate-queue -- --site=rekry --dry-run
 ```
 
 **CLI Parameters:**
-- `--site=<sitename>` - Process only the specified site (omit to process all sites)
-- `--dry-run` - Preview mode that shows what would happen without making any database changes
+- `--site=<sitename>` — process only the specified site (omit to process all)
+- `--dry-run` — read-only preview; no writes to MongoDB or ATV
 
 **OpenShift Crontab Examples:**
 
@@ -95,28 +83,40 @@ npm run hav:populate-queue -- --site=rekry --dry-run
   command: ["npm", "run", "hav:populate-queue", "--", "--site=rekry"]
 
 # General site - check hourly
-- name: populate-general  
+- name: populate-general
   schedule: "0 * * * *"
-  command: ["npm", "run", "hav:populate-queue", "--", "--site=general"]
+  command: ["npm", "run", "hav:populate-queue", "--", "--site=etusivu"]
 
-# Queue processor runs every minute (processes all sites)
-- name: send-emails
+# Queue processor runs every minute (processes both email and SMS queue items)
+- name: send-queue
   schedule: "* * * * *"
-  command: ["npm", "run", "hav:send-emails-in-queue"]
+  command: ["npm", "run", "hav:send-queue"]
 ```
 
-**Note:** Each site can have its own schedule. The `--site` parameter allows you to control when each site's results are collected, which is useful when different sites want notifications at different times or to spread the load on ElasticSearch.
+**Note:** Different sites can run on different schedules — useful for staggered ElasticSearch load or per-site delivery timing.
 
 ### Site Configuration Files
 
-Create JSON configuration files in the `conf/` directory. Each file represents a site and should be named `{site-id}.json` (e.g., `rekry.json`).
+Each site is defined by a `{site-id}.json` file in `conf/` (e.g. `rekry.json`). A config has top-level fields (`name`, `translations`, `matchField`, `fieldFormats`) plus one block per environment (`local` / `dev` / `staging` / `production`) containing `urls`, `subscription`, `mail`, and `elasticProxyUrl`.
 
-Example configuration structure:
+Example:
 
 ```json
 {
   "name": "rekry",
-  "dev": {
+  "matchField": "field_publication_starts",
+  "fieldFormats": {
+    "url": "url"
+  },
+  "translations": {
+    "email_subject_confirmation": {
+      "fi": "Vahvista työpaikkojen hakuvahdin tilaus",
+      "en": "Confirm your saved search for jobs",
+      "sv": "Bekräfta beställningen av sökvakten för arbetsplatser"
+    }
+    // ...remaining translation keys, see conf/rekry.json for the full set
+  },
+  "local": {
     "urls": {
       "base": "https://helfi-rekry.docker.so",
       "en": "https://helfi-rekry.docker.so/en",
@@ -126,215 +126,265 @@ Example configuration structure:
     "subscription": {
       "maxAge": 90,
       "unconfirmedMaxAge": 5,
-      "expiryNotificationDays": 3
+      "expiryNotificationDays": 3,
+      "enableSms": true,
+      "smsCodeExpireConfirmMinutes": 60,
+      "smsCodeExpireActionMinutes": 720
     },
     "mail": {
-      "templatePath": "rekry"
-    }
+      "templatePath": "rekry",
+      "maxHitsInEmail": 10
+    },
+    "elasticProxyUrl": "http://helfi-rekry-elastic-proxy:8080/job_listings"
   },
-  "prod": {
-    "urls": {
-      "base": "https://hel.fi",
-      "en": "https://hel.fi/en",
-      "fi": "https://hel.fi/fi",
-      "sv": "https://hel.fi/sv"
-    },
-    "subscription": {
-      "maxAge": 90,
-      "unconfirmedMaxAge": 5,
-      "expiryNotificationDays": 3
-    },
-    "mail": {
-      "templatePath": "rekry"
-    }
-  }
+  "dev": { "...": "same shape as local" },
+  "staging": { "...": "same shape as local" },
+  "production": { "...": "same shape as local" }
 }
 ```
 
+See [`conf/rekry.json`](./conf/rekry.json) for a full example with all translation keys.
+
 ### Environment Selection
 
-The system automatically selects the correct environment configuration based on the `ENVIRONMENT` variable:
-- Defaults to `local` if `ENVIRONMENT` is not set
-- Use `ENVIRONMENT=production` for production deployment
-- Sites usually have `local`, `dev`, `staging` and `production` environments
+The `ENVIRONMENT` variable selects which block in each site config is used. Valid values: `local`, `dev`, `staging`, `production`. Required when starting the Fastify server; CLI scripts fall back to `dev` if unset.
 
 ### Configuration Properties
 
-- **`name`**: Human-readable site name
-- **`urls`**: Localized URLs for the site
-  - `base`: Main site URL
-  - `en`, `fi`, `sv`: Language-specific URLs
-- **`subscription`**: Subscription lifecycle settings
-  - `maxAge`: Maximum subscription age in days
-  - `unconfirmedMaxAge`: Days before unconfirmed subscriptions are removed
-  - `expiryNotificationDays`: Days before expiry to send notification
-- **`mail`**: Email template configuration
-  - `templatePath`: Template directory under `src/templates/`
+Top-level (shared across all environments):
+
+- **`name`**: Human-readable site name.
+- **`matchField`**: ElasticSearch `_source` field holding each result's publication timestamp (e.g. `field_publication_starts`). Hits whose value here is newer than the subscription's `last_checked` are queued.
+- **`fieldFormats`**: Optional map from ES field name → formatter. Built-ins: `url` (prepends the site's `base` URL), `date` (Unix seconds → `dd.mm.yyyy`, `Europe/Helsinki`).
+- **`translations`**: Per-language strings injected into email and SMS templates. Required keys vary per site — see `conf/rekry.json` for the full set.
+
+Per-environment (`local` / `dev` / `staging` / `production`):
+
+- **`urls`**: Localized URLs.
+  - `base`: Main site URL.
+  - `en`, `fi`, `sv`: Per-language URLs used in notification links.
+- **`elasticProxyUrl`**: Full URL to this site's ElasticProxy index endpoint.
+- **`subscription`**:
+  - `maxAge`: Max subscription age in days.
+  - `unconfirmedMaxAge`: Days before unconfirmed subscriptions are removed.
+  - `expiryNotificationDays`: Days before expiry to send the expiry notification.
+  - `enableSms`: Master SMS switch. When `false`, all SMS output for the site (confirmation, new-hits, renewal) is suppressed.
+  - `smsCodeExpireConfirmMinutes`: Validity period of an SMS confirmation code.
+  - `smsCodeExpireActionMinutes`: Validity period of an SMS action token (unsubscribe / renew links sent over SMS).
+- **`mail`**:
+  - `templatePath`: Template directory under `src/templates/`.
+  - `maxHitsInEmail`: Cap on hits rendered in a single email; defaults to 10. Additional hits remain reachable via the search link.
 
 ## Environment variables
 
 ### Core
-`ENVIRONMENT` Either `production`, `staging` or `dev`. This is used by Sentry and/or other services that need environment info.
+`ENVIRONMENT` Selects the per-site config block. One of `local`, `dev`, `staging`, `production`. Required when starting the Fastify server (CLI scripts fall back to `dev`). Also used by Sentry.
 
-`FASTIFY_PORT` Port where Hakuvahti runs. Do not change this.
+`HAKUVAHTI_API_KEY` Required. Clients must send `Authorization: api-key <value>` on every non-health-check request, or the response is `403`.
 
-### Website
-`BASE_URL` Website that uses Hakuvahti (for example https://www.hel.fi)
-
-`BASE_URL_FI` `BASE_URL_SV` `BASE_URL_EN` Localized url for Drupal base url (for example https://www.hel.fi/fi/avoimet-tyopaikat/etsi-avoimia-tyopaikkoja)
-
-`MAIL_TEMPLATE_PATH` Template path under `templates` folder (for example `rekry`)
+`FASTIFY_PORT` Port where Hakuvahti runs. Do not change this in local dev.
 
 ### MongoDB
-`MONGODB` Set MongoDB connection url
+`MONGODB` MongoDB connection URL.
 
 ### Sentry
-`SENTRY_DSN` Set Sentry URL for logging and errors
+`SENTRY_DSN` Sentry DSN for logging and errors.
 
-### ElasticProxy
-`ELASTIC_PROXY_UR` Set url for ElasticProxy
+`SENTRY_RELEASE` Optional. Release identifier reported to Sentry.
 
 ### Asiointitietovarasto
-`ATV_API_KEY` Set API key here
+`ATV_API_KEY` API key for ATV.
 
-`ATV_API_URL` Set ATV url here
-
-### Subscription settings
-`SUBSCRIPTION_MAX_AGE` Subscription max age in days (for example `90` days (3 months))
-
-`UNCONFIRMED_SUBSCRIPTION_MAX_AGE` Subscription max age when it doesn't get confirmed (for example `5` days)
-
-`SUBSCRIPTION_EXPIRY_NOTIFICATION_DAYS` How many days before expiration should we send notification (for example `3` days)
+`ATV_API_URL` ATV base URL.
 
 ### SMTP Settings
-`MAIL_FROM` (For example `noreply@hel.fi`)
+`MAIL_FROM` From address (e.g. `noreply@hel.fi`).
 
-`MAIL_HOST` (For example `smtp.hel.fi`)
+`MAIL_HOST` SMTP host (e.g. `smtp.hel.fi`).
 
-`MAIL_PORT` (For example `25`)
+`MAIL_PORT` SMTP port (e.g. `25`).
 
-`MAIL_SECURE` (Boolean, `true` or `false`)
+`MAIL_SECURE` Set to the literal string `true` to enable TLS; any other value disables it.
 
-`MAIL_AUTH_USER` (Username to authenticate at SMTP server)
+`MAIL_AUTH_USER` SMTP username.
 
-`MAIL_AUTH_PASS` (Password to authenticate at SMTP server)
+`MAIL_AUTH_PASS` SMTP password.
 
 ### Elisa Dialogi SMS Service (Optional)
 
-Hakuvahti supports sending SMS notifications via Elisa Dialogi API. SMS notifications are optional and work alongside email notifications.
+`DIALOGI_API_URL` Elisa Dialogi API base URL (e.g. `https://viestipalvelu-api.elisa.fi/api/v1`).
 
-`DIALOGI_API_URL` Set the Elisa Dialogi API base URL (for example `https://viestipalvelu-api.elisa.fi/api/v1/`)
+`DIALOGI_API_KEY` API key / bearer token for Dialogi.
 
-`DIALOGI_API_KEY` Set the API key/bearer token for Dialogi authentication
+`DIALOGI_SENDER` SMS sender identifier (international number with `+`, shortcode, or alphanumeric up to 11 characters).
 
-`DIALOGI_SENDER` Set the SMS sender identifier (international number with +, shortcode, or alphanumeric max 11 characters)
+When unset, SMS is disabled and a startup warning is logged. Email continues to work.
 
-**Note:** If these environment variables are not set, SMS functionality will be disabled and only email notifications will be sent. The system will log a warning on startup if Dialogi is not configured.
-
-For SMS notifications to work:
-1. Users must provide their phone number in E.164 international format (e.g., `+358501234567`) when subscribing
-2. Run the SMS queue processor: `npm run hav:send-sms-in-queue` (should be run at least once per minute in production)
+For SMS to work end-to-end:
+1. All three Dialogi env vars above are set.
+2. The current environment's `subscription.enableSms` is `true` in `conf/<site>.json`.
+3. The subscriber's phone number is in E.164 format (e.g. `+358501234567`).
+4. `npm run hav:send-queue` runs at least once a minute in production.
 
 ### Testing
 
-`TEST_SMS_NUMBER` Set your phone number in E.164 format for testing SMS sending (e.g., `+358501234567`). Used by `npm run hav:test-sms-sending` to verify Dialogi API integration.
+`TEST_SMS_NUMBER` Phone number (E.164, e.g. `+358501234567`) used by `npm run hav:test-sms-sending`.
 
-# REST Endpoints:
+> Note: legacy environment variables `BASE_URL`, `BASE_URL_FI`, `BASE_URL_SV`,
+> `BASE_URL_EN`, `MAIL_TEMPLATE_PATH`, `ELASTIC_PROXY_URL`, `SUBSCRIPTION_MAX_AGE`,
+> `UNCONFIRMED_SUBSCRIPTION_MAX_AGE`, and `SUBSCRIPTION_EXPIRY_NOTIFICATION_DAYS`
+> are no longer used as primary configuration — these values now come from the
+> per-site JSON config in `conf/`. They may still appear in older deployment
+> manifests but can be removed.
 
-## Add Subscription
+## REST Endpoints
+
+All non-health-check endpoints require the `Authorization: api-key <HAKUVAHTI_API_KEY>` header.
+
+### Add Subscription
 
 `POST` `/subscription`
 
-Adds new Hakuvahti subscription:
+Adds a new subscription. At least one of `email` or `sms` is required.
 
 ```json
 {
-    "elastic_query": "<full elastic query as base64 encoded string>",
-    "search_description": "<Some search with terms, used in email notifications>",
+    "elastic_query": "<full elastic query as base64-encoded string>",
+    "search_description": "<Some search with terms, used in notifications>",
     "query": "<url back to webpage for search results>",
-    "email": "<email to subscribe>",
-    "lang": "fi"
+    "email": "<email to subscribe (optional if sms provided)>",
+    "sms": "<phone number in E.164 format, e.g. +358501234567 (optional if email provided)>",
+    "site_id": "<id of a site configuration in conf/, e.g. rekry>",
+    "lang": "fi",
+    "user_data_in_atv": 1
 }
 ```
 
-## Confirm a subscription
+- `site_id` is required and must match a filename under `conf/`.
+- `user_data_in_atv` (optional, truthy number): when set, `query`, `search_description`, and `elastic_query` are stored in ATV instead of MongoDB.
+- A phone number can be submitted on any site, but SMS delivery is gated by `enableSms`. When `enableSms` is `false` the confirmation SMS is suppressed and `hav:populate-queue` queues no SMS for the site; subscriptions created during that period never become `sms_confirmed`, so flipping `enableSms` on later does not deliver to them — only already SMS-confirmed subscriptions resume.
 
-`GET` `/subscription/confirm/:id/:hash`
+### Confirm a subscription (email)
 
-Confirms a subscription. To confirm a subscription, user must know both the id and hash (`hash` field in collection).
+`POST` `/subscription/confirm/:id/:hash`
 
-Subscriptions that are not confirmed, will not be checked during `npm run hav:populate-queue` command.
+Requires the subscription's id and `hash`.
 
-## Delete a subscription
+### Confirm a subscription (SMS)
+
+`POST` `/subscription/sms/confirm/:id`
+
+```json
+{ "code": "<6-digit code sent by SMS>" }
+```
+
+Returns `400` if the code is invalid or expired. Caller MUST rate-limit.
+
+### Renew a subscription (email)
+
+`POST` `/subscription/renew/:id/:hash`
+
+Resets `created` and the ATV `delete_after`, extending the lifetime.
+
+### Renew a subscription (SMS)
+
+`POST` `/subscription/sms/renew/:id`
+
+Same as the email renew but id-only (no hash). Caller MUST rate-limit.
+
+### Get subscription status
+
+`GET` `/subscription/status/:id/:hash`
+
+Returns:
+
+```json
+{ "subscriptionStatus": "active" | "inactive" | "disabled" }
+```
+
+`404` if no subscription matches the id + hash.
+
+### Delete a subscription (email)
 
 `DELETE` `/subscription/delete/:id/:hash`
 
-Deletes a subscription. To delete a subscription, user must know both the id and hash (`hash` field in collection).
+Requires the subscription's id and `hash`.
 
-## Health checks
+### Delete a subscription (SMS)
 
-Hakuvahti includes OpenShift compatible endpoints for health check:
+`DELETE` `/subscription/sms/delete/:id`
 
-`/healthz` Returns 200 OK and confirms Hakuvahti server is running.
+Id-only (no hash). Caller MUST rate-limit.
 
-`/readiness` Returns 200 OK and confirms Hakuvahti server is running and MongoDB connection is working.
+### Health checks
 
-## Command line / cron actions
+OpenShift-compatible. No `Authorization` header required.
+
+`/healthz` — 200 if the server is up.
+
+`/readiness` — 200 if the server is up and MongoDB is reachable.
+
+## CLI commands
 
 ### Initialize MongoDB collections
 
 `npm run hav:init-mongodb`
 
-Initialize MongoDB collections. Required before running populate or send commands.
+Creates the `queue` and `subscription` collections with their JSON-schema validators, and drops the legacy `smsqueue` collection if present. Run once before the first `populate` / `send` command.
 
-### Query for new results for subscriptions
+### Populate the notification queue
 
 `npm run hav:populate-queue`
 
-Queries all Hakuvahti entries and checks for new results in ElasticSearch. This populates the email and SMS queues.
+Queries every confirmed subscription against ElasticSearch and populates the notification queue. Also:
 
-Removes expired subscriptions.
+- Removes expired subscriptions using each site's `maxAge` / `unconfirmedMaxAge`.
+- Syncs ATV `delete_after` whenever it disagrees with `created + maxAge` (handles `maxAge` config changes and legacy subscriptions without `delete_after`).
 
-Adds following notifications to queues:
+Queues:
+- **Email** — new results, expiry notifications.
+- **SMS** — new results, renewal notifications. Only for `sms_confirmed` subscriptions on sites with `enableSms: true`.
 
-- **Email queue**: New results from ElasticQuery queries and expiry notifications
-- **SMS queue**: New results notifications (only for subscriptions with SMS in ATV)
+Supports `--site=<id>` and `--dry-run` (see Queue Population Script above).
 
-### Sends emails from queue
+### Send notifications from queue
 
-`npm run hav:send-emails-in-queue`
+`npm run hav:send-queue`
 
-Sends emails in queue that were generated by `hav:populate-queue`
+Processes both `type: "email"` and `type: "sms"` items from the `queue` collection, sending via SMTP / Dialogi. Run at least once per minute in production.
 
-### Sends SMS from queue
+### Update subscription length (maintenance)
 
-`npm run hav:send-sms-in-queue`
+`npm run hav:update-subscription-length -- --site=<id> [--batch-size=<n>] [--dry-run]`
 
-Sends SMS messages in queue that were generated by `hav:populate-queue`. Only processes subscriptions that have SMS stored in ATV.
+Recalculates `delete_after` for every subscription on a site using the current `subscription.maxAge` and updates the corresponding ATV documents. Run after changing `maxAge` so existing ATV records match.
 
-### Test SMS Sending
+- `--site=<id>` (required) — site to migrate.
+- `--batch-size=<n>` — ATV update batch size; defaults to 100.
+- `--dry-run` — preview without writing to ATV.
+
+### Test SMS sending
 
 `npm run hav:test-sms-sending`
 
-Test script to verify Elisa Dialogi SMS API integration. Sends test SMS messages in all supported languages (fi, sv, en) to a specified phone number.
+Sends one test SMS per supported language (fi, sv, en) to `TEST_SMS_NUMBER` to verify the Dialogi integration.
 
-**Prerequisites:**
-- Set `TEST_SMS_NUMBER` in your `.env` file (e.g., `TEST_SMS_NUMBER=+358501234567`)
-- Configure `DIALOGI_API_URL` and `DIALOGI_API_KEY`
-- Build the project: `npm run build:ts`
+Requires `TEST_SMS_NUMBER`, `DIALOGI_API_URL`, and `DIALOGI_API_KEY` in `.env`, and a prior `npm run build:ts`.
 
-**Example usage:**
-```bash
-# Add to .env file:
-TEST_SMS_NUMBER=+358501234567
+### Test email templates for one site
 
-# Build and run test
-npm run build:ts
-npm run hav:test-sms-sending
-```
+`npm run hav:test-email-templates -- --site=<id>`
 
-The script will send three test SMS messages (one per language) with dummy search data to verify the integration is working correctly.
+Queues nine dummy emails for the given site — confirmation, expiry, and new-hits, each rendered in fi, en, and sv. Requires at least one existing subscription in the database; its `atv_id` is used as the recipient. Run `hav:send-queue` afterwards and inspect the output in Mailpit.
 
-### Mock server
+### Test email templates for all sites
 
-See [dialogi-server.md](./documentation/dialogi-server.md).
+`npm run hav:test-all-templates -- --email=<address>`
+
+Renders every email and SMS template across all sites and sends them directly via SMTP to the given address (SMS is wrapped as email for Mailpit). Bypasses the queue. View at https://mailpit.docker.so/ in local dev.
+
+### Mock Dialogi server
+
+`npm run hav:run-dialogi-test-server`
+
+Mock Dialogi API for local development — no real SMS sent. See [dialogi-server.md](./documentation/dialogi-server.md) for the `DIALOGI_API_URL` value to put in `.env`.
