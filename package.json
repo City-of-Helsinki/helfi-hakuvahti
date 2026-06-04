@@ -7,8 +7,8 @@
     "test": "test"
   },
   "scripts": {
-    "test": "npm run build:ts && node --test --test-reporter=tap --experimental-test-coverage --test-force-exit -r ts-node/register test/**/*.test.ts",
-    "test:ci": "mkdir -p coverage && node --test --test-reporter=lcov --experimental-test-coverage --test-reporter-destination coverage/lcov.info --test-force-exit -r ts-node/register test/**/*.test.ts",
+    "test": "npm run build:ts && node --test --test-force-exit -r ts-node/register test/**/*.test.ts",
+    "test:coverage": "mkdir -p coverage && node --test --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test-reporter=spec --test-reporter-destination=stdout --test-force-exit -r ts-node/register test/**/*.test.ts",
     "start": "npm run build:ts && fastify start -l info dist/app.js",
     "build:ts": "npm run copy:assets; tsc",
     "copy:assets": "mkdir -p dist; cp -R src/templates dist/",
