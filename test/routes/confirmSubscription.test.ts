@@ -5,6 +5,31 @@ import { SubscriptionStatus } from '../../src/types/subscription';
 import { build, createSubscription } from '../helper';
 
 describe('/subscription/confirm', () => {
+  test('malformed subscription id (email) returns 404, not 500', async (t) => {
+    const app = await build(t);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/subscription/confirm/not-a-valid-id/somehash',
+      headers: { Authorization: 'api-key test' },
+    });
+
+    assert.strictEqual(res.statusCode, 404);
+  });
+
+  test('malformed subscription id (sms) returns 404 before SMS verification, not 500', async (t) => {
+    const app = await build(t);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/subscription/sms/confirm/not-a-valid-id',
+      headers: { Authorization: 'api-key test' },
+      payload: { code: '123456' },
+    });
+
+    assert.strictEqual(res.statusCode, 404);
+  });
+
   test('invalid subscription ID', async (t) => {
     const app = await build(t);
 

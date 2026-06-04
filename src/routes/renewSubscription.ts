@@ -1,7 +1,6 @@
 import { randomInt } from 'node:crypto';
-import { ObjectId } from '@fastify/mongodb';
 import type { FastifyPluginAsync } from 'fastify';
-import { ActionError, renewSubscription as renewAction } from '../lib/subscriptionActions';
+import { ActionError, renewSubscription as renewAction, toSubscriptionId } from '../lib/subscriptionActions';
 import { Generic500Error, type Generic500ErrorType } from '../types/error';
 import {
   type SubscriptionCollectionType,
@@ -29,7 +28,8 @@ const renewSubscription: FastifyPluginAsync = async (fastify, _opts) => {
       const { id, hash } = request.params;
 
       try {
-        await renewAction(fastify.mongo.db?.collection('subscription'), { _id: new ObjectId(id), hash }, fastify.atv);
+        const _id = toSubscriptionId(id);
+        await renewAction(fastify.mongo.db?.collection('subscription'), { _id, hash }, fastify.atv);
       } catch (error) {
         if (error instanceof ActionError) {
           return reply.code(error.statusCode).send({
@@ -72,7 +72,8 @@ const renewSubscription: FastifyPluginAsync = async (fastify, _opts) => {
       const { id } = request.params;
 
       try {
-        await renewAction(collection, { _id: new ObjectId(id) }, fastify.atv);
+        const _id = toSubscriptionId(id);
+        await renewAction(collection, { _id }, fastify.atv);
       } catch (error) {
         if (error instanceof ActionError) {
           return reply.code(error.statusCode).send({

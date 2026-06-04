@@ -4,6 +4,32 @@ import { ObjectId } from '@fastify/mongodb';
 import { build, createSubscription } from '../helper';
 
 describe('/subscription/delete', () => {
+  test('malformed subscription id returns 404, not 500', async (t) => {
+    const app = await build(t);
+
+    for (const badId of ['not-a-valid-id', 'x', 'zzzzzzzzzzzzzzzzzzzzzzzz']) {
+      const res = await app.inject({
+        method: 'DELETE',
+        url: `/subscription/delete/${badId}/somehash`,
+        headers: { Authorization: 'api-key test' },
+      });
+
+      assert.strictEqual(res.statusCode, 404, `id=${badId}`);
+    }
+  });
+
+  test('malformed subscription id (sms) returns 404, not 500', async (t) => {
+    const app = await build(t);
+
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/subscription/sms/delete/not-a-valid-id',
+      headers: { Authorization: 'api-key test' },
+    });
+
+    assert.strictEqual(res.statusCode, 404);
+  });
+
   test('invalid subscription ID', async (t) => {
     const app = await build(t);
 

@@ -1,7 +1,6 @@
 import { randomInt } from 'node:crypto';
-import { ObjectId } from '@fastify/mongodb';
 import type { FastifyPluginAsync } from 'fastify';
-import { ActionError, deleteSubscription as deleteAction } from '../lib/subscriptionActions';
+import { ActionError, deleteSubscription as deleteAction, toSubscriptionId } from '../lib/subscriptionActions';
 import { Generic500Error, type Generic500ErrorType } from '../types/error';
 import { SubscriptionGenericPostResponse, type SubscriptionGenericPostResponseType } from '../types/subscription';
 
@@ -24,7 +23,8 @@ const deleteSubscription: FastifyPluginAsync = async (fastify, _opts) => {
       const { id, hash } = request.params;
 
       try {
-        await deleteAction(fastify.mongo.db?.collection('subscription'), { _id: new ObjectId(id), hash });
+        const _id = toSubscriptionId(id);
+        await deleteAction(fastify.mongo.db?.collection('subscription'), { _id, hash });
       } catch (error) {
         if (error instanceof ActionError) {
           return reply.code(error.statusCode).send({
@@ -72,7 +72,8 @@ const deleteSubscription: FastifyPluginAsync = async (fastify, _opts) => {
       const { id } = request.params;
 
       try {
-        await deleteAction(fastify.mongo.db?.collection('subscription'), { _id: new ObjectId(id) });
+        const _id = toSubscriptionId(id);
+        await deleteAction(fastify.mongo.db?.collection('subscription'), { _id });
       } catch (error) {
         if (error instanceof ActionError) {
           return reply.code(error.statusCode).send({
