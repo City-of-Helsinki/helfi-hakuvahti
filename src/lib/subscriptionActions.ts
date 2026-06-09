@@ -1,3 +1,4 @@
+import { ObjectId } from '@fastify/mongodb';
 import type { Collection, Filter } from 'mongodb';
 import { type SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription';
 import { ATV } from './atv';
@@ -13,6 +14,17 @@ export class ActionError extends Error {
     super(message);
     this.statusCode = statusCode;
   }
+}
+
+/**
+ * Validates a subscription id path param and returns an ObjectId.
+ */
+export function toSubscriptionId(id: string | undefined): ObjectId {
+  if (!id || !ObjectId.isValid(id)) {
+    throw new ActionError(404, 'Subscription not found.');
+  }
+
+  return new ObjectId(id);
 }
 
 /**

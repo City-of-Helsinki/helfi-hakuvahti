@@ -5,6 +5,18 @@ import { SubscriptionStatus } from '../../src/types/subscription';
 import { build, createSubscription } from '../helper';
 
 describe('/subscription/status', () => {
+  test('malformed subscription id returns 404, not 500', async (t) => {
+    const app = await build(t);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/subscription/status/not-a-valid-id/somehash',
+      headers: { Authorization: 'api-key test' },
+    });
+
+    assert.strictEqual(res.statusCode, 404);
+  });
+
   test('404 response for unknown subscription', async (t) => {
     const app = await build(t);
 

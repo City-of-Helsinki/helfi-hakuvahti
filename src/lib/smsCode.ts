@@ -1,5 +1,5 @@
 import { createHmac } from 'node:crypto';
-import { ObjectId } from '@fastify/mongodb';
+import type { ObjectId } from '@fastify/mongodb';
 import type { Collection } from 'mongodb';
 import type { SubscriptionCollectionType } from '../types/subscription';
 
@@ -48,10 +48,10 @@ export function verifySmsCode(secret: string, code: string): boolean {
  */
 export async function findAndVerifySmsSubscription(
   collection: Collection<SubscriptionCollectionType> | undefined,
-  id: string,
+  id: ObjectId,
   smsCode: string,
 ): Promise<boolean> {
-  const subscription = await collection?.findOne({ _id: new ObjectId(id) });
+  const subscription = await collection?.findOne({ _id: id });
 
   return !(!subscription || !verifySmsCode(subscription.sms_secret, smsCode));
 }

@@ -43,9 +43,9 @@ PHONY += test
 test: ## Run tests
 	$(call npm,run test)
 
-PHONY += test-ci
-test-ci: ## Run tests
-	$(call npm,run test:ci)
+PHONY += test-coverage
+test-coverage: ## Run tests
+	$(call npm,run test:coverage)
 
 
 ifeq ($(RUN_ON),docker)

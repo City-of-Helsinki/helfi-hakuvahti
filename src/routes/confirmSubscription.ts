@@ -1,8 +1,8 @@
 import { randomInt } from 'node:crypto';
-import { ObjectId } from '@fastify/mongodb';
+import type { ObjectId } from '@fastify/mongodb';
 import type { FastifyPluginAsync } from 'fastify';
 import { findAndVerifySmsSubscription } from '../lib/smsCode';
-import { ActionError, confirmSubscription as confirmAction } from '../lib/subscriptionActions';
+import { ActionError, confirmSubscription as confirmAction, toSubscriptionId } from '../lib/subscriptionActions';
 import { Generic500Error, type Generic500ErrorType } from '../types/error';
 import {
   type SmsVerificationRequestType,
@@ -30,16 +30,31 @@ const confirmSubscription: FastifyPluginAsync = async (fastify, _opts) => {
     },
     async (request, reply) => {
       const { id, hash } = request.params;
+
+      let _id: ObjectId;
+      try {
+        _id = toSubscriptionId(id);
+      } catch (error) {
+        if (error instanceof ActionError) {
+          return reply.code(error.statusCode).header('Content-Type', 'application/json; charset=utf-8').send({
+            statusCode: error.statusCode,
+            statusMessage: error.message,
+          });
+        }
+
+        throw error;
+      }
+
       try {
         await confirmAction(
           fastify.mongo.db?.collection<SubscriptionCollectionType>('subscription'),
-          { _id: new ObjectId(id), hash },
+          { _id, hash },
           'email',
         );
       } catch (error) {
         if (error instanceof ActionError) {
           const subscription = await fastify.mongo.db?.collection<SubscriptionCollectionType>('subscription')?.findOne({
-            _id: new ObjectId(id),
+            _id,
             status: SubscriptionStatus.ACTIVE,
           });
 
@@ -95,7 +110,22 @@ const confirmSubscription: FastifyPluginAsync = async (fastify, _opts) => {
       const { id } = request.params;
       const { code } = request.body;
 
-      const verified = await findAndVerifySmsSubscription(fastify.mongo.db?.collection('subscription'), id, code);
+      let _id: ObjectId;
+      try {
+        _id = toSubscriptionId(id);
+      } catch (error) {
+        if (error instanceof ActionError) {
+          return reply.code(error.statusCode).send({
+            // @fixme statusCode is totally useless.
+            statusCode: randomInt(0, 1000),
+            statusMessage: error.message,
+          });
+        }
+
+        throw error;
+      }
+
+      const verified = await findAndVerifySmsSubscription(fastify.mongo.db?.collection('subscription'), _id, code);
 
       if (!verified) {
         return reply.code(400).send({
@@ -106,11 +136,11 @@ const confirmSubscription: FastifyPluginAsync = async (fastify, _opts) => {
       }
 
       try {
-        await confirmAction(fastify.mongo.db?.collection('subscription'), { _id: new ObjectId(id) }, 'sms');
+        await confirmAction(fastify.mongo.db?.collection('subscription'), { _id }, 'sms');
       } catch (error) {
         if (error instanceof ActionError) {
           const subscription = await fastify.mongo.db?.collection<SubscriptionCollectionType>('subscription')?.findOne({
-            _id: new ObjectId(id),
+            _id,
             status: SubscriptionStatus.ACTIVE,
           });
 

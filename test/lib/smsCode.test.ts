@@ -104,7 +104,7 @@ describe('findAndVerifySmsSubscription', () => {
     const code = generateSmsCode(SECRET);
     const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
-    const result = await findAndVerifySmsSubscription(collection, id.toString(), code);
+    const result = await findAndVerifySmsSubscription(collection, id, code);
     assert.strictEqual(result, true);
   });
 
@@ -112,20 +112,20 @@ describe('findAndVerifySmsSubscription', () => {
     const id = await insertSubscription(SECRET);
     const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
-    const result = await findAndVerifySmsSubscription(collection, id.toString(), '000000');
+    const result = await findAndVerifySmsSubscription(collection, id, '000000');
     assert.strictEqual(result, false);
   });
 
   test('returns false when subscription does not exist', async () => {
     const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
-    const fakeId = new ObjectId().toString();
+    const fakeId = new ObjectId();
 
     const result = await findAndVerifySmsSubscription(collection, fakeId, '123456');
     assert.strictEqual(result, false);
   });
 
   test('returns false when collection is undefined', async () => {
-    const result = await findAndVerifySmsSubscription(undefined, new ObjectId().toString(), '123456');
+    const result = await findAndVerifySmsSubscription(undefined, new ObjectId(), '123456');
     assert.strictEqual(result, false);
   });
 });

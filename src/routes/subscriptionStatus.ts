@@ -26,6 +26,12 @@ const subscriptionStatus: FastifyPluginAsync = async (fastify, _opts) => {
     async (request, reply) => {
       const { id, hash } = request.params as { id: string; hash: string };
 
+      if (!id || !ObjectId.isValid(id)) {
+        return reply.code(404).send({
+          statusMessage: 'Subscription not found.',
+        });
+      }
+
       const subscription = await fastify.mongo.db?.collection('subscription')?.findOne({
         _id: new ObjectId(id),
         hash,
