@@ -205,7 +205,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
               content: await confirmationEmail(
                 request.body.lang,
                 {
-                  link: `${subscribeLinkBase}/hakuvahti/confirm?subscription=${response.insertedId}&hash=${hash}`,
+                  link: `${subscribeLinkBase}/hakuvahti/confirm?subscription=${response.insertedId}&hash=${hash}&site_id=${request.body.site_id}`,
                   search_description: request.body.search_description,
                 },
                 siteConfig,
