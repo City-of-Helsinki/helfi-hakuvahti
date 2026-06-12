@@ -2,6 +2,4 @@
 
 {{ sms_renewal_search_label }} {{ search_description }}
 
-{{ sms_renewal_text }}
-
-{{ sms_renewal_link }}?id={{ id }}
+{{ sms_renewal_text }} {{ sms_renewal_link }}?id={{ id }}

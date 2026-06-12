@@ -17,14 +17,14 @@
       "sv": "Bekräfta beställningen av Flyttningsvakten"
     },
     "email_subject_expiry": {
-      "fi": "Ajoneuvojen Siirtovahtisi on vanhentumassa",
+      "fi": "Siirtovahtisi on vanhentumassa",
       "en": "Your Vehicle Removal Alert Service subscription is about to expire",
-      "sv": "Din flyttningsvakt för fordon håller på att gå ut"
+      "sv": "Din Flyttningsvakt håller på att gå ut"
     },
     "email_subject_newhits": {
-      "fi": "Uusia osumia ajoneuvojen Siirtovahdillasi",
+      "fi": "Uusia osumia Siirtovahdillasi",
       "en": "The Vehicle Removal Alert Service has found new matches for you",
-      "sv": "Nya träffar från din flyttningsvakt för fordon"
+      "sv": "Nya träffar från din Flyttningsvakt"
     },
     "email_confirmation_title": {
       "fi": "Vahvista Siirtovahdin tilaus Helsingin kaupungilta",
@@ -72,9 +72,9 @@
       "sv": "Helsingfors stad"
     },
     "email_generic_remove_link": {
-      "fi": "Poista hakuvahti",
-      "en": "Remove the search alert",
-      "sv": "Radera sökvakten"
+      "fi": "Poista Siirtovahti",
+      "en": "Remove Vehicle Removal Alert",
+      "sv": "Radera Flyttningsvakten"
     },
     "email_generic_your_search_terms": {
       "fi": "Hakuehtosi",
@@ -82,9 +82,9 @@
       "sv": "Dina sökvillkor"
     },
     "email_expiry_intro_before_date": {
-      "fi": "Hakuvahtisi Helsingin kaupungin sivustolla on päättymässä",
-      "en": "Your saved search on the City of Helsinki website is about to expire on",
-      "sv": "Din sökvakt på Helsingfors stads webbplats kommer att gå ut den"
+      "fi": "Siirtovahtisi Helsingin kaupungin sivustolla on päättymässä",
+      "en": "Vehicle Removal Alert Service subscription with the City of Helsinki is about to expire on",
+      "sv": "Din Flyttningsvakt på Helsingfors stads webbplats kommer att gå ut den"
     },
     "email_expiry_intro_after_date": {
       "fi": "mutta voit tehdä sen uudelleen.",
@@ -102,54 +102,59 @@
       "sv": "."
     },
     "email_expiry_button": {
-      "fi": "Tee uusi hakuvahti",
-      "en": "Save a new search",
-      "sv": "Spara en ny sökvakt"
+      "fi": "Tee uusi Siirtovahti",
+      "en": "Make a new Vehicle Removal Alert",
+      "sv": "Skapa en ny Flyttningsvakt"
     },
     "email_expiry_title_header": {
-      "fi": "Ajoneuvojen siirtovahtisi Helsingin kaupungilta on vanhentumassa",
+      "fi": "Siirtovahtisi Helsingin kaupungilta on vanhentumassa",
       "en": "Your Vehicle Removal Alert Service subscription with the City of Helsinki is about to expire",
-      "sv": "Din flyttningsvakt för fordon från Helsingfors stad håller på att gå ut"
+      "sv": "Din Flyttningsvakt från Helsingfors stad håller på att gå ut"
     },
     "email_expiry_prefix": {
-      "fi": "Hakuvahtisi voimassaolo päättyy",
-      "en": "Your subscription will expire on",
-      "sv": "Din sökvakt på Helsingfors stads webbplats upphör den"
+      "fi": "Siirtovahtisi voimassaolo päättyy",
+      "en": "Your subscription to the Vehicle Removal Alert Service will expire on",
+      "sv": "Din Flyttningsvakt upphör den"
     },
     "email_expiry_suffix": {
-      "fi": ". Voit jatkaa hakuvahdin tilausta sen voimassaoloaikana. Hakuvahdin vanhenemisen jälkeen voit tehdä uuden hakuvahdin.",
-      "en": ". You can extend your subscription to the search alert during its period of validity. When the search alert expires, you can create a new one.",
-      "sv": ". Du kan valfritt förlänga beställningen av sökvakten så länge den är i kraft. Efter att sökvakten gått ut kan du skapa en ny sökvakt."
+      "fi": ". Voit jatkaa Siirtovahdin tilausta sen voimassaoloaikana. Siirtovahdin vanhenemisen jälkeen voit tehdä uuden Siirtovahdin.",
+      "en": ". You can extend your subscription to the Vehicle Removal Alert Service during its period of validity. After the subscription expires, you can create a new Vehicle Removal Alert.",
+      "sv": ". Du kan fortsätta din beställning av Flyttningsvakten medan den är i kraft. Efter att Flyttningsvakten gått ut kan du skapa en ny Flyttningsvakt."
     },
     "email_expiry_renewal_button": {
-      "fi": "Jatka hakuvahdin tilausta",
-      "en": "Continue your search alert subscription",
-      "sv": "Förläng beställningen av sökvakten"
+      "fi": "Jatka Siirtovahdin tilausta",
+      "en": "Extend your subscription to the Vehicle Removal Alert Service",
+      "sv": "Förläng beställningen av Flyttningsvakten"
     },
     "email_expiry_new_link": {
-      "fi": "Tee uusi hakuvahti",
-      "en": "Create a new search alert",
-      "sv": "Skapa en ny sökvakt"
+      "fi": "Tee uusi Siirtovahti",
+      "en": "Make a new Vehicle Removal Alert",
+      "sv": "Skapa en ny Flyttningsvakt"
+    },
+    "email_newhits_header": {
+      "fi": "Uusia Siirtovahdin osumia Helsingin kaupungilta",
+      "en": "New Vehicle Removal Alert Service matches from the City of Helsinki",
+      "sv": "Nya träffar från din Flyttningsvakt från Helsingfors stad"
     },
     "email_newhits_intro_prefix": {
+      "fi": "Muista tarkistaa siirtokehotukset liikennemerkeistä. Kadulla olevat merkit ovat velvoittavia.",
+      "en": "Be sure to check the traffic signs to see if any removal requests are in force. Any signs on the street must be complied with.",
+      "sv": "Kom ihåg att kontrollera förflyttningsuppmaningar på trafikmärken. Trafikmärkena på gatan är förpliktande."
+    },
+    "email_newhits_count_info": {
       "fi": "Listauksessa näytetään enintään kymmenen uutta hakuvahtiosumaa.",
       "en": "The list shows up to ten new results corresponding to your saved search.",
       "sv": "I listan visas högst tio nya träffar med sökvakten."
     },
-    "email_newhits_header": {
-      "fi": "Uusia ajoneuvojen siirtovahdin osumia Helsingin kaupungilta",
-      "en": "New Vehicle Removal Alert Service matches from the City of Helsinki",
-      "sv": "Nya träffar från din flyttningsvakt för fordon från Helsingfors stad"
-    },
     "email_newhits_link_text": {
-      "fi": "Katso kaikki hakuvahtitulokset",
-      "en": "See all saved search results",
-      "sv": "Se alla sökvaktens resultat"
+      "fi": "Katso kaikki Siirtovahdin osumat",
+      "en": "See all Vehicle Removal Alert Service results",
+      "sv": "Se alla träffar från din Flyttningsvakt"
     },
     "email_newhits_expiry_prefix": {
-      "fi": "Hakuvahti on voimassa",
-      "en": "The search alert will be valid until",
-      "sv": "Sökvakten är i kraft fram till"
+      "fi": "Siirtovahti on voimassa",
+      "en": "The Vehicle Removal Alert is valid until",
+      "sv": "Flyttningsvakten är i kraft fram till"
     },
     "email_newhits_expiry_suffix": {
       "fi": " saakka.",
@@ -157,9 +162,9 @@
       "sv": "."
     },
     "email_newhits_expiry_instructions": {
-      "fi": "Sait tämän sähköpostin, koska olet tilannut Helsingin kaupungin hakuvahdin. Jos et enää halua saada ilmoituksia, voit perua hakuvahdin tilauksen alla olevasta linkistä. Voit koska tahansa tilata uusia hakuvahteja.",
-      "en": "You have received this email because you have subscribed to the City of Helsinki's search alert service. If you no longer wish to receive notifications, you can unsubscribe to the service via the link below. You can subscribe to new search alerts at any time.",
-      "sv": "Du fick detta e-postmeddelande eftersom du har beställt Helsingfors stads sökvakt. Om du inte längre vill få meddelanden kan du radera sökvakten via länken nedan. Du kan när som helst beställa nya sökvakter."
+      "fi": "Sait tämän sähköpostin, koska olet tilannut Helsingin kaupungin Siirtovahdin. Jos et enää halua saada ilmoituksia, voit perua Siirtovahdin tilauksen alla olevasta linkistä. Voit koska tahansa tilata uuden Siirtovahdin.",
+      "en": "You have received this email because you have subscribed to the City of Helsinki's Vehicle Removal Alert Service. If you no longer wish to receive alerts, you can unsubscribe to the service via the link below. You can subscribe to new Vehicle Removal Alerts at any time.",
+      "sv": "Du fick detta e-postmeddelande eftersom du har beställt Helsingfors stads Flyttningsvakt. Om du inte längre vill få meddelanden kan du avsluta din beställning via länken nedan. Du kan när som helst beställa en ny Flyttningsvakt."
     },
     "email_newhits_do_not_reply": {
       "fi": "Tähän viestiin ei voi vastata.",
@@ -192,14 +197,19 @@
       "sv": "Om du inte har beställt Flyttningsvakten kan du ignorera meddelandet."
     },
     "sms_newhits_intro": {
-      "fi": "Uusia osumia ajoneuvojen siirtovahdillasi",
+      "fi": "Uusia osumia Siirtovahdillasi",
       "en": "The Vehicle Removal Alert Service has found new matches for you",
-      "sv": "Nya träffar från din flyttningsvakt för fordon"
+      "sv": "Nya träffar från din Flyttningsvakt"
+    },
+    "sms_sign_reminder": {
+      "fi": "Muista tarkistaa siirtokehotukset liikennemerkeistä. Kadulla olevat merkit ovat velvoittavia.",
+      "en": "Be sure to check the traffic signs to see if any removal requests are in force. Any signs on the street must be complied with.",
+      "sv": "Kom ihåg att kontrollera förflyttningsuppmaningar på trafikmärken. Trafikmärkena på gatan är förpliktande."
     },
     "sms_newhits_remove_text": {
-      "fi": "Poista hakuvahti osoitteessa",
-      "en": "Remove your search alert at",
-      "sv": "Radera sökvakten på adressen"
+      "fi": "Poista Siirtovahti osoitteessa",
+      "en": "Remove your Vehicle Removal Alert at",
+      "sv": "Radera Flyttningsvakten på adressen"
     },
     "sms_newhits_remove_link": {
       "fi": "hel.fi/poista-siirtovahti",
@@ -207,9 +217,9 @@
       "sv": "hel.fi/redigera-flyttningsvakten"
     },
     "sms_renewal_intro": {
-      "fi": "Ajoneuvojen siirtovahtisi Helsingin kaupungilta on vanhentumassa",
+      "fi": "Siirtovahtisi Helsingin kaupungilta on vanhentumassa",
       "en": "Your Vehicle Removal Alert Service subscription with the City of Helsinki will expire on",
-      "sv": "Din flyttningsvakt för fordon från Helsingfors stad går ut"
+      "sv": "Din Flyttningsvakt från Helsingfors stad går ut"
     },
     "sms_renewal_search_label": {
       "fi": "Hakuehtosi:",
@@ -217,9 +227,9 @@
       "sv": "Dina sökvillkor:"
     },
     "sms_renewal_text": {
-      "fi": "Voit jatkaa hakuvahdin tilausta osoitteessa",
-      "en": "You can continue your search alert subscription at",
-      "sv": "Du kan fortsätta beställningen av sökvakten på adressen"
+      "fi": "Voit jatkaa Siirtovahdin tilausta osoitteessa",
+      "en": "You can extend your subscription to the Vehicle Removal Alert Service at",
+      "sv": "Du kan fortsätta beställningen av Flyttningsvakten på adressen"
     },
     "sms_renewal_link": {
       "fi": "hel.fi/jatka-siirtovahti",
@@ -227,9 +237,9 @@
       "sv": "hel.fi/forlang-flyttningsvakten"
     },
     "removal_sign_location": {
-      "fi": "Hakutuloksissa kerrotaan siirtokehotusmerkin sijainti.",
-      "en": "Search results will tell you where the vehicle removal request sign is located.",
-      "sv": "I sökresultaten anges var förflyttningsuppmaningsmärket är placerat."
+      "fi": "Ilmoituksessa kerrotaan siirtokehotusmerkin sijainti hakemallasi kadulla tai sen lähikadulla.",
+      "en": "The alerts will tell the location of vehicle removal request signs on the street that you searched for or a street near it.",
+      "sv": "I meddelandet anges var förflyttningsuppmaningsmärket är placerat på den gata du sökte efter eller på en närliggande gata."
     }
   },
   "matchField": "created_at",
