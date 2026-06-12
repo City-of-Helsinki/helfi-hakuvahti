@@ -228,6 +228,7 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
                 {
                   id: response.insertedId.toString(),
                   sms_code: generateSmsCode(subscriptionData.sms_secret),
+                  site_id: request.body.site_id,
                 },
                 siteConfig,
               ),
