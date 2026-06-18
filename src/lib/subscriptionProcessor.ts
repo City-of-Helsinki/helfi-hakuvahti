@@ -98,6 +98,16 @@ export class SubscriptionProcessor {
       throw new Error('MongoDB collections not available');
     }
 
+    Sentry.addBreadcrumb({
+      category: 'site',
+      message: `Processing subscriptions for site ${siteConfig.id}`,
+      level: 'info',
+      data: {
+        site_id: siteConfig.id,
+        site_name: siteConfig.name,
+      },
+    });
+
     // List of all enabled subscriptions for this site
     // @fixme This query needs to have a limit so the memory
     //   usage doesn't grow without bounds.
