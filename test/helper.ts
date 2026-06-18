@@ -14,8 +14,6 @@ export type TestContext = {
   after: typeof test.after;
 };
 
-// fastify-cli's helper used to load .env (which provides ENVIRONMENT); keep
-// doing so now that we build the app ourselves.
 process.env.HAKUVAHTI_API_KEY = 'test';
 
 // Fill in this config with all the configurations
