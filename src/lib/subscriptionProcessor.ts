@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 import type { FastifyMongoNestedObject, FastifyMongoObject, ObjectId } from '@fastify/mongodb';
-import type Sentry from '@sentry/node';
+import * as Sentry from '@sentry/node';
 import type { WithId } from 'mongodb';
 import type { ElasticProxyJsonResponseType } from '../types/elasticproxy.ts';
 import type { QueueInsertDocument } from '../types/queue.ts';
@@ -13,7 +13,6 @@ import { SiteConfigurationLoader } from './siteConfigurationLoader.ts';
 export interface SubscriptionProcessorDeps {
   mongo: FastifyMongoObject & FastifyMongoNestedObject;
   atv: ATV;
-  Sentry?: typeof Sentry;
   queryElasticProxy(elasticProxyBaseUrl: string, elasticQueryJson: string): Promise<ElasticProxyJsonResponseType>;
 }
 
@@ -76,13 +75,11 @@ export const needsDeleteAfterSync = (storedDeleteAfter: Date | undefined, expect
 export class SubscriptionProcessor {
   private readonly mongo: SubscriptionProcessorDeps['mongo'];
   private readonly atv: SubscriptionProcessorDeps['atv'];
-  private readonly sentry: SubscriptionProcessorDeps['Sentry'];
   private readonly queryElasticProxy: SubscriptionProcessorDeps['queryElasticProxy'];
 
-  constructor({ mongo, atv, Sentry, queryElasticProxy }: SubscriptionProcessorDeps) {
+  constructor({ mongo, atv, queryElasticProxy }: SubscriptionProcessorDeps) {
     this.mongo = mongo;
     this.atv = atv;
-    this.sentry = Sentry;
     this.queryElasticProxy = queryElasticProxy;
   }
 
@@ -136,7 +133,7 @@ export class SubscriptionProcessor {
           console.info(`Subscription details loaded from ATV for ${subscription._id} (site: ${siteConfig.id})`);
         } catch (e) {
           console.error(`Failed to load user data from ATV for ${subscription._id}`, e);
-          this.sentry?.captureException(e);
+          Sentry.captureException(e);
           return Promise.resolve();
         }
       }
@@ -169,7 +166,7 @@ export class SubscriptionProcessor {
             await collection.updateOne({ _id: subscription._id }, { $set: { delete_after: expectedDeleteAfter } });
           } catch (error) {
             console.error(`Failed to sync ATV delete_after for subscription ${subscription._id}:`, error);
-            this.sentry?.captureException(error);
+            Sentry.captureException(error);
           }
         }
       }
@@ -219,7 +216,7 @@ export class SubscriptionProcessor {
             stats.expiryEmailsQueued++;
           } catch (error) {
             console.error(`Error queueing expiry email for subscription ${subscription._id}:`, error);
-            this.sentry?.captureException(error);
+            Sentry.captureException(error);
           }
         }
 
@@ -251,7 +248,7 @@ export class SubscriptionProcessor {
             stats.smsQueued++;
           } catch (error) {
             console.error(`Error queueing renewal SMS for subscription ${subscription._id}:`, error);
-            this.sentry?.captureException(error);
+            Sentry.captureException(error);
           }
         }
       }
@@ -392,7 +389,7 @@ export class SubscriptionProcessor {
         .map((hit: { _source: Record<string, unknown> }) => hit._source);
     } catch (err) {
       console.error(`Query ${elasticQuery} for ${subscription._id} failed`);
-      this.sentry?.captureException(err);
+      Sentry.captureException(err);
     }
 
     return [];

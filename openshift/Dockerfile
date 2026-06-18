@@ -33,4 +33,4 @@ EXPOSE 3000
 
 USER nobody:0
 
-CMD ["node", "src/server.ts"]
+CMD ["npm", "run", "start"]

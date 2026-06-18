@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node';
 import command, { type Server } from '../lib/command.ts';
 import { stringArg } from '../lib/parse-args.ts';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
@@ -6,7 +7,6 @@ import atv from '../plugins/atv.ts';
 import base64Plugin from '../plugins/base64.ts';
 import elasticproxy from '../plugins/elasticproxy.ts';
 import mongodb from '../plugins/mongodb.ts';
-import '../plugins/sentry.ts';
 import { SubscriptionStatus } from '../types/subscription.ts';
 
 /**
@@ -50,7 +50,7 @@ const processSubscriptions = async (
   isDryRun: boolean,
   server: Server,
 ): Promise<void> => {
-  const checkInId = server.Sentry?.captureCheckIn({
+  const checkInId = Sentry.captureCheckIn({
     monitorSlug: 'hav-populate-queue',
     status: 'in_progress',
   });
@@ -67,7 +67,6 @@ const processSubscriptions = async (
   const processor = new SubscriptionProcessor({
     mongo: server.mongo,
     atv: server.atv,
-    Sentry: server.Sentry,
     queryElasticProxy: server.queryElasticProxy,
   });
 
@@ -117,14 +116,14 @@ const processSubscriptions = async (
   } catch (error) {
     console.error('Configuration loading error:', error);
     if (!isDryRun) {
-      server.Sentry?.captureCheckIn({ checkInId, monitorSlug: 'hav-populate-queue', status: 'error' });
-      server.Sentry?.captureException(error);
+      Sentry.captureCheckIn({ checkInId, monitorSlug: 'hav-populate-queue', status: 'error' });
+      Sentry.captureException(error);
     }
     return;
   }
 
   if (!isDryRun) {
-    server.Sentry?.captureCheckIn({ checkInId, monitorSlug: 'hav-populate-queue', status: 'ok' });
+    Sentry.captureCheckIn({ checkInId, monitorSlug: 'hav-populate-queue', status: 'ok' });
   }
 };
 

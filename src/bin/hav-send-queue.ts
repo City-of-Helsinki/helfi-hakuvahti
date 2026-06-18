@@ -1,15 +1,15 @@
+import * as Sentry from '@sentry/node';
 import command from '../lib/command.ts';
 import { QueueService } from '../lib/queueService.ts';
 import atv from '../plugins/atv.ts';
 import dialogi from '../plugins/dialogi.ts';
 import mailer from '../plugins/mailer.ts';
 import mongodb from '../plugins/mongodb.ts';
-import '../plugins/sentry.ts';
 
 // Command line/cron application to send all notifications from queue collection
 command(
   async (server) => {
-    const checkInId = server.Sentry?.captureCheckIn({
+    const checkInId = Sentry.captureCheckIn({
       monitorSlug: 'hav-send-queue',
       status: 'in_progress',
     });
@@ -23,12 +23,11 @@ command(
       atvClient: server.atv,
       emailSender: server.mailer,
       smsSender: server.dialogi,
-      sentry: server.Sentry,
     });
 
     await queueService.processQueue();
 
-    server.Sentry?.captureCheckIn({
+    Sentry.captureCheckIn({
       checkInId,
       monitorSlug: 'hav-send-queue',
       status: 'ok',

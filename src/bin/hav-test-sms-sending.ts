@@ -1,8 +1,8 @@
+import * as Sentry from '@sentry/node';
 import command from '../lib/command.ts';
 import { newHitsSms } from '../lib/email.ts';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
 import dialogi from '../plugins/dialogi.ts';
-import '../plugins/sentry.ts';
 
 // Test script to verify SMS sending via Elisa Dialogi API
 command(
@@ -71,7 +71,7 @@ command(
     } catch (error) {
       console.error('\n=== SMS Test Failed ===');
       console.error(error);
-      server.Sentry?.captureException(error);
+      Sentry.captureException(error);
       process.exit(1);
     }
   },

@@ -1,5 +1,5 @@
 import { ObjectId } from '@fastify/mongodb';
-import type Sentry from '@sentry/node';
+import * as Sentry from '@sentry/node';
 import { JSDOM } from 'jsdom';
 import type { Db } from 'mongodb';
 import type { DialogiClient } from '../plugins/dialogi.ts';
@@ -15,7 +15,6 @@ export interface QueueServiceDependencies {
   atvClient: ATV;
   emailSender: FastifyMailer;
   smsSender: DialogiClient;
-  sentry?: typeof Sentry;
   batchSize?: number;
 }
 
@@ -26,7 +25,6 @@ export class QueueService {
   private readonly atvClient: ATV;
   private readonly emailSender: FastifyMailer;
   private readonly smsSender: DialogiClient;
-  private readonly sentry?: typeof Sentry;
   private readonly batchSize: number;
 
   private handlers: NotificationHandlers;
@@ -36,7 +34,6 @@ export class QueueService {
     this.atvClient = deps.atvClient;
     this.emailSender = deps.emailSender;
     this.smsSender = deps.smsSender;
-    this.sentry = deps.sentry;
     this.batchSize = deps.batchSize ?? BATCH_SIZE;
     this.handlers = {
       sms: this.sendSms.bind(this),
@@ -114,7 +111,7 @@ export class QueueService {
       });
     } catch (error) {
       // Continue even if sending email failed.
-      this.sentry?.captureException(error);
+      Sentry.captureException(error);
       console.error(error);
     }
   }
@@ -133,7 +130,7 @@ export class QueueService {
       await this.smsSender.sendSms(phoneNumber, item.content);
     } catch (error) {
       // Continue even if sending SMS failed.
-      this.sentry?.captureException(error);
+      Sentry.captureException(error);
       console.error(`Failed to send SMS for ATV ID ${item.atv_id}:`, error);
     }
   }
