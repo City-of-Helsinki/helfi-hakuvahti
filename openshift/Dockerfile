@@ -20,7 +20,7 @@ ENV npm_config_cache="/tmp/.npm" APP_NAME=rekry-hakuvahti
 WORKDIR "/app"
 
 COPY package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 COPY --chown=default:0 / "/app/"
 
