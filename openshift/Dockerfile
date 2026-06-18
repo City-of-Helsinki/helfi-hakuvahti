@@ -7,11 +7,9 @@ ENV APP_NAME hakuvahti
 
 WORKDIR /app
 
-COPY tools/entrypoint /entrypoint
-
 EXPOSE 3000
 
-ENTRYPOINT ["/entrypoint"]
+CMD ["npm", "run", "dev"]
 
 # Production image
 

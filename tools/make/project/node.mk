@@ -1,5 +1,5 @@
-NODE_FRESH_TARGETS := up post-install
-NODE_POST_INSTALL_TARGETS := .env npm-install hav-init-db
+NODE_FRESH_TARGETS := .env npm-install up post-install
+NODE_POST_INSTALL_TARGETS := hav-init-db
 
 export DOCKER_UID ?= $(shell id -u)
 export DOCKER_GID ?= $(shell id -g)
@@ -23,7 +23,7 @@ post-install: ## Run post-install actions
 PHONY += npm-install
 npm-install:
 	$(call step,npm ci...\n)
-	$(call npm,ci)
+	$(call docker_compose,run --rm --no-deps --entrypoint npm app ci --ignore-scripts)
 
 PHONY += hav-init-db
 hav-init-db: ## Run database updates
@@ -46,6 +46,9 @@ PHONY += test-coverage
 test-coverage: ## Run tests
 	$(call npm,run test:coverage)
 
+PHONY += logs
+logs:
+	$(call docker_compose,logs app --follow)
 
 ifeq ($(RUN_ON),docker)
 define npm
