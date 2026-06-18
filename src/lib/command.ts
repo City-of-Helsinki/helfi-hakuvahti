@@ -42,7 +42,7 @@ export default function command(app: Command, plugins: Array<(...args: any[]) =>
       console.error('Command failed', err);
     }
 
-    await server.Sentry?.flush(2000);
+    await Sentry.flush(2000);
     await server.close();
 
     // Exit with failure if command failed.

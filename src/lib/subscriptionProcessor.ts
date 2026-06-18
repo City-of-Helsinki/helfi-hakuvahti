@@ -158,11 +158,7 @@ export class SubscriptionProcessor {
 
         if (!isDryRun) {
           try {
-            await this.atv.updateDocumentDeleteAfter(
-              ATV.getAtvId(subscription),
-              subscriptionValidForDays,
-              new Date(subscription.created),
-            );
+            await this.atv.updateDocumentDeleteAfter(ATV.getAtvId(subscription), expectedDeleteAfter);
             await collection.updateOne({ _id: subscription._id }, { $set: { delete_after: expectedDeleteAfter } });
           } catch (error) {
             console.error(`Failed to sync ATV delete_after for subscription ${subscription._id}:`, error);
@@ -242,7 +238,6 @@ export class SubscriptionProcessor {
             };
 
             if (!isDryRun) {
-            } else {
               await queueCollection.insertOne(smsToQueue);
             }
             stats.smsQueued++;
