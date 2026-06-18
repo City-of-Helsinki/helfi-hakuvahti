@@ -1,10 +1,11 @@
 import { type Static, Type } from '@sinclair/typebox';
 
-export enum SubscriptionStatus {
-  DISABLED = 2,
-  ACTIVE = 1,
-  INACTIVE = 0,
-}
+export const SubscriptionStatus = {
+  DISABLED: 2,
+  ACTIVE: 1,
+  INACTIVE: 0,
+} as const;
+export type SubscriptionStatus = (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus];
 export const SubscriptionStatusType = Type.Enum(SubscriptionStatus);
 
 export const SubscriptionStatusResponse = Type.Object({

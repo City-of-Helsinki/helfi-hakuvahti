@@ -1,6 +1,7 @@
 {
   "extends": "fastify-tsconfig",
   "compilerOptions": {
+    "erasableSyntaxOnly": true,
     "outDir": "dist",
     "sourceMap": true,
     "target": "ES2020"
