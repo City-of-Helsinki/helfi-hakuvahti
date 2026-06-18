@@ -6,6 +6,7 @@
 
 import { ATV } from '../lib/atv.ts';
 import command, { type Server } from '../lib/command.ts';
+import { stringArg } from '../lib/parse-args.ts';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
 import atv from '../plugins/atv.ts';
 import mongodb from '../plugins/mongodb.ts';
@@ -166,13 +167,13 @@ export const updateSubscriptionLength = async (server: Server, options: Migratio
 command(
   async (server, argv) => {
     // Get site_id from --site parameter
-    const siteId = argv.site as string;
+    const siteId = stringArg(argv, 'site');
     if (!siteId) {
       throw new Error('--site parameter is required');
     }
 
-    const batchSize = (argv['batch-size'] as number) || 100;
-    const dryRun = (argv['dry-run'] as boolean) || false;
+    const batchSize = Number(argv['batch-size']) || 100;
+    const dryRun = argv['dry-run'] === true;
 
     console.log(`Target site_id: ${siteId}`);
     console.log(`Batch size: ${batchSize}`);

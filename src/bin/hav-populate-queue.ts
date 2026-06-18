@@ -1,4 +1,5 @@
 import command, { type Server } from '../lib/command.ts';
+import { stringArg } from '../lib/parse-args.ts';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
 import { type ProcessingStats, SubscriptionProcessor } from '../lib/subscriptionProcessor.ts';
 import atv from '../plugins/atv.ts';
@@ -129,7 +130,7 @@ const processSubscriptions = async (
 
 command(
   async function handle(server, argv) {
-    const targetSite: string | undefined = argv.site;
+    const targetSite = stringArg(argv, 'site');
     const isDryRun: boolean = argv['dry-run'] === true;
 
     // Load site configurations

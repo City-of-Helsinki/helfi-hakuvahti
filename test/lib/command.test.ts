@@ -30,7 +30,7 @@ describe('command helper', () => {
 
   test('executes command successfully and exits with 0', async () => {
     // Set up process.argv
-    process.argv = ['node', 'script.js', '--test', 'value', '--dry-run'];
+    process.argv = ['node', 'script.js', '--test=value', '--dry-run'];
 
     // Create a mock command
     const mockCommand = mock.fn<Command>(async (server, argv) => {

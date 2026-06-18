@@ -2,6 +2,7 @@ import type { Collection } from 'mongodb';
 import { ATV } from '../lib/atv.ts';
 import command from '../lib/command.ts';
 import { confirmationEmail, expiryEmail, newHitsEmail } from '../lib/email.ts';
+import { stringArg } from '../lib/parse-args.ts';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
 import mongodb from '../plugins/mongodb.ts';
 
@@ -99,7 +100,8 @@ export async function generateTestEmails(
 
 command(
   async (server, argv) => {
-    if (!argv.site) {
+    const siteId = stringArg(argv, 'site');
+    if (!siteId) {
       throw new Error('--site parameter required');
     }
 
@@ -117,7 +119,6 @@ command(
       throw new Error('Create test subscription first.');
     }
 
-    const siteId = argv.site;
     const testEmail = ATV.getAtvId(latestSubscription);
 
     console.log(`Site: ${siteId}`);

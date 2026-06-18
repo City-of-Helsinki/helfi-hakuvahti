@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import { JSDOM } from 'jsdom';
 import command from '../lib/command.ts';
 import { confirmationEmail, confirmationSms, expiryEmail, newHitsEmail, newHitsSms, renewalSms } from '../lib/email.ts';
+import { stringArg } from '../lib/parse-args.ts';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
 import mailer from '../plugins/mailer.ts';
 import type { FastifyMailer } from '../types/mailer.ts';
@@ -161,7 +162,7 @@ async function renderAndSendSiteTemplates(
 
 command(
   async (server, argv) => {
-    const testEmail = argv.email as string | undefined;
+    const testEmail = stringArg(argv, 'email');
 
     if (!testEmail) {
       throw new Error('--email parameter required. Example: npm run hav:test-all-templates -- --email=test@test.fi');

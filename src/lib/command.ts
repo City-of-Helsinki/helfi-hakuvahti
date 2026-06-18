@@ -1,7 +1,7 @@
 // @fixme '@immobiliarelabs/fastify-sentry' is no longer maintained.
 import fastifySentry from '@immobiliarelabs/fastify-sentry';
 import fastify, { type FastifyInstance } from 'fastify';
-import minimist, { type ParsedArgs } from 'minimist';
+import parseArgs, { type ParsedArgs } from './parse-args.ts';
 
 export type Server = FastifyInstance;
 
@@ -17,7 +17,7 @@ export default function command(app: Command, plugins: Array<(...args: any[]) =>
   const server = fastify({});
 
   // Parse CLI arguments
-  const argv = minimist(process.argv.slice(2));
+  const argv = parseArgs(process.argv.slice(2));
 
   // Register sentry for all commands.
   server.register(fastifySentry, {
