@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Search monitoring for HELfi projects with elastic-proxy.",
   "type": "module",
-  "main": "dist/app.js",
+  "main": "src/app.ts",
   "directories": {
     "test": "test"
   },
@@ -13,7 +13,6 @@
     "start": "node --import ./src/instrument.ts src/server.ts",
     "typecheck": "tsc",
     "dev": "node --watch --import ./src/instrument.ts src/server.ts",
-    "info": "node --import ./src/instrument.ts src/bin/hav-print-routes.ts",
     "lint": "biome check --write src/",
     "lint:check": "biome check src/",
     "hav:init-mongodb": "node --import ./src/instrument.ts src/bin/hav-init-mongodb.ts",
