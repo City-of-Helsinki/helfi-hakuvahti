@@ -1,9 +1,9 @@
 # Hakuvahti
 
-Hakuvahti is a Fastify / Node.js application that monitors Hel.fi searches (ElasticSearch via ElasticProxy) and notifies subscribers of new results by email and optional SMS.
+Hakuvahti is a Fastify / Node.js application that monitors Hel.fi searches (ElasticSearch) and notifies subscribers of new results by email and optional SMS.
 
 Prerequisites:
-- Drupal site uses ElasticSearch + ElasticProxy.
+- ElasticSearch
 - The site config's `matchField` names the ElasticSearch field that holds each result's publication timestamp (e.g. `field_publication_starts`).
 - Results expose `title` and `url` fields.
 - Site has an Asiointitietovarasto (ATV) account for storing subscriber contact info.
@@ -11,20 +11,18 @@ Prerequisites:
 
 ## Architecture
 
-- Follows the `fastify-cli` layout: routes autoload from `src/routes`, plugins from `src/plugins`. Libraries in `src/lib`, Typebox types in `src/types`.
+- Routes autoload from `src/routes`, plugins from `src/plugins`. Libraries in `src/lib`, Typebox types in `src/types`.
 - Uses [Typebox](https://github.com/sinclairzx81/typebox) for JSON-schema-derived TypeScript types. Convention: `SomeThing` is the schema, `SomeThingType` the inferred TS type.
 - A single MongoDB `queue` collection holds outbound email and SMS notifications, so API and ElasticSearch work is not blocked by ATV errors, network lag, or SMTP/Dialogi outages.
 - Adding, confirming, renewing, and deleting subscriptions happen through the REST API.
-- ElasticProxy queries, notification delivery, and expired-subscription cleanup run as cron scripts. Cleanup uses each site's `maxAge` / `unconfirmedMaxAge`.
+- ElasticSearch queries, notification delivery, and expired-subscription cleanup run as cron scripts. Cleanup uses each site's `maxAge` / `unconfirmedMaxAge`.
 - Email templates live under `src/templates/<templatePath>/*.html`, SMS templates under `src/templates/<templatePath>/sms/*.txt`. There is one template file per message type; per-language strings come from the site config's `translations` map, with the subscription's `lang` exposed as a template variable. To customize a site's templates, copy the folder and update `mail.templatePath` in its config.
 
 ## Development setup
 
 - Copy `.env.dist` to `.env` and set:
   - `ATV_API_KEY` / `ATV_API_URL` — Hakuvahti errors out if ATV is unreachable.
-  - `HAKUVAHTI_API_KEY` — required; protects every non-health-check route.
-  - `DIALOGI_API_URL` / `DIALOGI_API_KEY` / `DIALOGI_SENDER` — only if testing SMS.
-- Add per-site config under `conf/` (see Configuration below).
+  - `DIALOGI_API_URL` / `DIALOGI_API_KEY` / `DIALOGI_SENDER` — if testing SMS.
 
 Start the local environment with:
 
@@ -49,51 +47,6 @@ make down
 ```
 
 ## Configuration
-
-### Queue Population Script
-
-The `hav:populate-queue` script checks for new search results, queues notification emails and SMS, syncs ATV `delete_after` values that disagree with the current site config, and removes expired subscriptions. Supports site filtering and dry-run mode.
-
-**Usage:**
-
-```bash
-# Process all sites
-npm run hav:populate-queue
-
-# Process specific site only
-npm run hav:populate-queue -- --site=rekry
-
-# Dry run (no writes)
-npm run hav:populate-queue -- --dry-run
-
-# Dry run, one site
-npm run hav:populate-queue -- --site=rekry --dry-run
-```
-
-**CLI Parameters:**
-- `--site=<sitename>` — process only the specified site (omit to process all)
-- `--dry-run` — read-only preview; no writes to MongoDB or ATV
-
-**OpenShift Crontab Examples:**
-
-```yaml
-# Rekry site - check at 6 AM daily
-- name: populate-rekry
-  schedule: "0 6 * * *"
-  command: ["npm", "run", "hav:populate-queue", "--", "--site=rekry"]
-
-# General site - check hourly
-- name: populate-general
-  schedule: "0 * * * *"
-  command: ["npm", "run", "hav:populate-queue", "--", "--site=etusivu"]
-
-# Queue processor runs every minute (processes both email and SMS queue items)
-- name: send-queue
-  schedule: "* * * * *"
-  command: ["npm", "run", "hav:send-queue"]
-```
-
-**Note:** Different sites can run on different schedules — useful for staggered ElasticSearch load or per-site delivery timing.
 
 ### Site Configuration Files
 
@@ -230,13 +183,6 @@ For SMS to work end-to-end:
 
 `TEST_SMS_NUMBER` Phone number (E.164, e.g. `+358501234567`) used by `npm run hav:test-sms-sending`.
 
-> Note: legacy environment variables `BASE_URL`, `BASE_URL_FI`, `BASE_URL_SV`,
-> `BASE_URL_EN`, `MAIL_TEMPLATE_PATH`, `ELASTIC_PROXY_URL`, `SUBSCRIPTION_MAX_AGE`,
-> `UNCONFIRMED_SUBSCRIPTION_MAX_AGE`, and `SUBSCRIPTION_EXPIRY_NOTIFICATION_DAYS`
-> are no longer used as primary configuration — these values now come from the
-> per-site JSON config in `conf/`. They may still appear in older deployment
-> manifests but can be removed.
-
 ## REST Endpoints
 
 All non-health-check endpoints require the `Authorization: api-key <HAKUVAHTI_API_KEY>` header.
@@ -326,26 +272,52 @@ OpenShift-compatible. No `Authorization` header required.
 
 ## CLI commands
 
+### Queue Population
+
+The `hav:populate-queue` script checks for new search results, queues notification emails and SMS, syncs ATV `delete_after` values that disagree with the current site config, and removes expired subscriptions. Supports site filtering and dry-run mode.
+
+**Usage:**
+
+```bash
+# Process all sites
+npm run hav:populate-queue
+
+# Process specific site only
+npm run hav:populate-queue -- --site=rekry
+
+# Dry run (no writes)
+npm run hav:populate-queue -- --dry-run
+
+# Dry run, one site
+npm run hav:populate-queue -- --site=rekry --dry-run
+```
+
+**CLI Parameters:**
+- `--site=<sitename>` — process only the specified site (omit to process all)
+- `--dry-run` — read-only preview; no writes to MongoDB or ATV
+
+**OpenShift Crontab Examples:**
+
+```yaml
+# Rekry site - check at 6 AM daily
+- name: populate-rekry
+  schedule: "0 6 * * *"
+  command: ["npm", "run", "hav:populate-queue", "--", "--site=rekry"]
+
+# Queue processor runs every minute (processes both email and SMS queue items)
+- name: send-queue
+  schedule: "* * * * *"
+  command: ["npm", "run", "hav:send-queue"]
+```
+
+**Note:** Different sites can run on different schedules — useful for staggered ElasticSearch load or per-site delivery timing.
+
+
 ### Initialize MongoDB collections
 
 `npm run hav:init-mongodb`
 
 Creates the `queue` and `subscription` collections with their JSON-schema validators, and drops the legacy `smsqueue` collection if present. Run once before the first `populate` / `send` command.
-
-### Populate the notification queue
-
-`npm run hav:populate-queue`
-
-Queries every confirmed subscription against ElasticSearch and populates the notification queue. Also:
-
-- Removes expired subscriptions using each site's `maxAge` / `unconfirmedMaxAge`.
-- Syncs ATV `delete_after` whenever it disagrees with `created + maxAge` (handles `maxAge` config changes and legacy subscriptions without `delete_after`).
-
-Queues:
-- **Email** — new results, expiry notifications.
-- **SMS** — new results, renewal notifications. Only for `sms_confirmed` subscriptions on sites with `enableSms: true`.
-
-Supports `--site=<id>` and `--dry-run` (see Queue Population Script above).
 
 ### Send notifications from queue
 
