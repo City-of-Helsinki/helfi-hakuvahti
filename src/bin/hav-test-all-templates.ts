@@ -1,11 +1,11 @@
 import * as fs from 'node:fs';
 import { JSDOM } from 'jsdom';
+import type { Transporter } from 'nodemailer';
 import command from '../lib/command.ts';
 import { confirmationEmail, confirmationSms, expiryEmail, newHitsEmail, newHitsSms, renewalSms } from '../lib/email.ts';
 import { stringArg } from '../lib/parse-args.ts';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
 import mailer from '../plugins/mailer.ts';
-import type { FastifyMailer } from '../types/mailer.ts';
 import type { SiteConfigurationType } from '../types/siteConfig.ts';
 import type { SubscriptionCollectionLanguageType } from '../types/subscription.ts';
 
@@ -96,7 +96,7 @@ const extractTitle = (html: string): string => {
 };
 
 // Send a rendered template directly via SMTP.
-const sendTemplate = (emailSender: FastifyMailer, to: string, html: string): Promise<void> =>
+const sendTemplate = (emailSender: Transporter, to: string, html: string): Promise<void> =>
   new Promise((resolve, reject) => {
     emailSender.sendMail(
       {
@@ -112,7 +112,7 @@ const sendTemplate = (emailSender: FastifyMailer, to: string, html: string): Pro
   });
 
 async function renderAndSendSiteTemplates(
-  emailSender: FastifyMailer,
+  emailSender: Transporter,
   testEmail: string,
   siteId: string,
   siteConfig: SiteConfigurationType,

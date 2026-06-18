@@ -2,9 +2,9 @@ import { ObjectId } from '@fastify/mongodb';
 import * as Sentry from '@sentry/node';
 import { JSDOM } from 'jsdom';
 import type { Db } from 'mongodb';
+import type { Transporter } from 'nodemailer';
 import type { DialogiClient } from '../plugins/dialogi.ts';
 import type { AtvDocumentType } from '../types/atv.ts';
-import type { FastifyMailer } from '../types/mailer.ts';
 import type { QueueItem, QueueItemType } from '../types/queue.ts';
 import type { ATV } from './atv.ts';
 
@@ -13,7 +13,7 @@ export const BATCH_SIZE = 100;
 export interface QueueServiceDependencies {
   db: Db;
   atvClient: ATV;
-  emailSender: FastifyMailer;
+  emailSender: Transporter;
   smsSender: DialogiClient;
   batchSize?: number;
 }
@@ -23,7 +23,7 @@ type NotificationHandlers = { [key in QueueItemType]: (item: QueueItem, atvDoc?:
 export class QueueService {
   private readonly queueCollection;
   private readonly atvClient: ATV;
-  private readonly emailSender: FastifyMailer;
+  private readonly emailSender: Transporter;
   private readonly smsSender: DialogiClient;
   private readonly batchSize: number;
 

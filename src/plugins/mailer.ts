@@ -1,30 +1,34 @@
-import fastifyMailer from 'fastify-mailer';
 import fp from 'fastify-plugin';
-import type { FastifyMailer } from '../types/mailer.ts';
+import type { Transporter } from 'nodemailer';
+import nodemailer from 'nodemailer';
 
 // Initialize mailer as plugin
 
 export default fp(async function mailerPlugin(fastify) {
-  const opts = {
-    defaults: {
-      from: process.env.MAIL_FROM,
-    },
-    transport: {
+  const transporter = nodemailer.createTransport(
+    {
       host: process.env.MAIL_HOST,
-      port: process.env.MAIL_PORT,
+      port: Number(process.env.MAIL_PORT),
       secure: process.env.MAIL_SECURE === 'true',
       auth: {
         user: process.env.MAIL_AUTH_USER,
         pass: process.env.MAIL_AUTH_PASS,
       },
     },
-  };
+    {
+      from: process.env.MAIL_FROM,
+    },
+  );
 
-  fastify.register(fastifyMailer, opts);
+  fastify.decorate('mailer', transporter);
+
+  fastify.addHook('onClose', async () => {
+    transporter.close();
+  });
 });
 
 declare module 'fastify' {
   interface FastifyInstance {
-    mailer: FastifyMailer;
+    mailer: Transporter;
   }
 }

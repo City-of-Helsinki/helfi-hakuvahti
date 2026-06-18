@@ -15,7 +15,6 @@ if (!Object.values(Environment).includes(env)) {
   throw new Error('ENVIRONMENT environment variable is not valid');
 }
 
-
 const port = Number(process.env.FASTIFY_PORT ?? 3000);
 const host = process.env.FASTIFY_ADDRESS ?? '0.0.0.0';
 const level = process.env.FASTIFY_LOG_LEVEL ?? 'info';
