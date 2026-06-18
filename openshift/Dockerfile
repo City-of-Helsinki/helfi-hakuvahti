@@ -33,4 +33,4 @@ EXPOSE 3000
 
 USER nobody:0
 
-CMD ["npx", "fastify", "start", "-l", "info", "src/app.ts"]
+CMD ["node", "src/server.ts"]

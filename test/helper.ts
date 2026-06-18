@@ -2,34 +2,28 @@
 
 import assert from 'node:assert';
 import crypto from 'node:crypto';
-import * as path from 'node:path';
 import type * as test from 'node:test';
-import { fileURLToPath } from 'node:url';
 import type { ObjectId } from '@fastify/mongodb';
-import type { FastifyInstance } from 'fastify';
-import helper from 'fastify-cli/helper.js';
+import dotenv from 'dotenv';
+import Fastify, { type FastifyInstance } from 'fastify';
+import fp from 'fastify-plugin';
 import type { Collection } from 'mongodb';
+import app from '../src/app.ts';
 import { SubscriptionStatus } from '../src/types/subscription.ts';
 
 export type TestContext = {
   after: typeof test.after;
 };
 
+// fastify-cli's helper used to load .env (which provides ENVIRONMENT); keep
+// doing so now that we build the app ourselves.
+dotenv.config();
 process.env.HAKUVAHTI_API_KEY = 'test';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const AppPath = path.join(__dirname, '..', 'src', 'app.ts');
 
 // Fill in this config with all the configurations
 // needed for testing the application
 function config() {
-  return {
-    // Fastify only exposes plugins to child context.
-    // Fastify cli helper overrides this when skipOverride
-    // option is set.
-    // https://fastify.dev/docs/latest/Reference/Encapsulation/
-    skipOverride: true, // Register our application with fastify-plugin
-  };
+  return {};
 }
 
 /**
@@ -69,20 +63,20 @@ export async function createSubscription(
 
 // Automatically build and tear down our instance
 async function build(t: TestContext): Promise<FastifyInstance> {
-  // you can set all the options supported by the fastify CLI command
-  const argv = [AppPath];
+  const server = Fastify({ logger: { level: 'fatal' } });
 
-  // fastify-plugin ensures that all decorators
-  // are exposed for testing purposes, this is
-  // different from the production setup
-  const app = await helper.build(argv, config());
+  // Wrapping the app in fastify-plugin breaks encapsulation so that all
+  // decorators are exposed for testing purposes; this is different from the
+  // production setup, where the app is registered as its own context.
+  // https://fastify.dev/docs/latest/Reference/Encapsulation/
+  server.register(fp(app), config());
 
   // Tear down our app after we are done
-  t.after(() => void app.close());
+  t.after(() => void server.close());
 
-  await app.ready();
+  await server.ready();
 
-  return app;
+  return server;
 }
 
 export { config, build };
