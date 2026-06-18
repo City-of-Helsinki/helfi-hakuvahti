@@ -3,9 +3,9 @@ import { after, before, test } from 'node:test';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
-import { buildTranslationContext, newHitsSms, translate, wrapWithLayout } from '../../src/lib/email';
-import type { SiteConfigurationType } from '../../src/types/siteConfig';
-import type { SubscriptionCollectionLanguageType } from '../../src/types/subscription';
+import { buildTranslationContext, newHitsSms, translate, wrapWithLayout } from '../../src/lib/email.ts';
+import type { SiteConfigurationType } from '../../src/types/siteConfig.ts';
+import type { SubscriptionCollectionLanguageType } from '../../src/types/subscription.ts';
 
 const TEMPLATE_ROOT = path.join('dist', 'templates', 'test');
 const INNER_TEMPLATE = path.join(TEMPLATE_ROOT, 'inner_fi.html');

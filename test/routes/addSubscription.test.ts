@@ -2,8 +2,8 @@ import * as assert from 'node:assert';
 import { before, describe, mock, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';
 import axios from 'axios';
-import { SubscriptionStatus } from '../../src/types/subscription';
-import { build } from '../helper';
+import { SubscriptionStatus } from '../../src/types/subscription.ts';
+import { build } from '../helper.ts';
 
 const validPayload = {
   email: 'test@example.com',

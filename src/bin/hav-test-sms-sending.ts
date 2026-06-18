@@ -1,8 +1,8 @@
-import command from '../lib/command';
-import { newHitsSms } from '../lib/email';
-import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
-import dialogi from '../plugins/dialogi';
-import '../plugins/sentry';
+import command from '../lib/command.ts';
+import { newHitsSms } from '../lib/email.ts';
+import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
+import dialogi from '../plugins/dialogi.ts';
+import '../plugins/sentry.ts';
 
 // Test script to verify SMS sending via Elisa Dialogi API
 command(

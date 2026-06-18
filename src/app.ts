@@ -1,8 +1,11 @@
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import AutoLoad, { type AutoloadPluginOptions } from '@fastify/autoload';
 import fastifySentry from '@immobiliarelabs/fastify-sentry';
 import type { FastifyPluginAsync, FastifyPluginOptions } from 'fastify';
-import { Environment } from './types/environment';
+import { Environment } from './types/environment.ts';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export interface AppOptions extends FastifyPluginOptions, Partial<AutoloadPluginOptions> {}
 

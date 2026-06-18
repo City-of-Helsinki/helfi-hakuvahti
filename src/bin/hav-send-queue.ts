@@ -1,10 +1,10 @@
-import command from '../lib/command';
-import { QueueService } from '../lib/queueService';
-import atv from '../plugins/atv';
-import dialogi from '../plugins/dialogi';
-import mailer from '../plugins/mailer';
-import mongodb from '../plugins/mongodb';
-import '../plugins/sentry';
+import command from '../lib/command.ts';
+import { QueueService } from '../lib/queueService.ts';
+import atv from '../plugins/atv.ts';
+import dialogi from '../plugins/dialogi.ts';
+import mailer from '../plugins/mailer.ts';
+import mongodb from '../plugins/mongodb.ts';
+import '../plugins/sentry.ts';
 
 // Command line/cron application to send all notifications from queue collection
 command(

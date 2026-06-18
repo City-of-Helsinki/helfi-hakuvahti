@@ -1,6 +1,6 @@
 import * as assert from 'node:assert';
 import { test } from 'node:test';
-import { build } from '../helper';
+import { build } from '../helper.ts';
 
 test('default root route', async (t) => {
   const app = await build(t);

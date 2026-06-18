@@ -1,12 +1,12 @@
 import * as fs from 'node:fs';
 import { JSDOM } from 'jsdom';
-import command from '../lib/command';
-import { confirmationEmail, confirmationSms, expiryEmail, newHitsEmail, newHitsSms, renewalSms } from '../lib/email';
-import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
-import mailer from '../plugins/mailer';
-import type { FastifyMailer } from '../types/mailer';
-import type { SiteConfigurationType } from '../types/siteConfig';
-import type { SubscriptionCollectionLanguageType } from '../types/subscription';
+import command from '../lib/command.ts';
+import { confirmationEmail, confirmationSms, expiryEmail, newHitsEmail, newHitsSms, renewalSms } from '../lib/email.ts';
+import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
+import mailer from '../plugins/mailer.ts';
+import type { FastifyMailer } from '../types/mailer.ts';
+import type { SiteConfigurationType } from '../types/siteConfig.ts';
+import type { SubscriptionCollectionLanguageType } from '../types/subscription.ts';
 
 // npm run hav:test-all-templates -- --email=test@test.fi
 //

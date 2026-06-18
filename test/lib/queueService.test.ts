@@ -2,9 +2,9 @@ import * as assert from 'node:assert';
 import { after, before, beforeEach, describe, mock, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';
 import { MongoClient } from 'mongodb';
-import type { ATV } from '../../src/lib/atv';
-import { QueueService } from '../../src/lib/queueService';
-import type { FastifyMailer } from '../../src/types/mailer';
+import type { ATV } from '../../src/lib/atv.ts';
+import { QueueService } from '../../src/lib/queueService.ts';
+import type { FastifyMailer } from '../../src/types/mailer.ts';
 
 describe('QueueService', () => {
   assert.ok(process.env.MONGODB);

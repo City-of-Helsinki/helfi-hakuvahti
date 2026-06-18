@@ -4,11 +4,11 @@
 // --dry-run to preview changes to delete_after
 // --batch-size to control batch size if ATV updates take longer than expected/crash
 
-import { ATV } from '../lib/atv';
-import command, { type Server } from '../lib/command';
-import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
-import atv from '../plugins/atv';
-import mongodb from '../plugins/mongodb';
+import { ATV } from '../lib/atv.ts';
+import command, { type Server } from '../lib/command.ts';
+import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
+import atv from '../plugins/atv.ts';
+import mongodb from '../plugins/mongodb.ts';
 
 export interface MigrationOptions {
   siteId: string;

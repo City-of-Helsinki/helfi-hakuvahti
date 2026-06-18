@@ -1,14 +1,14 @@
 import * as assert from 'node:assert';
 import { after, before, beforeEach, describe, mock, test } from 'node:test';
 import { MongoClient } from 'mongodb';
-import type { ATV } from '../../src/lib/atv';
-import {type ProcessingStats, SubscriptionProcessor} from '../../src/lib/subscriptionProcessor';
+import type { ATV } from '../../src/lib/atv.ts';
+import {type ProcessingStats, SubscriptionProcessor} from '../../src/lib/subscriptionProcessor.ts';
 import {
   base64,
   createSiteConfig,
   createSubscription,
   emptyElasticResponse,
-} from './utils';
+} from './utils.ts';
 
 const createStats = (): ProcessingStats => ({
   sitesProcessed: 0,

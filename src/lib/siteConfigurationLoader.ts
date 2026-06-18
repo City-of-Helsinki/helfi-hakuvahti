@@ -5,8 +5,8 @@ import type {
   SiteConfigurationMapType,
   SiteConfigurationType,
   SiteEnvironmentConfigType,
-} from '../types/siteConfig';
-import type { SubscriptionCollectionLanguageType } from '../types/subscription';
+} from '../types/siteConfig.ts';
+import type { SubscriptionCollectionLanguageType } from '../types/subscription.ts';
 
 export class SiteConfigurationLoader {
   private static instance: SiteConfigurationLoader;

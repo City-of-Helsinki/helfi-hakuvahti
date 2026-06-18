@@ -1,13 +1,18 @@
 import { randomBytes } from 'node:crypto';
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import libphonenumber from 'google-libphonenumber';
-import type { ATV } from '../lib/atv';
-import { confirmationEmail, confirmationSms } from '../lib/email';
-import { getRandHash } from '../lib/randhash';
-import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
-import { generateSmsCode } from '../lib/smsCode';
-import { Generic400Error, type Generic400ErrorType, Generic500Error, type Generic500ErrorType } from '../types/error';
-import type { QueueInsertDocument } from '../types/queue';
+import type { ATV } from '../lib/atv.ts';
+import { confirmationEmail, confirmationSms } from '../lib/email.ts';
+import { getRandHash } from '../lib/randhash.ts';
+import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
+import { generateSmsCode } from '../lib/smsCode.ts';
+import {
+  Generic400Error,
+  type Generic400ErrorType,
+  Generic500Error,
+  type Generic500ErrorType,
+} from '../types/error.ts';
+import type { QueueInsertDocument } from '../types/queue.ts';
 import {
   type SubscriptionCollectionType,
   SubscriptionRequest,
@@ -15,7 +20,7 @@ import {
   SubscriptionResponse,
   type SubscriptionResponseType,
   SubscriptionStatus,
-} from '../types/subscription';
+} from '../types/subscription.ts';
 
 // Validation helpers
 const isValidEmail = (email: string): boolean => {

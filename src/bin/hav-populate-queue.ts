@@ -1,12 +1,12 @@
-import command, { type Server } from '../lib/command';
-import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
-import { type ProcessingStats, SubscriptionProcessor } from '../lib/subscriptionProcessor';
-import atv from '../plugins/atv';
-import base64Plugin from '../plugins/base64';
-import elasticproxy from '../plugins/elasticproxy';
-import mongodb from '../plugins/mongodb';
-import '../plugins/sentry';
-import { SubscriptionStatus } from '../types/subscription';
+import command, { type Server } from '../lib/command.ts';
+import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
+import { type ProcessingStats, SubscriptionProcessor } from '../lib/subscriptionProcessor.ts';
+import atv from '../plugins/atv.ts';
+import base64Plugin from '../plugins/base64.ts';
+import elasticproxy from '../plugins/elasticproxy.ts';
+import mongodb from '../plugins/mongodb.ts';
+import '../plugins/sentry.ts';
+import { SubscriptionStatus } from '../types/subscription.ts';
 
 /**
  * Deletes subscriptions older than a specified number of days with a certain status for a specific site.

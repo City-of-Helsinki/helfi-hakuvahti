@@ -1,5 +1,5 @@
 import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
-import type { AtvDocumentBatchType, AtvDocumentContentType, AtvDocumentType } from '../types/atv';
+import type { AtvDocumentBatchType, AtvDocumentContentType, AtvDocumentType } from '../types/atv.ts';
 
 export interface AtvConfig {
   apiUrl: string;

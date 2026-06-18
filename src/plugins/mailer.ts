@@ -1,5 +1,6 @@
+import fastifyMailer from 'fastify-mailer';
 import fp from 'fastify-plugin';
-import type { FastifyMailer } from '../types/mailer';
+import type { FastifyMailer } from '../types/mailer.ts';
 
 // Initialize mailer as plugin
 
@@ -19,7 +20,7 @@ export default fp(async function mailerPlugin(fastify) {
     },
   };
 
-  fastify.register(require('fastify-mailer'), opts);
+  fastify.register(fastifyMailer, opts);
 });
 
 declare module 'fastify' {

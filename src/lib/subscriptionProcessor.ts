@@ -1,14 +1,14 @@
 import { Buffer } from 'node:buffer';
 import type { FastifyMongoNestedObject, FastifyMongoObject, ObjectId } from '@fastify/mongodb';
-import type * as Sentry from '@sentry/node';
+import type Sentry from '@sentry/node';
 import type { WithId } from 'mongodb';
-import type { ElasticProxyJsonResponseType } from '../types/elasticproxy';
-import type { QueueInsertDocument } from '../types/queue';
-import type { SiteConfigurationType } from '../types/siteConfig';
-import { type SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription';
-import { ATV } from './atv';
-import { expiryEmail, newHitsEmail, newHitsSms, renewalSms } from './email';
-import { SiteConfigurationLoader } from './siteConfigurationLoader';
+import type { ElasticProxyJsonResponseType } from '../types/elasticproxy.ts';
+import type { QueueInsertDocument } from '../types/queue.ts';
+import type { SiteConfigurationType } from '../types/siteConfig.ts';
+import { type SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription.ts';
+import { ATV } from './atv.ts';
+import { expiryEmail, newHitsEmail, newHitsSms, renewalSms } from './email.ts';
+import { SiteConfigurationLoader } from './siteConfigurationLoader.ts';
 
 export interface SubscriptionProcessorDeps {
   mongo: FastifyMongoObject & FastifyMongoNestedObject;

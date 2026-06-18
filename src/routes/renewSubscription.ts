@@ -1,12 +1,12 @@
 import { randomInt } from 'node:crypto';
 import type { FastifyPluginAsync } from 'fastify';
-import { ActionError, renewSubscription as renewAction, toSubscriptionId } from '../lib/subscriptionActions';
-import { Generic500Error, type Generic500ErrorType } from '../types/error';
+import { ActionError, renewSubscription as renewAction, toSubscriptionId } from '../lib/subscriptionActions.ts';
+import { Generic500Error, type Generic500ErrorType } from '../types/error.ts';
 import {
   type SubscriptionCollectionType,
   SubscriptionGenericPostResponse,
   type SubscriptionGenericPostResponseType,
-} from '../types/subscription';
+} from '../types/subscription.ts';
 
 // Renews subscription by resetting the created timestamp
 

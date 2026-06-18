@@ -1,8 +1,8 @@
 import { randomInt } from 'node:crypto';
 import type { FastifyPluginAsync } from 'fastify';
-import { ActionError, deleteSubscription as deleteAction, toSubscriptionId } from '../lib/subscriptionActions';
-import { Generic500Error, type Generic500ErrorType } from '../types/error';
-import { SubscriptionGenericPostResponse, type SubscriptionGenericPostResponseType } from '../types/subscription';
+import { ActionError, deleteSubscription as deleteAction, toSubscriptionId } from '../lib/subscriptionActions.ts';
+import { Generic500Error, type Generic500ErrorType } from '../types/error.ts';
+import { SubscriptionGenericPostResponse, type SubscriptionGenericPostResponseType } from '../types/subscription.ts';
 
 // Deletes subscription
 const deleteSubscription: FastifyPluginAsync = async (fastify, _opts) => {

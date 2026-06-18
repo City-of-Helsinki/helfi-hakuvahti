@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { afterEach, describe, mock, test } from 'node:test';
 import axios from 'axios';
-import { ATV } from '../../src/lib/atv';
+import { ATV } from '../../src/lib/atv.ts';
 
 const defaultConfig = {
   apiUrl: 'https://atv.example.com',

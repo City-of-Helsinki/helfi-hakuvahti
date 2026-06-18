@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { ObjectId } from '@fastify/mongodb';
-import type { SiteConfigurationType } from '../../src/types/siteConfig';
-import { SubscriptionStatus } from '../../src/types/subscription';
+import type { SiteConfigurationType } from '../../src/types/siteConfig.ts';
+import { SubscriptionStatus } from '../../src/types/subscription.ts';
 
 export const base64 = (str: string) => Buffer.from(str).toString('base64');
 

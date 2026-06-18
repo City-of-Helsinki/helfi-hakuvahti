@@ -1,12 +1,12 @@
 import { ObjectId } from '@fastify/mongodb';
-import type * as Sentry from '@sentry/node';
+import type Sentry from '@sentry/node';
 import { JSDOM } from 'jsdom';
 import type { Db } from 'mongodb';
-import type { DialogiClient } from '../plugins/dialogi';
-import type { AtvDocumentType } from '../types/atv';
-import type { FastifyMailer } from '../types/mailer';
-import type { QueueItem, QueueItemType } from '../types/queue';
-import type { ATV } from './atv';
+import type { DialogiClient } from '../plugins/dialogi.ts';
+import type { AtvDocumentType } from '../types/atv.ts';
+import type { FastifyMailer } from '../types/mailer.ts';
+import type { QueueItem, QueueItemType } from '../types/queue.ts';
+import type { ATV } from './atv.ts';
 
 export const BATCH_SIZE = 100;
 

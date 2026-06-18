@@ -1,7 +1,7 @@
 import https from 'node:https';
 import axios from 'axios';
 import fp from 'fastify-plugin';
-import type { ElasticProxyJsonResponseType } from '../types/elasticproxy';
+import type { ElasticProxyJsonResponseType } from '../types/elasticproxy.ts';
 
 // Query Elastic Proxy
 

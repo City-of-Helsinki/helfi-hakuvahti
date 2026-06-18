@@ -1,6 +1,6 @@
 import * as assert from 'node:assert';
 import { afterEach, beforeEach, describe, type Mock, mock, test } from 'node:test';
-import command, { type Command } from '../../src/lib/command';
+import command, { type Command } from '../../src/lib/command.ts';
 
 /**
  * Helper for running command methods.

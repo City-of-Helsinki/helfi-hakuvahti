@@ -4,11 +4,12 @@ import assert from 'node:assert';
 import crypto from 'node:crypto';
 import * as path from 'node:path';
 import type * as test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import type { ObjectId } from '@fastify/mongodb';
 import type { FastifyInstance } from 'fastify';
 import helper from 'fastify-cli/helper.js';
 import type { Collection } from 'mongodb';
-import { SubscriptionStatus } from '../src/types/subscription';
+import { SubscriptionStatus } from '../src/types/subscription.ts';
 
 export type TestContext = {
   after: typeof test.after;
@@ -16,6 +17,7 @@ export type TestContext = {
 
 process.env.HAKUVAHTI_API_KEY = 'test';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AppPath = path.join(__dirname, '..', 'src', 'app.ts');
 
 // Fill in this config with all the configurations

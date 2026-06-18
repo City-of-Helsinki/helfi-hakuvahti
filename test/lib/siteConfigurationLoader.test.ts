@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { SiteConfigurationLoader } from '../../src/lib/siteConfigurationLoader';
+import { SiteConfigurationLoader } from '../../src/lib/siteConfigurationLoader.ts';
 
 const mockRekryConfig = {
   name: 'rekry',

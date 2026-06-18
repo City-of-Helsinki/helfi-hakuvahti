@@ -1,7 +1,7 @@
 import axios, { type AxiosResponse } from 'axios';
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
-import type { DialogiSmsRequestType, DialogiSmsResponseType } from '../types/dialogi';
+import type { DialogiSmsRequestType, DialogiSmsResponseType } from '../types/dialogi.ts';
 
 /**
  * Elisa Dialogi SMS Plugin

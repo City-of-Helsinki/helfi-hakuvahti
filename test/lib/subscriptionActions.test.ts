@@ -2,14 +2,14 @@ import * as assert from 'node:assert';
 import { after, before, beforeEach, describe, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';
 import { Int32, MongoClient } from 'mongodb';
-import type { ATV } from '../../src/lib/atv';
+import type { ATV } from '../../src/lib/atv.ts';
 import {
   ActionError,
   confirmSubscription,
   deleteSubscription,
   renewSubscription,
-} from '../../src/lib/subscriptionActions';
-import { type SubscriptionCollectionType, SubscriptionStatus } from '../../src/types/subscription';
+} from '../../src/lib/subscriptionActions.ts';
+import { type SubscriptionCollectionType, SubscriptionStatus } from '../../src/types/subscription.ts';
 
 describe('subscriptionActions', () => {
   assert.ok(process.env.MONGODB);

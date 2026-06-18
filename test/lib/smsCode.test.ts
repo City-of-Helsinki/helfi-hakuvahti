@@ -2,8 +2,8 @@ import * as assert from 'node:assert';
 import { after, before, describe, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';
 import { MongoClient } from 'mongodb';
-import { TIME_WINDOW_MS, findAndVerifySmsSubscription, generateSmsCode, verifySmsCode } from '../../src/lib/smsCode';
-import { type SubscriptionCollectionType, SubscriptionStatus } from '../../src/types/subscription';
+import { TIME_WINDOW_MS, findAndVerifySmsSubscription, generateSmsCode, verifySmsCode } from '../../src/lib/smsCode.ts';
+import { type SubscriptionCollectionType, SubscriptionStatus } from '../../src/types/subscription.ts';
 
 const SECRET = 'a'.repeat(64);
 
