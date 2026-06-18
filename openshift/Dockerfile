@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/nodejs-22 AS builder
+FROM registry.access.redhat.com/ubi9/nodejs-24 AS builder
 
 ENV npm_config_cache="/tmp/.npm"
 
@@ -13,7 +13,7 @@ RUN \
 
 # Development image
 
-FROM registry.access.redhat.com/ubi9/nodejs-22 AS development
+FROM registry.access.redhat.com/ubi9/nodejs-24 AS development
 
 ENV npm_config_cache="/tmp/.npm"
 ENV APP_NAME hakuvahti
@@ -28,7 +28,7 @@ ENTRYPOINT ["/entrypoint"]
 
 # Production image
 
-FROM registry.access.redhat.com/ubi9/nodejs-22
+FROM registry.access.redhat.com/ubi9/nodejs-24
 
 ENV npm_config_cache="/tmp/.npm"
 ENV APP_NAME rekry-hakuvahti
