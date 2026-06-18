@@ -16,7 +16,7 @@ import type { SubscriptionCollectionLanguageType } from '../types/subscription.t
 // No ATV, no queue, no subscriptions needed
 
 const LANGUAGES: SubscriptionCollectionLanguageType[] = ['fi', 'en', 'sv'];
-const TEMPLATE_BASE = 'dist/templates';
+const TEMPLATE_BASE = 'src/templates';
 
 const templateExists = (siteConfig: SiteConfigurationType, relativePath: string): boolean =>
   fs.existsSync(`${TEMPLATE_BASE}/${siteConfig.mail.templatePath}/${relativePath}`);

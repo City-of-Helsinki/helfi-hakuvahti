@@ -4,7 +4,7 @@ import { sprightly } from 'sprightly';
 import type { SiteConfigurationType } from '../types/siteConfig.ts';
 import type { SubscriptionCollectionLanguageType } from '../types/subscription.ts';
 
-const TEMPLATE_BASE_PATH = 'dist/templates';
+const TEMPLATE_BASE_PATH = 'src/templates';
 
 // Formatter registry for converting elastic field values.
 const fieldFormatters: Record<string, (val: unknown, siteConfig: SiteConfigurationType) => string> = {

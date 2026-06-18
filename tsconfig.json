@@ -4,9 +4,7 @@
     "erasableSyntaxOnly": true,
     "verbatimModuleSyntax": true,
     "allowImportingTsExtensions": true,
-    "rewriteRelativeImportExtensions": true,
-    "outDir": "dist",
-    "sourceMap": true,
+    "noEmit": true,
     "target": "ES2020"
   },
   "include": ["src/**/*.ts"],

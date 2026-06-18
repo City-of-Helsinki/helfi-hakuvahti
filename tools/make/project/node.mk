@@ -1,5 +1,5 @@
 NODE_FRESH_TARGETS := up post-install
-NODE_POST_INSTALL_TARGETS := dotenv npm-install hav-build hav-init-db
+NODE_POST_INSTALL_TARGETS := dotenv npm-install hav-init-db
 
 export DOCKER_UID ?= $(shell id -u)
 export DOCKER_GID ?= $(shell id -g)
@@ -20,11 +20,6 @@ PHONY += npm-install
 npm-install:
 	$(call step,npm ci...\n)
 	$(call npm,ci)
-
-PHONY += hav-build
-hav-build: ## Compile typescript
-	$(call step,Run tsc...\n)
-	$(call npm,run build:ts)
 
 PHONY += hav-init-db
 hav-init-db: ## Run database updates
