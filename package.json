@@ -36,7 +36,6 @@
     "@immobiliarelabs/fastify-sentry": "^9.0.1",
     "@sinclair/typebox": "^0.34.41",
     "axios": "^1.6.7",
-    "dotenv": "^16.3.1",
     "fastify": "^5.6.2",
     "fastify-mailer": "^2.3.1",
     "fastify-plugin": "^5.1.0",

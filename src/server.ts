@@ -1,9 +1,6 @@
-import dotenv from 'dotenv';
 import Fastify from 'fastify';
 import app, { options } from './app.ts';
 import { Environment } from './types/environment.ts';
-
-dotenv.config();
 
 const requiredEnvironmentVariables = ['ENVIRONMENT', 'HAKUVAHTI_API_KEY'];
 for (const envVar of requiredEnvironmentVariables) {

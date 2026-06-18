@@ -1,7 +1,4 @@
-import dotenv from 'dotenv';
 import fastify from 'fastify';
-
-dotenv.config();
 
 /**
  * Mock Dialogi SMS API server for local testing

@@ -4,7 +4,6 @@ import assert from 'node:assert';
 import crypto from 'node:crypto';
 import type * as test from 'node:test';
 import type { ObjectId } from '@fastify/mongodb';
-import dotenv from 'dotenv';
 import Fastify, { type FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import type { Collection } from 'mongodb';
@@ -17,7 +16,6 @@ export type TestContext = {
 
 // fastify-cli's helper used to load .env (which provides ENVIRONMENT); keep
 // doing so now that we build the app ourselves.
-dotenv.config();
 process.env.HAKUVAHTI_API_KEY = 'test';
 
 // Fill in this config with all the configurations

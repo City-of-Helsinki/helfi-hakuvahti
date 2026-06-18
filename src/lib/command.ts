@@ -1,10 +1,7 @@
 // @fixme '@immobiliarelabs/fastify-sentry' is no longer maintained.
 import fastifySentry from '@immobiliarelabs/fastify-sentry';
-import dotenv from 'dotenv';
 import fastify, { type FastifyInstance } from 'fastify';
 import minimist, { type ParsedArgs } from 'minimist';
-
-dotenv.config();
 
 export type Server = FastifyInstance;
 

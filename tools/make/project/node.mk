@@ -1,5 +1,5 @@
 NODE_FRESH_TARGETS := up post-install
-NODE_POST_INSTALL_TARGETS := dotenv npm-install hav-init-db
+NODE_POST_INSTALL_TARGETS := .env npm-install hav-init-db
 
 export DOCKER_UID ?= $(shell id -u)
 export DOCKER_GID ?= $(shell id -g)
@@ -12,9 +12,8 @@ PHONY += post-install
 post-install: ## Run post-install actions
 	@$(MAKE) $(NODE_POST_INSTALL_TARGETS)
 
-PHONY += dotenv
-dotenv: ## Ensure dotenv exists
-	$(call docker_compose_exec,cp -n .env.dist .env)
+.env: ## Ensure dotenv exists
+	@cp -n .env.dist .env
 
 PHONY += npm-install
 npm-install:

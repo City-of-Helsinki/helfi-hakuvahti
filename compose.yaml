@@ -15,10 +15,31 @@ services:
       dockerfile: openshift/Dockerfile
       target: development
     hostname: hakuvahti
+    # Environment configuration for development.
+    # See .env file for descriptions.
     environment:
-      FASTIFY_PORT: 3000
+      FASTIFY_PORT: ${FASTIFY_PORT:-3000}
       MONGODB: mongodb://mongodb:27017/hakuvahti
-      HAKUVAHTI_API_KEY: '123'
+      ENVIRONMENT: ${ENVIRONMENT:-local}
+      HAKUVAHTI_API_KEY: ${HAKUVAHTI_API_KEY:-123}
+      # Sentry (optional)
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_RELEASE: ${SENTRY_RELEASE:-}
+      # ATV
+      ATV_API_KEY: ${ATV_API_KEY}
+      ATV_API_URL: ${ATV_API_URL}
+      # Nodemailer settings
+      MAIL_FROM: ${MAIL_FROM:-noreply@hel.fi}
+      MAIL_HOST: ${MAIL_HOST:-host-machine.local}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_SECURE: ${MAIL_SECURE:-}
+      MAIL_AUTH_USER: ${MAIL_AUTH_USER:-}
+      MAIL_AUTH_PASS: ${MAIL_AUTH_PASS:-}
+      # SMS
+      DIALOGI_API_URL: ${DIALOGI_API_URL:-}
+      DIALOGI_API_KEY: ${DIALOGI_API_KEY:-}
+      DIALOGI_SENDER: ${DIALOGI_SENDER:-}
+      TEST_SMS_NUMBER: ${TEST_SMS_NUMBER:-}
     volumes:
       - .:/app:delegated
     ports:
