@@ -15,10 +15,7 @@ CMD ["npm", "run", "dev"]
 
 FROM registry.access.redhat.com/ubi9/nodejs-24
 
-ENV npm_config_cache="/tmp/.npm"
-ENV APP_NAME rekry-hakuvahti
-# Run TypeScript sources directly via Node's native type stripping.
-ENV NODE_OPTIONS=--experimental-strip-types
+ENV npm_config_cache="/tmp/.npm" APP_NAME=rekry-hakuvahti
 
 WORKDIR "/app"
 
