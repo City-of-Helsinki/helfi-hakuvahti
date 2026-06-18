@@ -1,5 +1,3 @@
-import https from 'node:https';
-import axios from 'axios';
 import fp from 'fastify-plugin';
 import type { ElasticProxyJsonResponseType } from '../types/elasticproxy.ts';
 
@@ -27,27 +25,20 @@ const queryElasticProxy = async (
   const contentType: string = elasticQueryJson.startsWith('{}\n') ? 'application/x-ndjson' : 'application/json';
 
   try {
-    let rejectUnauthorized = true;
-    if (process.env.ENVIRONMENT === 'local') {
-      // On dev/local, ignore errors with docker certs
-      rejectUnauthorized = false;
+    const response = await fetch(elasticProxyUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': contentType,
+      },
+      // ElasticProxy requests must terminate to newline or server returns Bad request
+      body: elasticQueryJson + (elasticQueryJson.endsWith('\n') ? '' : '\n'),
+    });
+
+    if (!response.ok) {
+      throw new Error(`ElasticSearch proxy responded ${response.status}`);
     }
 
-    const response = await axios.post<ElasticProxyJsonResponseType>(
-      elasticProxyUrl,
-      // ElasticProxy requests must terminate to newline or server returns Bad request
-      elasticQueryJson + (elasticQueryJson.endsWith('\n') ? '' : '\n'),
-      {
-        httpsAgent: new https.Agent({
-          rejectUnauthorized,
-        }),
-        headers: {
-          'Content-Type': contentType,
-        },
-      },
-    );
-
-    return response.data;
+    return (await response.json()) as ElasticProxyJsonResponseType;
   } catch (error) {
     console.error(error);
 

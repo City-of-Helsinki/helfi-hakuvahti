@@ -1,6 +1,5 @@
 import * as assert from 'node:assert';
 import { afterEach, describe, mock, test } from 'node:test';
-import axios from 'axios';
 import { ATV } from '../../src/lib/atv.ts';
 
 const defaultConfig = {
@@ -9,8 +8,14 @@ const defaultConfig = {
   defaultMaxAge: 90,
 };
 
-function getCallArgs(mockRequest: ReturnType<typeof mock.method>, index = 0): any {
-  return mockRequest.mock.calls[index]!.arguments[0];
+// biome-ignore lint/suspicious/noExplicitAny: test helper returns loosely-typed fetch args
+function getCall(mockFetch: ReturnType<typeof mock.method>, index = 0): { url: string; opts: any } {
+  const args = mockFetch.mock.calls[index]!.arguments;
+  return { url: args[0], opts: args[1] };
+}
+
+function jsonResponse(body: unknown): Response {
+  return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
 }
 
 describe('ATV', () => {
@@ -33,24 +38,24 @@ describe('ATV', () => {
   });
 
   describe('createDocument', () => {
-    test('sends POST with multipart/form-data and correct structure', async () => {
-      const mockRequest = mock.method(axios, 'request', async () => ({
-        data: { id: 'new-doc-id', draft: 'false' },
-      }));
+    test('sends POST with multipart form data and correct structure', async () => {
+      const mockFetch = mock.method(globalThis, 'fetch', async () => jsonResponse({ id: 'new-doc-id', draft: 'false' }));
 
       const atv = new ATV(defaultConfig);
       const content = { email: 'test@example.com' };
       const result = await atv.createDocument(content, 'func-123');
 
-      assert.strictEqual(mockRequest.mock.callCount(), 1);
-      const call = getCallArgs(mockRequest);
-      assert.strictEqual(call.method, 'post');
-      assert.strictEqual(call.url, `${defaultConfig.apiUrl}/v1/documents/`);
-      assert.strictEqual(call.headers['X-Api-Key'], defaultConfig.apiKey);
-      assert.strictEqual(call.headers['Content-Type'], 'multipart/form-data');
-      assert.strictEqual(call.data.draft, 'false');
-      assert.strictEqual(call.data.tos_function_id, 'func-123');
-      assert.strictEqual(call.data.content, JSON.stringify(content));
+      assert.strictEqual(mockFetch.mock.callCount(), 1);
+      const { url, opts } = getCall(mockFetch);
+      assert.strictEqual(opts.method, 'post');
+      assert.strictEqual(url, `${defaultConfig.apiUrl}/v1/documents/`);
+      assert.strictEqual(opts.headers['X-Api-Key'], defaultConfig.apiKey);
+      // multipart bodies must not set Content-Type explicitly (fetch adds the boundary)
+      assert.strictEqual(opts.headers['Content-Type'], undefined);
+      assert.ok(opts.body instanceof FormData);
+      assert.strictEqual(opts.body.get('draft'), 'false');
+      assert.strictEqual(opts.body.get('tos_function_id'), 'func-123');
+      assert.strictEqual(opts.body.get('content'), JSON.stringify(content));
       assert.deepStrictEqual(result, { id: 'new-doc-id', draft: 'false' });
     });
 
@@ -58,24 +63,26 @@ describe('ATV', () => {
       const fixedTime = new Date('2024-06-15T12:00:00Z').getTime();
       mock.timers.enable({ apis: ['Date'], now: fixedTime });
 
-      const mockRequest = mock.method(axios, 'request', async () => ({ data: {} }));
+      const mockFetch = mock.method(globalThis, 'fetch', async () => jsonResponse({}));
 
       const atv = new ATV({ ...defaultConfig, defaultMaxAge: 30 });
       await atv.createDocument({ email: 'test@example.com' }, 'func-123');
 
       mock.timers.reset();
 
-      const call = getCallArgs(mockRequest);
-      assert.strictEqual(call.data.tos_record_id, Math.floor(fixedTime / 1000).toString());
+      const { opts } = getCall(mockFetch);
+      assert.strictEqual(opts.body.get('tos_record_id'), Math.floor(fixedTime / 1000).toString());
 
       const expected = new Date(fixedTime);
       expected.setDate(expected.getDate() + 30);
-      assert.strictEqual(call.data.delete_after, expected.toISOString().substring(0, 10));
+      assert.strictEqual(opts.body.get('delete_after'), expected.toISOString().substring(0, 10));
     });
 
     test('wraps network errors with cause', async () => {
       const originalError = new Error('network error');
-      mock.method(axios, 'request', async () => { throw originalError; });
+      mock.method(globalThis, 'fetch', async () => {
+        throw originalError;
+      });
 
       const atv = new ATV(defaultConfig);
       await assert.rejects(
@@ -92,49 +99,40 @@ describe('ATV', () => {
   describe('getDocument', () => {
     test('sends GET and returns document content', async () => {
       const content = { email: 'user@example.com', sms: '+358401234567' };
-      const mockRequest = mock.method(axios, 'request', async () => ({
-        data: { id: 'doc-123', content },
-      }));
+      const mockFetch = mock.method(globalThis, 'fetch', async () => jsonResponse({ id: 'doc-123', content }));
 
       const atv = new ATV(defaultConfig);
       const result = await atv.getDocument('doc-123');
 
       assert.deepStrictEqual(result, content);
-      assert.strictEqual(mockRequest.mock.callCount(), 1);
-      const call = getCallArgs(mockRequest);
-      assert.strictEqual(call.method, 'get');
-      assert.strictEqual(call.url, `${defaultConfig.apiUrl}/v1/documents/doc-123`);
-      assert.strictEqual(call.headers['X-Api-Key'], defaultConfig.apiKey);
-      assert.strictEqual(call.headers['Content-Type'], undefined);
+      assert.strictEqual(mockFetch.mock.callCount(), 1);
+      const { url, opts } = getCall(mockFetch);
+      assert.strictEqual(opts.method, 'get');
+      assert.strictEqual(url, `${defaultConfig.apiUrl}/v1/documents/doc-123`);
+      assert.strictEqual(opts.headers['X-Api-Key'], defaultConfig.apiKey);
+      assert.strictEqual(opts.headers['Content-Type'], undefined);
+      assert.strictEqual(opts.body, undefined);
     });
 
     test('throws when content is missing', async () => {
-      mock.method(axios, 'request', async () => ({
-        data: { id: 'doc-123' },
-      }));
+      mock.method(globalThis, 'fetch', async () => jsonResponse({ id: 'doc-123' }));
 
       const atv = new ATV(defaultConfig);
-      await assert.rejects(
-        () => atv.getDocument('doc-123'),
-        { message: 'Empty content returned from API' },
-      );
+      await assert.rejects(() => atv.getDocument('doc-123'), { message: 'Empty content returned from API' });
     });
 
     test('throws when content is falsy', async () => {
-      mock.method(axios, 'request', async () => ({
-        data: { id: 'doc-123', content: null },
-      }));
+      mock.method(globalThis, 'fetch', async () => jsonResponse({ id: 'doc-123', content: null }));
 
       const atv = new ATV(defaultConfig);
-      await assert.rejects(
-        () => atv.getDocument('doc-123'),
-        { message: 'Empty content returned from API' },
-      );
+      await assert.rejects(() => atv.getDocument('doc-123'), { message: 'Empty content returned from API' });
     });
 
     test('wraps network errors with cause', async () => {
       const originalError = new Error('timeout');
-      mock.method(axios, 'request', async () => { throw originalError; });
+      mock.method(globalThis, 'fetch', async () => {
+        throw originalError;
+      });
 
       const atv = new ATV(defaultConfig);
       await assert.rejects(
@@ -159,48 +157,50 @@ describe('ATV', () => {
     test('fetches document then patches with new delete_after', async () => {
       const patchedDoc = { ...existingDoc, delete_after: '2024-03-31' };
       let callCount = 0;
-      const mockRequest = mock.method(axios, 'request', async () => {
+      const mockFetch = mock.method(globalThis, 'fetch', async () => {
         callCount++;
-        if (callCount === 1) return { data: existingDoc };
-        return { data: patchedDoc };
+        if (callCount === 1) return jsonResponse(existingDoc);
+        return jsonResponse(patchedDoc);
       });
 
       const atv = new ATV(defaultConfig);
       const result = await atv.updateDocumentDeleteAfter('doc-123', new Date(2024, 2, 31));
 
-      assert.strictEqual(mockRequest.mock.callCount(), 2);
+      assert.strictEqual(mockFetch.mock.callCount(), 2);
 
-      const getCall = getCallArgs(mockRequest, 0);
-      assert.strictEqual(getCall.method, 'get');
-      assert.strictEqual(getCall.url, `${defaultConfig.apiUrl}/v1/documents/doc-123`);
+      const getCallArgs = getCall(mockFetch, 0);
+      assert.strictEqual(getCallArgs.opts.method, 'get');
+      assert.strictEqual(getCallArgs.url, `${defaultConfig.apiUrl}/v1/documents/doc-123`);
 
-      const patchCall = getCallArgs(mockRequest, 1);
-      assert.strictEqual(patchCall.method, 'patch');
-      assert.strictEqual(patchCall.url, `${defaultConfig.apiUrl}/v1/documents/doc-123`);
-      assert.strictEqual(patchCall.headers['Content-Type'], 'application/json');
-      assert.strictEqual(patchCall.data.delete_after, '2024-03-31');
+      const patchCallArgs = getCall(mockFetch, 1);
+      assert.strictEqual(patchCallArgs.opts.method, 'patch');
+      assert.strictEqual(patchCallArgs.url, `${defaultConfig.apiUrl}/v1/documents/doc-123`);
+      assert.strictEqual(patchCallArgs.opts.headers['Content-Type'], 'application/json');
+      assert.strictEqual(JSON.parse(patchCallArgs.opts.body).delete_after, '2024-03-31');
 
       assert.deepStrictEqual(result, patchedDoc);
     });
 
     test('sets delete_after to the provided date', async () => {
       let callCount = 0;
-      const mockRequest = mock.method(axios, 'request', async () => {
+      const mockFetch = mock.method(globalThis, 'fetch', async () => {
         callCount++;
-        if (callCount === 1) return { data: existingDoc };
-        return { data: {} };
+        if (callCount === 1) return jsonResponse(existingDoc);
+        return jsonResponse({});
       });
 
       const atv = new ATV(defaultConfig);
       await atv.updateDocumentDeleteAfter('doc-123', new Date(2024, 2, 1));
 
-      const patchCall = getCallArgs(mockRequest, 1);
-      assert.strictEqual(patchCall.data.delete_after, '2024-03-01');
+      const patchCallArgs = getCall(mockFetch, 1);
+      assert.strictEqual(JSON.parse(patchCallArgs.opts.body).delete_after, '2024-03-01');
     });
 
     test('wraps errors with cause', async () => {
       const originalError = new Error('server error');
-      mock.method(axios, 'request', async () => { throw originalError; });
+      mock.method(globalThis, 'fetch', async () => {
+        throw originalError;
+      });
 
       const atv = new ATV(defaultConfig);
       await assert.rejects(
@@ -217,25 +217,25 @@ describe('ATV', () => {
   describe('getDocumentBatch', () => {
     test('sends POST to batch-list endpoint', async () => {
       const docs = [{ id: 'doc-1' }, { id: 'doc-2' }];
-      const mockRequest = mock.method(axios, 'request', async () => ({
-        data: docs,
-      }));
+      const mockFetch = mock.method(globalThis, 'fetch', async () => jsonResponse(docs));
 
       const atv = new ATV(defaultConfig);
       const result = await atv.getDocumentBatch(['doc-1', 'doc-2']);
 
       assert.deepStrictEqual(result, docs);
-      assert.strictEqual(mockRequest.mock.callCount(), 1);
-      const call = getCallArgs(mockRequest);
-      assert.strictEqual(call.method, 'post');
-      assert.strictEqual(call.url, `${defaultConfig.apiUrl}/v1/documents/batch-list/`);
-      assert.strictEqual(call.headers['Content-Type'], 'application/json');
-      assert.deepStrictEqual(call.data, { document_ids: ['doc-1', 'doc-2'] });
+      assert.strictEqual(mockFetch.mock.callCount(), 1);
+      const { url, opts } = getCall(mockFetch);
+      assert.strictEqual(opts.method, 'post');
+      assert.strictEqual(url, `${defaultConfig.apiUrl}/v1/documents/batch-list/`);
+      assert.strictEqual(opts.headers['Content-Type'], 'application/json');
+      assert.deepStrictEqual(JSON.parse(opts.body), { document_ids: ['doc-1', 'doc-2'] });
     });
 
     test('wraps errors with cause', async () => {
       const originalError = new Error('batch failed');
-      mock.method(axios, 'request', async () => { throw originalError; });
+      mock.method(globalThis, 'fetch', async () => {
+        throw originalError;
+      });
 
       const atv = new ATV(defaultConfig);
       await assert.rejects(

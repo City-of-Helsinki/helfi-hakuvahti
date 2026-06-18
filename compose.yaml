@@ -21,6 +21,7 @@ services:
       FASTIFY_PORT: ${FASTIFY_PORT:-3000}
       MONGODB: mongodb://mongodb:27017/hakuvahti
       ENVIRONMENT: ${ENVIRONMENT:-local}
+      NODE_TLS_REJECT_UNAUTHORIZED: ${NODE_TLS_REJECT_UNAUTHORIZED:-1}
       HAKUVAHTI_API_KEY: ${HAKUVAHTI_API_KEY:-123}
       # Sentry (optional)
       SENTRY_DSN: ${SENTRY_DSN:-}

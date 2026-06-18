@@ -1,9 +1,12 @@
 import * as assert from 'node:assert';
 import { before, describe, mock, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';
-import axios from 'axios';
 import { SubscriptionStatus } from '../../src/types/subscription.ts';
 import { build } from '../helper.ts';
+
+function jsonResponse(body: unknown): Response {
+  return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
+}
 
 const validPayload = {
   email: 'test@example.com',
@@ -14,30 +17,22 @@ const validPayload = {
 };
 
 describe('/subscription', () => {
-  // Set up axios mocks for tests that need external API calls
+  // Set up fetch mocks for tests that need external API calls
   before(() => {
-    // ATV class uses axios.request
-    mock.method(axios, 'request', async (config: { url?: string }) => {
-      const url = config.url ?? '';
+    // ATV and elastic proxy both use fetch; dispatch by URL.
+    mock.method(globalThis, 'fetch', async (url: string) => {
       if (url.includes('/v1/documents/')) {
-        return {
-          data: {
-            id: 'mock-atv-document-id',
-            draft: 'false',
-            tos_function_id: 'test',
-            tos_record_id: 'test',
-          },
-        };
+        return jsonResponse({
+          id: 'mock-atv-document-id',
+          draft: 'false',
+          tos_function_id: 'test',
+          tos_record_id: 'test',
+        });
       }
-      throw new Error(`Unexpected axios.request URL: ${url}`);
-    });
-
-    // Elastic proxy uses axios.post
-    mock.method(axios, 'post', async (url: string) => {
       if (url.includes('_search')) {
-        return { data: { hits: { hits: [] } } };
+        return jsonResponse({ hits: { hits: [] } });
       }
-      throw new Error(`Unexpected axios.post URL: ${url}`);
+      throw new Error(`Unexpected fetch URL: ${url}`);
     });
   });
 
@@ -184,18 +179,14 @@ describe('/subscription', () => {
 describe('/subscription plugin failures', () => {
   test('handles ATV failure', async (t) => {
     // Mock ATV to fail
-    mock.method(axios, 'request', async (config: { url?: string }) => {
-      const url = config.url ?? '';
+    mock.method(globalThis, 'fetch', async (url: string) => {
       if (url.includes('/v1/documents/')) {
         throw new Error('ATV service unavailable');
       }
-      throw new Error(`Unexpected axios.request URL: ${url}`);
-    });
-    mock.method(axios, 'post', async (url: string) => {
       if (url.includes('_search')) {
-        return { data: { hits: { hits: [] } } };
+        return jsonResponse({ hits: { hits: [] } });
       }
-      throw new Error(`Unexpected axios.post URL: ${url}`);
+      throw new Error(`Unexpected fetch URL: ${url}`);
     });
 
     const app = await build(t);
@@ -213,27 +204,20 @@ describe('/subscription plugin failures', () => {
   });
 
   test('handles Elasticsearch validation failure', async (t) => {
-    // Mock ATV to succeed
-    mock.method(axios, 'request', async (config: { url?: string }) => {
-      const url = config.url ?? '';
+    // Mock ATV to succeed, Elasticsearch to fail
+    mock.method(globalThis, 'fetch', async (url: string) => {
       if (url.includes('/v1/documents/')) {
-        return {
-          data: {
-            id: 'mock-atv-document-id',
-            draft: 'false',
-            tos_function_id: 'test',
-            tos_record_id: 'test',
-          },
-        };
+        return jsonResponse({
+          id: 'mock-atv-document-id',
+          draft: 'false',
+          tos_function_id: 'test',
+          tos_record_id: 'test',
+        });
       }
-      throw new Error(`Unexpected axios.request URL: ${url}`);
-    });
-    // Mock Elasticsearch to fail
-    mock.method(axios, 'post', async (url: string) => {
       if (url.includes('_search')) {
         throw new Error('Elasticsearch query failed');
       }
-      throw new Error(`Unexpected axios.post URL: ${url}`);
+      throw new Error(`Unexpected fetch URL: ${url}`);
     });
 
     const app = await build(t);
