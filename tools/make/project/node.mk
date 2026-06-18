@@ -8,6 +8,11 @@ PHONY += fresh
 fresh: ## Build fresh development environment and sync
 	@$(MAKE) $(NODE_FRESH_TARGETS)
 
+PHONY += rebuild
+rebuild: ## Rebuild docker image
+	$(call step,Rebuilding app...\n)
+	$(call docker_compose,up --wait --no-deps --build app)
+
 PHONY += post-install
 post-install: ## Run post-install actions
 	@$(MAKE) $(NODE_POST_INSTALL_TARGETS)
