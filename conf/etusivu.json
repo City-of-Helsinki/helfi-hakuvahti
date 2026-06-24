@@ -43,7 +43,7 @@
     },
     "email_confirmation_button": {
       "fi": "Vahvista hakuvahti",
-      "en": "Confirm your search alert",
+      "en": "Confirm search alert subscription",
       "sv": "Bekräfta sökvakten"
     },
     "email_confirmation_ignore": {
@@ -68,7 +68,7 @@
     },
     "email_generic_remove_link": {
       "fi": "Poista hakuvahti",
-      "en": "Remove the search alert",
+      "en": "Remove search alert",
       "sv": "Radera sökvakten"
     },
     "email_generic_your_search_terms": {
@@ -118,7 +118,7 @@
     },
     "email_expiry_renewal_button": {
       "fi": "Jatka hakuvahdin tilausta",
-      "en": "Continue your search alert subscription",
+      "en": "Extend your search alert subscription",
       "sv": "Förläng beställningen av sökvakten"
     },
     "email_expiry_new_link": {
@@ -143,7 +143,7 @@
     },
     "email_newhits_expiry_prefix": {
       "fi": "Hakuvahti on voimassa",
-      "en": "The search alert will be valid until",
+      "en": "The search alert subscription will be valid until",
       "sv": "Sökvakten är i kraft fram till"
     },
     "email_newhits_expiry_suffix": {
