@@ -1,5 +1,4 @@
-import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
-import type { AtvDocumentBatchType, AtvDocumentContentType, AtvDocumentType } from '../types/atv';
+import type { AtvDocumentBatchType, AtvDocumentContentType, AtvDocumentType } from '../types/atv.ts';
 
 export interface AtvConfig {
   apiUrl: string;
@@ -113,23 +112,38 @@ export class ATV {
     body?: Body,
     contentType?: string,
   ) {
-    const headers: AxiosRequestConfig['headers'] = {
+    const headers: Record<string, string> = {
       'X-Api-Key': this.apiKey,
     };
 
+    let requestBody: BodyInit | undefined;
     if (body) {
-      headers['Content-Type'] = contentType ?? 'application/json';
+      const resolvedContentType = contentType ?? 'application/json';
+      if (resolvedContentType === 'multipart/form-data') {
+        // Build FormData and let fetch set the Content-Type (with boundary).
+        const formData = new FormData();
+        for (const [key, value] of Object.entries(body)) {
+          formData.append(key, value as string);
+        }
+        requestBody = formData;
+      } else {
+        headers['Content-Type'] = resolvedContentType;
+        requestBody = JSON.stringify(body);
+      }
     }
 
     try {
-      const response: AxiosResponse<Response> = await axios.request({
+      const response = await fetch(this.apiUrl + endpoint, {
         method,
-        url: this.apiUrl + endpoint,
         headers,
-        data: body,
+        body: requestBody,
       });
 
-      return response.data;
+      if (!response.ok) {
+        throw new Error(`ATV ${method} ${endpoint} failed: ${response.status}`);
+      }
+
+      return (await response.json()) as Response;
     } catch (error: unknown) {
       throw new Error('ATV request failed', {
         cause: error,

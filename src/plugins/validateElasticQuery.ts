@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
-import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
-import type { SubscriptionRequestType } from '../types/subscription';
+import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
+import type { SubscriptionRequestType } from '../types/subscription.ts';
 
 export type ValidateElasticQueryPluginOptions = Record<string, never>;
 

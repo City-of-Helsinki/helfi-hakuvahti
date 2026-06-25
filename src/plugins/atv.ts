@@ -1,5 +1,5 @@
 import fp from 'fastify-plugin';
-import { ATV } from '../lib/atv';
+import { ATV } from '../lib/atv.ts';
 
 export default fp(async (fastify, _opts) => {
   fastify.decorate(

@@ -3,11 +3,11 @@ import { after, before, test } from 'node:test';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
-import { buildTranslationContext, newHitsSms, translate, wrapWithLayout } from '../../src/lib/email';
-import type { SiteConfigurationType } from '../../src/types/siteConfig';
-import type { SubscriptionCollectionLanguageType } from '../../src/types/subscription';
+import { buildTranslationContext, newHitsSms, translate, wrapWithLayout } from '../../src/lib/email.ts';
+import type { SiteConfigurationType } from '../../src/types/siteConfig.ts';
+import type { SubscriptionCollectionLanguageType } from '../../src/types/subscription.ts';
 
-const TEMPLATE_ROOT = path.join('dist', 'templates', 'test');
+const TEMPLATE_ROOT = path.join('src', 'templates', 'test');
 const INNER_TEMPLATE = path.join(TEMPLATE_ROOT, 'inner_fi.html');
 const LAYOUT_TEMPLATE = path.join(TEMPLATE_ROOT, 'index.html');
 
@@ -106,7 +106,7 @@ const executeWrap = (
   customValue: string,
 ) =>
   wrapWithLayout(
-    path.join('dist', 'templates', baseConfig.mail.templatePath, 'inner_fi.html'),
+    path.join('src', 'templates', baseConfig.mail.templatePath, 'inner_fi.html'),
     { custom_value: customValue },
     lang,
     `Subject for ${lang}`,

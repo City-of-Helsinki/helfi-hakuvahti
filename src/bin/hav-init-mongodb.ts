@@ -8,8 +8,8 @@
  * Must be run before starting the application to ensure proper database structure.
  */
 
-import command from '../lib/command';
-import mongodb from '../plugins/mongodb';
+import command from '../lib/command.ts';
+import mongodb from '../plugins/mongodb.ts';
 
 command(
   async (server) => {

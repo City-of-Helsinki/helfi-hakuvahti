@@ -1,9 +1,9 @@
 import { randomInt } from 'node:crypto';
 import type { ObjectId } from '@fastify/mongodb';
 import type { FastifyPluginAsync } from 'fastify';
-import { findAndVerifySmsSubscription } from '../lib/smsCode';
-import { ActionError, confirmSubscription as confirmAction, toSubscriptionId } from '../lib/subscriptionActions';
-import { Generic500Error, type Generic500ErrorType } from '../types/error';
+import { findAndVerifySmsSubscription } from '../lib/smsCode.ts';
+import { ActionError, confirmSubscription as confirmAction, toSubscriptionId } from '../lib/subscriptionActions.ts';
+import { Generic500Error, type Generic500ErrorType } from '../types/error.ts';
 import {
   type SmsVerificationRequestType,
   SmsVerificationResponse,
@@ -11,7 +11,7 @@ import {
   SubscriptionGenericPostResponse,
   type SubscriptionGenericPostResponseType,
   SubscriptionStatus,
-} from '../types/subscription';
+} from '../types/subscription.ts';
 
 // Confirms subscription
 const confirmSubscription: FastifyPluginAsync = async (fastify, _opts) => {

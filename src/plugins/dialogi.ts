@@ -1,7 +1,6 @@
-import axios, { type AxiosResponse } from 'axios';
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
-import type { DialogiSmsRequestType, DialogiSmsResponseType } from '../types/dialogi';
+import type { DialogiSmsRequestType, DialogiSmsResponseType } from '../types/dialogi.ts';
 
 /**
  * Elisa Dialogi SMS Plugin
@@ -43,51 +42,58 @@ export default fp(async function dialogiPlugin(fastify: FastifyInstance) {
         );
       }
 
+      const requestBody: DialogiSmsRequestType = {
+        sender: process.env.DIALOGI_SENDER,
+        destination,
+        text,
+      };
+
+      let response: Response;
       try {
-        const requestBody: DialogiSmsRequestType = {
-          sender: process.env.DIALOGI_SENDER,
-          destination,
-          text,
-        };
-
-        const response: AxiosResponse<DialogiSmsResponseType> = await axios.post(
-          process.env.DIALOGI_API_URL,
-          requestBody,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${process.env.DIALOGI_API_KEY}`,
-            },
-            timeout: 10000, // 10 second timeout
+        response = await fetch(process.env.DIALOGI_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.DIALOGI_API_KEY}`,
           },
-        );
-
-        // Extract message ID from response
-        const messageId =
-          response.data.messages?.[0]?.[destination]?.messageid ||
-          Object.values(response.data.messages?.[0] || {})[0]?.messageid ||
-          'unknown';
-
-        fastify.log.info({ messageId }, 'SMS sent to Dialogi');
-
-        return response.data;
+          body: JSON.stringify(requestBody),
+          signal: AbortSignal.timeout(10000), // 10 second timeout
+        });
       } catch (error) {
-        if (axios.isAxiosError(error)) {
-          const errorMessage = error.response?.data?.message || error.message;
-          fastify.log.error(
-            {
-              error: errorMessage,
-              status: error.response?.status,
-              statusText: error.response?.statusText,
-            },
-            'Failed to send SMS via Dialogi',
-          );
-          throw new Error(`Dialogi SMS API error: ${errorMessage}`);
-        }
-
+        // Network failure or request timeout (AbortSignal.timeout).
         fastify.log.error({ error }, 'Unexpected error sending SMS via Dialogi');
         throw error;
       }
+
+      if (!response.ok) {
+        let errorMessage = response.statusText;
+        try {
+          errorMessage = (await response.json())?.message || errorMessage;
+        } catch {
+          // Response body was not JSON; fall back to statusText.
+        }
+        fastify.log.error(
+          {
+            error: errorMessage,
+            status: response.status,
+            statusText: response.statusText,
+          },
+          'Failed to send SMS via Dialogi',
+        );
+        throw new Error(`Dialogi SMS API error: ${errorMessage}`);
+      }
+
+      const data: DialogiSmsResponseType = await response.json();
+
+      // Extract message ID from response
+      const messageId =
+        data.messages?.[0]?.[destination]?.messageid ||
+        Object.values(data.messages?.[0] || {})[0]?.messageid ||
+        'unknown';
+
+      fastify.log.info({ messageId }, 'SMS sent to Dialogi');
+
+      return data;
     },
   };
 
