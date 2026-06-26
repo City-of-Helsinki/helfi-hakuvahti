@@ -7,14 +7,17 @@
 {{ hits }}
 <p
   style="font-family: Arial, Helvetica, sans-serif; font-size: 18px; font-weight: 400; line-height: 28px; margin-top: 0; margin-right: 0; margin-bottom: 24px; margin-left: 0;">
-  <b>{{ email_generic_your_search_terms }}:</b> {{ search_description }}
+  {{ email_newhits_count_info }}</p>
+<p
+  style="font-family: Arial, Helvetica, sans-serif; font-size: 18px; font-weight: 400; line-height: 28px; margin-top: 0; margin-right: 0; margin-bottom: 24px; margin-left: 0;">
+  <a href="{{ search_link }}" style="color: #000000; text-decoration: underline;">{{ email_newhits_link_text }}</a>
 </p>
 <p
   style="font-family: Arial, Helvetica, sans-serif; font-size: 18px; font-weight: 400; line-height: 28px; margin-top: 0; margin-right: 0; margin-bottom: 24px; margin-left: 0;">
   {{ email_newhits_intro_prefix }}</p>
 <p
   style="font-family: Arial, Helvetica, sans-serif; font-size: 18px; font-weight: 400; line-height: 28px; margin-top: 0; margin-right: 0; margin-bottom: 24px; margin-left: 0;">
-  <a href="{{ search_link }}" style="color: #000000; text-decoration: underline;">{{ email_newhits_link_text }}</a>
+  <b>{{ email_generic_your_search_terms }}:</b> {{ search_description }}
 </p>
 <p
   style="font-family: Arial, Helvetica, sans-serif; font-size: 18px; font-weight: 400; line-height: 28px; margin-top: 0; margin-right: 0; margin-bottom: 24px; margin-left: 0;">

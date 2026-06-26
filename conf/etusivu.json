@@ -43,7 +43,7 @@
     },
     "email_confirmation_button": {
       "fi": "Vahvista hakuvahti",
-      "en": "Confirm your search alert",
+      "en": "Confirm search alert subscription",
       "sv": "Bekräfta sökvakten"
     },
     "email_confirmation_ignore": {
@@ -68,7 +68,7 @@
     },
     "email_generic_remove_link": {
       "fi": "Poista hakuvahti",
-      "en": "Remove the search alert",
+      "en": "Remove search alert",
       "sv": "Radera sökvakten"
     },
     "email_generic_your_search_terms": {
@@ -118,7 +118,7 @@
     },
     "email_expiry_renewal_button": {
       "fi": "Jatka hakuvahdin tilausta",
-      "en": "Continue your search alert subscription",
+      "en": "Extend your search alert subscription",
       "sv": "Förläng beställningen av sökvakten"
     },
     "email_expiry_new_link": {
@@ -143,7 +143,7 @@
     },
     "email_newhits_expiry_prefix": {
       "fi": "Hakuvahti on voimassa",
-      "en": "The search alert will be valid until",
+      "en": "The search alert subscription will be valid until",
       "sv": "Sökvakten är i kraft fram till"
     },
     "email_newhits_expiry_suffix": {
@@ -152,9 +152,9 @@
       "sv": "."
     },
     "email_newhits_expiry_instructions": {
-      "fi": "Sait tämän sähköpostin, koska olet tilannut Helsingin kaupungin hakuvahdin. Jos et enää halua saada ilmoituksia, voit perua hakuvahdin tilauksen alla olevasta linkistä. Voit koska tahansa tilata uusia hakuvahteja.",
-      "en": "You have received this email because you have subscribed to the City of Helsinki's search alert service. If you no longer wish to receive notifications, you can unsubscribe via the link below. You can subscribe to new search alerts at any time.",
-      "sv": "Du fick detta e-postmeddelande eftersom du har beställt Helsingfors stads sökvakt. Om du inte längre vill få meddelanden kan du radera sökvakten via länken nedan. Du kan när som helst beställa nya sökvakter."
+      "fi": "Sait tämän sähköpostin, koska olet tilannut Helsingin kaupungin hakuvahdin. Jos et enää halua saada ilmoituksia, voit perua hakuvahdin tilauksen alla olevasta linkistä.",
+      "en": "You have received this email because you have subscribed to the City of Helsinki's search alert service. If you no longer wish to receive notifications, you can unsubscribe via the link below.",
+      "sv": "Du fick detta e-postmeddelande eftersom du har beställt Helsingfors stads sökvakt. Om du inte längre vill få meddelanden kan du radera sökvakten via länken nedan."
     },
     "email_newhits_do_not_reply": {
       "fi": "Tähän viestiin ei voi vastata.",

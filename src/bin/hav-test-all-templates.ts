@@ -139,7 +139,11 @@ async function renderAndSendSiteTemplates(
 
     // 4. SMS templates (rendered as email for Mailpit viewing)
     if (templateExists(siteConfig, 'sms/confirmation.txt')) {
-      const confirmSms = await confirmationSms(lang, { sms_code: testData.sms.sms_code, id: '123' }, siteConfig);
+      const confirmSms = await confirmationSms(
+        lang,
+        { sms_code: testData.sms.sms_code, id: '123', site_id: siteId },
+        siteConfig,
+      );
       await sendTemplate(emailSender, testEmail, wrapSmsAsHtml(confirmSms, `${siteId} / ${lang} / confirmation`));
       count++;
     }
