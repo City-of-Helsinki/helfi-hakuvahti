@@ -1,12 +1,17 @@
 import { ObjectId } from '@fastify/mongodb';
 import type { FastifyPluginAsync } from 'fastify';
-import { Generic500Error, type Generic500ErrorType, GenericResponse, type GenericResponseType } from '../types/error';
+import {
+  Generic500Error,
+  type Generic500ErrorType,
+  GenericResponse,
+  type GenericResponseType,
+} from '../types/error.ts';
 
 import {
   SubscriptionStatus,
   SubscriptionStatusResponse,
   type SubscriptionStatusResponseType,
-} from '../types/subscription';
+} from '../types/subscription.ts';
 
 // Checks subscription status
 const subscriptionStatus: FastifyPluginAsync = async (fastify, _opts) => {

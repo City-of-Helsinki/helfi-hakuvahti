@@ -1,6 +1,6 @@
 import * as assert from 'node:assert';
 import { afterEach, beforeEach, describe, type Mock, mock, test } from 'node:test';
-import command, { type Command } from '../../src/lib/command';
+import command, { type Command } from '../../src/lib/command.ts';
 
 /**
  * Helper for running command methods.
@@ -30,7 +30,7 @@ describe('command helper', () => {
 
   test('executes command successfully and exits with 0', async () => {
     // Set up process.argv
-    process.argv = ['node', 'script.js', '--test', 'value', '--dry-run'];
+    process.argv = ['node', 'script.js', '--test=value', '--dry-run'];
 
     // Create a mock command
     const mockCommand = mock.fn<Command>(async (server, argv) => {

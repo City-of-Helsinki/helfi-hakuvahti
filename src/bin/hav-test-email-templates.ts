@@ -1,13 +1,14 @@
 import type { Collection } from 'mongodb';
-import { ATV } from '../lib/atv';
-import command from '../lib/command';
-import { confirmationEmail, expiryEmail, newHitsEmail } from '../lib/email';
-import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
-import mongodb from '../plugins/mongodb';
+import { ATV } from '../lib/atv.ts';
+import command from '../lib/command.ts';
+import { confirmationEmail, expiryEmail, newHitsEmail } from '../lib/email.ts';
+import { stringArg } from '../lib/parse-args.ts';
+import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
+import mongodb from '../plugins/mongodb.ts';
 
-import type { QueueInsertDocument } from '../types/queue';
-import type { SiteConfigurationType } from '../types/siteConfig';
-import type { SubscriptionCollectionLanguageType } from '../types/subscription';
+import type { QueueInsertDocument } from '../types/queue.ts';
+import type { SiteConfigurationType } from '../types/siteConfig.ts';
+import type { SubscriptionCollectionLanguageType } from '../types/subscription.ts';
 
 // npm run hav:test-email-templates -- --site=rekry
 
@@ -99,7 +100,8 @@ export async function generateTestEmails(
 
 command(
   async (server, argv) => {
-    if (!argv.site) {
+    const siteId = stringArg(argv, 'site');
+    if (!siteId) {
       throw new Error('--site parameter required');
     }
 
@@ -117,7 +119,6 @@ command(
       throw new Error('Create test subscription first.');
     }
 
-    const siteId = argv.site;
     const testEmail = ATV.getAtvId(latestSubscription);
 
     console.log(`Site: ${siteId}`);

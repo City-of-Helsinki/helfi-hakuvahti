@@ -5,7 +5,7 @@ import {
   formatDateISO,
   formatErrorMessage,
   formatSubscriptionUpdateMessage,
-} from '../../src/bin/hav-update-subscription-length';
+} from '../../src/bin/hav-update-subscription-length.ts';
 
 describe('hav-update-subscription-length', () => {
   describe('calculateDeleteAfterDate', () => {

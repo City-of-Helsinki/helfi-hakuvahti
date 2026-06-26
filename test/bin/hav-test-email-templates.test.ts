@@ -1,8 +1,8 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 import type { Collection } from 'mongodb';
-import { generateTestEmails } from '../../src/bin/hav-test-email-templates';
-import type { QueueInsertDocument } from '../../src/types/queue';
+import { generateTestEmails } from '../../src/bin/hav-test-email-templates.ts';
+import type { QueueInsertDocument } from '../../src/types/queue.ts';
 
 test('generateTestEmails queues all email types for all languages', async () => {
   const queuedEmails: Array<QueueInsertDocument> = [];

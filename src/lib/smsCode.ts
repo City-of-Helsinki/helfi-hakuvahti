@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
 import type { ObjectId } from '@fastify/mongodb';
 import type { Collection } from 'mongodb';
-import type { SubscriptionCollectionType } from '../types/subscription';
+import type { SubscriptionCollectionType } from '../types/subscription.ts';
 
 export const TIME_WINDOW_MS = 30 * 60 * 1000;
 

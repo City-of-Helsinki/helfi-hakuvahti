@@ -1,12 +1,13 @@
 import * as fs from 'node:fs';
 import { JSDOM } from 'jsdom';
-import command from '../lib/command';
-import { confirmationEmail, confirmationSms, expiryEmail, newHitsEmail, newHitsSms, renewalSms } from '../lib/email';
-import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader';
-import mailer from '../plugins/mailer';
-import type { FastifyMailer } from '../types/mailer';
-import type { SiteConfigurationType } from '../types/siteConfig';
-import type { SubscriptionCollectionLanguageType } from '../types/subscription';
+import type { Transporter } from 'nodemailer';
+import command from '../lib/command.ts';
+import { confirmationEmail, confirmationSms, expiryEmail, newHitsEmail, newHitsSms, renewalSms } from '../lib/email.ts';
+import { stringArg } from '../lib/parse-args.ts';
+import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
+import mailer from '../plugins/mailer.ts';
+import type { SiteConfigurationType } from '../types/siteConfig.ts';
+import type { SubscriptionCollectionLanguageType } from '../types/subscription.ts';
 
 // npm run hav:test-all-templates -- --email=test@test.fi
 //
@@ -16,7 +17,7 @@ import type { SubscriptionCollectionLanguageType } from '../types/subscription';
 // No ATV, no queue, no subscriptions needed
 
 const LANGUAGES: SubscriptionCollectionLanguageType[] = ['fi', 'en', 'sv'];
-const TEMPLATE_BASE = 'dist/templates';
+const TEMPLATE_BASE = 'src/templates';
 
 const templateExists = (siteConfig: SiteConfigurationType, relativePath: string): boolean =>
   fs.existsSync(`${TEMPLATE_BASE}/${siteConfig.mail.templatePath}/${relativePath}`);
@@ -95,7 +96,7 @@ const extractTitle = (html: string): string => {
 };
 
 // Send a rendered template directly via SMTP.
-const sendTemplate = (emailSender: FastifyMailer, to: string, html: string): Promise<void> =>
+const sendTemplate = (emailSender: Transporter, to: string, html: string): Promise<void> =>
   new Promise((resolve, reject) => {
     emailSender.sendMail(
       {
@@ -111,7 +112,7 @@ const sendTemplate = (emailSender: FastifyMailer, to: string, html: string): Pro
   });
 
 async function renderAndSendSiteTemplates(
-  emailSender: FastifyMailer,
+  emailSender: Transporter,
   testEmail: string,
   siteId: string,
   siteConfig: SiteConfigurationType,
@@ -165,7 +166,7 @@ async function renderAndSendSiteTemplates(
 
 command(
   async (server, argv) => {
-    const testEmail = argv.email as string | undefined;
+    const testEmail = stringArg(argv, 'email');
 
     if (!testEmail) {
       throw new Error('--email parameter required. Example: npm run hav:test-all-templates -- --email=test@test.fi');

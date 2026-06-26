@@ -1,5 +1,5 @@
-NODE_FRESH_TARGETS := up post-install
-NODE_POST_INSTALL_TARGETS := dotenv npm-install hav-build hav-init-db
+NODE_FRESH_TARGETS := .env npm-install up post-install
+NODE_POST_INSTALL_TARGETS := hav-init-db
 
 export DOCKER_UID ?= $(shell id -u)
 export DOCKER_GID ?= $(shell id -g)
@@ -8,23 +8,22 @@ PHONY += fresh
 fresh: ## Build fresh development environment and sync
 	@$(MAKE) $(NODE_FRESH_TARGETS)
 
+PHONY += rebuild
+rebuild: ## Rebuild docker image
+	$(call step,Rebuilding app...\n)
+	$(call docker_compose,up --wait --no-deps --build app)
+
 PHONY += post-install
 post-install: ## Run post-install actions
 	@$(MAKE) $(NODE_POST_INSTALL_TARGETS)
 
-PHONY += dotenv
-dotenv: ## Ensure dotenv exists
-	$(call docker_compose_exec,cp -n .env.dist .env)
+.env: ## Ensure dotenv exists
+	@cp -n .env.dist .env
 
 PHONY += npm-install
 npm-install:
 	$(call step,npm ci...\n)
-	$(call npm,ci)
-
-PHONY += hav-build
-hav-build: ## Compile typescript
-	$(call step,Run tsc...\n)
-	$(call npm,run build:ts)
+	$(call docker_compose,run --rm --no-deps --entrypoint npm app ci --ignore-scripts)
 
 PHONY += hav-init-db
 hav-init-db: ## Run database updates
@@ -47,6 +46,9 @@ PHONY += test-coverage
 test-coverage: ## Run tests
 	$(call npm,run test:coverage)
 
+PHONY += logs
+logs:
+	$(call docker_compose,logs app --follow)
 
 ifeq ($(RUN_ON),docker)
 define npm

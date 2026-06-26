@@ -1,8 +1,8 @@
 import * as assert from 'node:assert';
 import { describe, mock, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';
-import { SubscriptionStatus } from '../../src/types/subscription';
-import { build, createSubscription } from '../helper';
+import { SubscriptionStatus } from '../../src/types/subscription.ts';
+import { build, createSubscription } from '../helper.ts';
 
 describe('/subscription/renew', () => {
   test('malformed subscription id returns 404, not 500', async (t) => {

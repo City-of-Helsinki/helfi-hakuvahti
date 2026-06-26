@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { describe, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';
-import { build, createSubscription } from '../helper';
+import { build, createSubscription } from '../helper.ts';
 
 describe('/subscription/delete', () => {
   test('malformed subscription id returns 404, not 500', async (t) => {

@@ -1,8 +1,8 @@
 import { ObjectId } from '@fastify/mongodb';
 import type { Collection, Filter } from 'mongodb';
-import { type SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription';
-import { ATV } from './atv';
-import { SiteConfigurationLoader } from './siteConfigurationLoader';
+import { type SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription.ts';
+import { ATV } from './atv.ts';
+import { SiteConfigurationLoader } from './siteConfigurationLoader.ts';
 
 export type SubscriptionCollection = Collection<SubscriptionCollectionType>;
 export type SubscriptionFilter = Filter<SubscriptionCollectionType>;

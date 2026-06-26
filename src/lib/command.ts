@@ -1,10 +1,6 @@
-// @fixme '@immobiliarelabs/fastify-sentry' is no longer maintained.
-import fastifySentry from '@immobiliarelabs/fastify-sentry';
-import dotenv from 'dotenv';
+import * as Sentry from '@sentry/node';
 import fastify, { type FastifyInstance } from 'fastify';
-import minimist, { type ParsedArgs } from 'minimist';
-
-dotenv.config();
+import parseArgs, { type ParsedArgs } from './parse-args.ts';
 
 export type Server = FastifyInstance;
 
@@ -20,15 +16,11 @@ export default function command(app: Command, plugins: Array<(...args: any[]) =>
   const server = fastify({});
 
   // Parse CLI arguments
-  const argv = minimist(process.argv.slice(2));
+  const argv = parseArgs(process.argv.slice(2));
 
-  // Register sentry for all commands.
-  server.register(fastifySentry, {
-    dsn: process.env.SENTRY_DSN,
-    environment: process.env.ENVIRONMENT,
-    release: process.env.SENTRY_RELEASE ?? '',
-    setErrorHandler: true,
-  });
+  // Sentry is initialized via the preloaded src/instrument.ts; this wires up
+  // the Fastify error handler so uncaught command errors are reported.
+  Sentry.setupFastifyErrorHandler(server);
 
   plugins.forEach((plugin) => {
     server.register(plugin);
@@ -50,7 +42,7 @@ export default function command(app: Command, plugins: Array<(...args: any[]) =>
       console.error('Command failed', err);
     }
 
-    await server.Sentry?.flush(2000);
+    await Sentry.flush(2000);
     await server.close();
 
     // Exit with failure if command failed.
