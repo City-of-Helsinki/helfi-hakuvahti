@@ -23,7 +23,7 @@
     },
     "email_subject_newhits": {
       "fi": "Uusia osumia uutisten hakuvahdillasi",
-      "en": "New news search alert subscription matches",
+      "en": "New news matching your search alert",
       "sv": "Nya träffar med din sökvakt för nyheter"
     },
     "email_confirmation_title": {
@@ -133,7 +133,7 @@
     },
     "email_newhits_header": {
       "fi": "Uusia uutisten hakuvahdin osumia Helsingin kaupungilta",
-      "en": "New news search alert subscription matches from the City of Helsinki",
+      "en": "New news matching your City of Helsinki search alert",
       "sv": "Nya träffar med sökvakten för nyheter från Helsingfors stad"
     },
     "email_newhits_link_text": {
