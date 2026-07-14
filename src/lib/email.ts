@@ -119,7 +119,8 @@ export const confirmationEmail = async (
     {
       lang,
       link: data.link,
-      search_description: data.search_description?.toLowerCase() ?? '',
+      search_description:
+        data.search_description?.toLowerCase() || translate('email_confirmation_no_criteria', lang, siteConfig),
     },
     lang,
     translate('email_subject_confirmation', lang, siteConfig),

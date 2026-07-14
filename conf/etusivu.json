@@ -41,6 +41,11 @@
       "en": "Search criteria",
       "sv": "Sökvillkor"
     },
+    "email_confirmation_no_criteria": {
+      "fi": "Et ole valinnut yhtään hakuehtoa.",
+      "en": "You have not selected any search criteria.",
+      "sv": "Du har inte valt några sökvillkor."
+    },
     "email_confirmation_button": {
       "fi": "Vahvista hakuvahti",
       "en": "Confirm search alert subscription",
