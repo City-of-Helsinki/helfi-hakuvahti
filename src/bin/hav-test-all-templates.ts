@@ -178,10 +178,6 @@ command(
 
     for (const siteId of siteIds) {
       const siteConfig = SiteConfigurationLoader.getConfiguration(siteId);
-      if (!siteConfig) {
-        console.warn(`Skipping ${siteId}: configuration not found`);
-        continue;
-      }
 
       console.log(
         `Rendering templates for: ${siteId} (SMS templates: ${siteConfig.subscription.enableSms ? 'yes' : 'no'})`,

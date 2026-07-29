@@ -33,10 +33,6 @@ const validateElasticQueryHook = async (request: FastifyRequest, fastify: Fastif
 
     const siteConfig = SiteConfigurationLoader.getConfiguration(siteId);
 
-    if (!siteConfig) {
-      throw new Error(`Invalid site_id: ${siteId}`);
-    }
-
     // Decode elastic_query
     const decodedQuery = fastify.b64decode(elasticQuery);
 

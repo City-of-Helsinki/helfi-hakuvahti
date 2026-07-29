@@ -107,10 +107,6 @@ export const updateSubscriptionLength = async (server: Server, options: Migratio
   const collection = db.collection('subscription');
   const siteConfig = SiteConfigurationLoader.getConfiguration(options.siteId);
 
-  if (!siteConfig) {
-    throw new Error('Site configuration not found');
-  }
-
   const maxAge = siteConfig.subscription.maxAge;
   console.log(`Site configuration maxAge = ${maxAge} days`);
 

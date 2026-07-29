@@ -125,10 +125,6 @@ command(
 
     const siteConfig = SiteConfigurationLoader.getConfiguration(siteId);
 
-    if (!siteConfig) {
-      throw new Error('Site configuration not found');
-    }
-
     console.log(`Template path: ${siteConfig.mail.templatePath}`);
 
     const queueCollection = server.mongo.db.collection<QueueInsertDocument>('queue');
