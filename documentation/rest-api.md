@@ -81,7 +81,7 @@ Id-only (no hash). Caller MUST rate-limit.
 
 `POST` `/broadcast`
 
-Broadcasts a one-off message (e.g. a maintenance notice) to all subscribers of a single site. Every subscriber gets the message on each channel they have confirmed: emails go to email-confirmed subscribers, SMS to sms-confirmed subscribers on sites with `enableSms`. Recipients are deduplicated per channel (one email per address, one SMS per phone number); when one address has several subscriptions, the most recently renewed one decides the language. Caller MUST rate-limit.
+Broadcasts a one-off message to all subscribers of a single site. Every subscriber gets the message on each channel they have confirmed: emails go to email-confirmed subscribers, SMS to sms-confirmed subscribers on sites with `enableSms`. Recipients are deduplicated per channel (one email per address, one SMS per phone number). The most recently renewed one decides the language.
 
 ```json
 {
@@ -91,18 +91,18 @@ Broadcasts a one-off message (e.g. a maintenance notice) to all subscribers of a
         "sv": { "subject": "...", "body": "...", "sms": "..." },
         "en": { "subject": "...", "body": "...", "sms": "..." }
     },
-    "subscription_ids": ["<optional: send only to these subscriptions (test mode)>"]
+    "subscription_ids": ["<optional: send only to these subscriptions>"]
 }
 ```
 
 - All three languages are required; each subscriber receives their own language version wrapped in the site's email template.
-- `subject` and `body` are plain text. They are HTML-escaped before rendering and newlines in `body` become line breaks.
-- `sms` is optional but all-or-none across the three languages. SMS texts are sent verbatim and are ignored on sites without `enableSms`.
-- `subscription_ids` (optional, max 100) enables test mode: the message is sent only to those subscriptions of the site, so admins can preview it on their own subscriptions before the real broadcast.
+- `subject` and `body` are plain text. Newlines in `body` become line breaks.
+- `sms` SMS texts are sent verbatim and are ignored on sites without `enableSms`.
+- `subscription_ids` (optional) enables test mode: the message is sent only to those subscriptions of the site, so admins can preview the message on their own subscriptions before the real broadcast.
 
-Returns `202` with `{ "id": "<broadcast id>" }` — the fan-out continues in the background because contact details are resolved from ATV in batches, which can take minutes for large sites. Messages are inserted into the shared notification queue and delivered by `hav:send-queue`, so a large broadcast can delay regular notifications by a few cron cycles.
+Returns `202` with `{ "id": "<broadcast id>" }`. Sending continues in the background because contact details are resolved from ATV in batches, which can take minutes for large sites. Messages are inserted into the shared notification queue and delivered by `hav:send-queue`. Large broadcast can delay regular notifications by a few cron cycles.
 
-Returns `409` if a broadcast for the same site is already processing (started within the last 30 minutes). Test sends neither set nor respect this guard. If a broadcast ends up `failed`, some messages may already be queued or sent — check the `queue` collection before retrying, as a retry queues every recipient again.
+Returns `409` if a broadcast for the same site is already processing (started within the last 30 minutes). Test sends neither set nor respect this guard.
 
 ## Broadcast status
 
@@ -127,8 +127,6 @@ Returns `409` if a broadcast for the same site is already processing (started wi
 `stats` is `null` until the broadcast finishes. `missingContacts` counts subscriptions whose ATV document had no contact details.
 
 ## Health checks
-
-OpenShift-compatible. No `Authorization` header required.
 
 `/healthz` — 200 if the server is up.
 
