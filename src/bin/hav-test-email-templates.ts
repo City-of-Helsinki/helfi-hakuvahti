@@ -8,7 +8,7 @@ import mongodb from '../plugins/mongodb.ts';
 
 import type { QueueInsertDocument } from '../types/queue.ts';
 import type { SiteConfigurationType } from '../types/siteConfig.ts';
-import type { SubscriptionCollectionLanguageType } from '../types/subscription.ts';
+import { SUBSCRIPTION_LANGUAGES } from '../types/subscription.ts';
 
 // npm run hav:test-email-templates -- --site=rekry
 
@@ -64,14 +64,12 @@ const DUMMY_DATA = {
   },
 };
 
-const LANGUAGES: SubscriptionCollectionLanguageType[] = ['fi', 'en', 'sv'];
-
 export async function generateTestEmails(
   queueCollection: Collection<QueueInsertDocument>,
   testEmail: string,
   siteConfig: SiteConfigurationType,
 ): Promise<void> {
-  for (const lang of LANGUAGES) {
+  for (const lang of SUBSCRIPTION_LANGUAGES) {
     const confirmationHtml = await confirmationEmail(lang, DUMMY_DATA.confirmation, siteConfig);
     const confirmationEmailDoc: QueueInsertDocument = {
       type: 'email',
