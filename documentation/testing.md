@@ -63,7 +63,7 @@ make shell
 
 ```bash
 npm run hav:populate-queue
-npm run hav:send-emails-in-queue
+npm run hav:send-queue
 ```
 
 **Purpose:** These commands generate and send the signup confirmation email to the user.
@@ -113,7 +113,7 @@ drush cr
 
 ```bash
 npm run hav:populate-queue
-npm run hav:send-emails-in-queue
+npm run hav:send-queue
 ```
 
 **Verification:** Return to https://mailpit.docker.so/ and confirm that a new email containing the job listing details has been received.
