@@ -42,7 +42,16 @@ test('generateTestEmails queues all email types for all languages', async () => 
   await generateTestEmails(mockQueueCollection, testEmail, mockSiteConfig);
 
   assert.equal(queuedEmails.length, 9, 'Should queue 9 emails');
-  assert.ok(queuedEmails.every((email) => email.atv_id === testEmail), 'All emails should use test email address');
-  assert.ok(queuedEmails.every((email) => email.content.length > 0), 'All emails should have content');
-  assert.ok(queuedEmails.every((email) => email.type === 'email'), 'All items should have type email');
+  assert.ok(
+    queuedEmails.every((email) => email.atv_id === testEmail),
+    'All emails should use test email address',
+  );
+  assert.ok(
+    queuedEmails.every((email) => email.content.length > 0),
+    'All emails should have content',
+  );
+  assert.ok(
+    queuedEmails.every((email) => email.type === 'email'),
+    'All items should have type email',
+  );
 });

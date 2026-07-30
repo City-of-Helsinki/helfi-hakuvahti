@@ -46,26 +46,15 @@ describe('verifySmsCode', () => {
 
 describe('rfc4226 HOTP test values', () => {
   // See: Appendix D - HOTP Algorithm: Test Values
-  const expectedCounterValues = [
-    755224,
-    287082,
-    359152,
-    969429,
-    338314,
-    254676,
-    287922,
-    162583,
-    399871,
-    520489,
-  ];
+  const expectedCounterValues = [755224, 287082, 359152, 969429, 338314, 254676, 287922, 162583, 399871, 520489];
 
   test('Test values', () => {
     expectedCounterValues.forEach((value, counter) => {
       const code = generateSmsCode('3132333435363738393031323334353637383930', counter);
       assert.notStrictEqual(code, value);
-    })
-  })
-})
+    });
+  });
+});
 
 describe('findAndVerifySmsSubscription', () => {
   assert.ok(process.env.MONGODB);
@@ -82,20 +71,23 @@ describe('findAndVerifySmsSubscription', () => {
   const insertSubscription = async (smsSecret: string) => {
     const id = new ObjectId();
     const now = new Date();
-    await mongo.db().collection<SubscriptionCollectionType>('subscription').insertOne({
-      _id: id,
-      email: '',
-      atv_id: 'test-atv',
-      elastic_query: 'test',
-      query: '/search?q=test',
-      site_id: 'rekry',
-      lang: 'fi',
-      status: SubscriptionStatus.INACTIVE,
-      expiry_notification_sent: SubscriptionStatus.INACTIVE,
-      created: now,
-      modified: now,
-      sms_secret: smsSecret,
-    } as SubscriptionCollectionType);
+    await mongo
+      .db()
+      .collection<SubscriptionCollectionType>('subscription')
+      .insertOne({
+        _id: id,
+        email: '',
+        atv_id: 'test-atv',
+        elastic_query: 'test',
+        query: '/search?q=test',
+        site_id: 'rekry',
+        lang: 'fi',
+        status: SubscriptionStatus.INACTIVE,
+        expiry_notification_sent: SubscriptionStatus.INACTIVE,
+        created: now,
+        modified: now,
+        sms_secret: smsSecret,
+      } as SubscriptionCollectionType);
     return id;
   };
 

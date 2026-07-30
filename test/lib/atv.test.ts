@@ -39,7 +39,9 @@ describe('ATV', () => {
 
   describe('createDocument', () => {
     test('sends POST with multipart form data and correct structure', async () => {
-      const mockFetch = mock.method(globalThis, 'fetch', async () => jsonResponse({ id: 'new-doc-id', draft: 'false' }));
+      const mockFetch = mock.method(globalThis, 'fetch', async () =>
+        jsonResponse({ id: 'new-doc-id', draft: 'false' }),
+      );
 
       const atv = new ATV(defaultConfig);
       const content = { email: 'test@example.com' };

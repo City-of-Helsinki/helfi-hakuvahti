@@ -73,7 +73,7 @@ function getSiteConfiguration(siteId: string): SiteConfigurationType {
     return SiteConfigurationLoader.getConfiguration(siteId);
   } catch (e) {
     throw new ActionError(500, 'Site configuration not found.', {
-      cause: e
+      cause: e,
     });
   }
 }
@@ -99,7 +99,7 @@ export async function renewSubscription(
     throw new ActionError(400, 'Only active subscriptions can be renewed.');
   }
 
-  const siteConfig = getSiteConfiguration(subscription.site_id)
+  const siteConfig = getSiteConfiguration(subscription.site_id);
   const { maxAge } = siteConfig.subscription;
 
   // Update ATV document delete_after

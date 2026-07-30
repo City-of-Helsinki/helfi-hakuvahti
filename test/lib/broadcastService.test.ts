@@ -47,8 +47,7 @@ describe('BroadcastService', () => {
     atvGetDocumentBatch.mock.restore();
     atvGetDocumentBatch.mock.resetCalls();
     atvGetDocumentBatch.mock.mockImplementation(
-      async (ids: string[]) =>
-        ids.filter((id) => atvDocs[id]).map((id) => ({ id, content: atvDocs[id] })) as any,
+      async (ids: string[]) => ids.filter((id) => atvDocs[id]).map((id) => ({ id, content: atvDocs[id] })) as any,
     );
     const db = mongoClient.db();
     await db.collection('subscription').deleteMany({});
@@ -58,10 +57,12 @@ describe('BroadcastService', () => {
   test('queues one localized email per subscriber', async () => {
     const db = mongoClient.db();
     atvDocs = { 'atv-1': { email: 'a@example.com' }, 'atv-2': { email: 'b@example.com' } };
-    await db.collection('subscription').insertMany([
-      createSubscription({ atv_id: 'atv-1', lang: 'fi' }),
-      createSubscription({ atv_id: 'atv-2', lang: 'en' }),
-    ]);
+    await db
+      .collection('subscription')
+      .insertMany([
+        createSubscription({ atv_id: 'atv-1', lang: 'fi' }),
+        createSubscription({ atv_id: 'atv-2', lang: 'en' }),
+      ]);
 
     const stats = await buildService().broadcast(createSiteConfig(), messages);
 
@@ -83,10 +84,9 @@ describe('BroadcastService', () => {
   test('deduplicates subscriptions sharing an email address', async () => {
     const db = mongoClient.db();
     atvDocs = { 'atv-1': { email: 'Same@example.com' }, 'atv-2': { email: 'same@example.com' } };
-    await db.collection('subscription').insertMany([
-      createSubscription({ atv_id: 'atv-1' }),
-      createSubscription({ atv_id: 'atv-2' }),
-    ]);
+    await db
+      .collection('subscription')
+      .insertMany([createSubscription({ atv_id: 'atv-1' }), createSubscription({ atv_id: 'atv-2' })]);
 
     const stats = await buildService().broadcast(createSiteConfig(), messages);
 
@@ -98,10 +98,12 @@ describe('BroadcastService', () => {
   test('most recently renewed subscription decides the language', async () => {
     const db = mongoClient.db();
     atvDocs = { 'atv-old': { email: 'same@example.com' }, 'atv-new': { email: 'same@example.com' } };
-    await db.collection('subscription').insertMany([
-      createSubscription({ atv_id: 'atv-old', lang: 'fi', created: daysAgo(10) }),
-      createSubscription({ atv_id: 'atv-new', lang: 'en', created: daysAgo(1) }),
-    ]);
+    await db
+      .collection('subscription')
+      .insertMany([
+        createSubscription({ atv_id: 'atv-old', lang: 'fi', created: daysAgo(10) }),
+        createSubscription({ atv_id: 'atv-new', lang: 'en', created: daysAgo(1) }),
+      ]);
 
     await buildService().broadcast(createSiteConfig(), messages);
 
@@ -135,10 +137,12 @@ describe('BroadcastService', () => {
   test('deduplicates subscriptions sharing a phone number', async () => {
     const db = mongoClient.db();
     atvDocs = { 'atv-1': { sms: '+358401234567' }, 'atv-2': { sms: '+358401234567' } };
-    await db.collection('subscription').insertMany([
-      createSubscription({ atv_id: 'atv-1', email_confirmed: false, sms_confirmed: true }),
-      createSubscription({ atv_id: 'atv-2', email_confirmed: false, sms_confirmed: true }),
-    ]);
+    await db
+      .collection('subscription')
+      .insertMany([
+        createSubscription({ atv_id: 'atv-1', email_confirmed: false, sms_confirmed: true }),
+        createSubscription({ atv_id: 'atv-2', email_confirmed: false, sms_confirmed: true }),
+      ]);
 
     const siteConfig = createSiteConfig({
       subscription: { maxAge: 90, unconfirmedMaxAge: 7, expiryNotificationDays: 14, enableSms: true },
@@ -179,10 +183,9 @@ describe('BroadcastService', () => {
     const legacy = createSubscription({ atv_id: 'atv-legacy' });
     delete (legacy as Record<string, unknown>).email_confirmed;
     delete (legacy as Record<string, unknown>).sms_confirmed;
-    await db.collection('subscription').insertMany([
-      createSubscription({ atv_id: 'atv-declined', email_confirmed: false }),
-      legacy,
-    ]);
+    await db
+      .collection('subscription')
+      .insertMany([createSubscription({ atv_id: 'atv-declined', email_confirmed: false }), legacy]);
 
     const stats = await buildService().broadcast(createSiteConfig(), messages);
 
@@ -195,10 +198,12 @@ describe('BroadcastService', () => {
   test('skips inactive subscriptions and other sites', async () => {
     const db = mongoClient.db();
     atvDocs = { 'atv-1': { email: 'a@example.com' }, 'atv-2': { email: 'b@example.com' } };
-    await db.collection('subscription').insertMany([
-      createSubscription({ atv_id: 'atv-1', status: SubscriptionStatus.INACTIVE }),
-      createSubscription({ atv_id: 'atv-2', site_id: 'other-site' }),
-    ]);
+    await db
+      .collection('subscription')
+      .insertMany([
+        createSubscription({ atv_id: 'atv-1', status: SubscriptionStatus.INACTIVE }),
+        createSubscription({ atv_id: 'atv-2', site_id: 'other-site' }),
+      ]);
 
     const stats = await buildService().broadcast(createSiteConfig(), messages);
 
@@ -209,10 +214,9 @@ describe('BroadcastService', () => {
   test('counts subscriptions with missing ATV contact details', async () => {
     const db = mongoClient.db();
     atvDocs = { 'atv-1': { email: 'a@example.com' } };
-    await db.collection('subscription').insertMany([
-      createSubscription({ atv_id: 'atv-1' }),
-      createSubscription({ atv_id: 'atv-missing' }),
-    ]);
+    await db
+      .collection('subscription')
+      .insertMany([createSubscription({ atv_id: 'atv-1' }), createSubscription({ atv_id: 'atv-missing' })]);
 
     const stats = await buildService().broadcast(createSiteConfig(), messages);
 

@@ -2,13 +2,8 @@ import * as assert from 'node:assert';
 import { after, before, beforeEach, describe, mock, test } from 'node:test';
 import { MongoClient } from 'mongodb';
 import type { ATV } from '../../src/lib/atv.ts';
-import {type ProcessingStats, SubscriptionProcessor} from '../../src/lib/subscriptionProcessor.ts';
-import {
-  base64,
-  createSiteConfig,
-  createSubscription,
-  emptyElasticResponse,
-} from './utils.ts';
+import { type ProcessingStats, SubscriptionProcessor } from '../../src/lib/subscriptionProcessor.ts';
+import { base64, createSiteConfig, createSubscription, emptyElasticResponse } from './utils.ts';
 
 const createStats = (): ProcessingStats => ({
   sitesProcessed: 0,
@@ -93,7 +88,16 @@ describe('SubscriptionProcessor', () => {
       took: 1,
       hits: {
         total: { value: 1 },
-        hits: [{ _source: { publication_starts: [hitTimestamp], address: ['Test St'], valid_from: [hitTimestamp], valid_to: [hitTimestamp] } }],
+        hits: [
+          {
+            _source: {
+              publication_starts: [hitTimestamp],
+              address: ['Test St'],
+              valid_from: [hitTimestamp],
+              valid_to: [hitTimestamp],
+            },
+          },
+        ],
       },
       responses: [],
     }));
@@ -126,7 +130,16 @@ describe('SubscriptionProcessor', () => {
       took: 1,
       hits: {
         total: { value: 1 },
-        hits: [{ _source: { publication_starts: [hitTimestamp], address: ['Test St'], valid_from: [hitTimestamp], valid_to: [hitTimestamp] } }],
+        hits: [
+          {
+            _source: {
+              publication_starts: [hitTimestamp],
+              address: ['Test St'],
+              valid_from: [hitTimestamp],
+              valid_to: [hitTimestamp],
+            },
+          },
+        ],
       },
       responses: [],
     }));
