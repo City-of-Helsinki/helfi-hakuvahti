@@ -41,7 +41,7 @@ make down
 
 - [Architecture](./documentation/architecture.md): code layout, queue-based delivery, templates
 - [Configuration](./documentation/configuration.md): per-site config files in `conf/` and their properties
-- [Environment variables](./documentation/environment-variables.md): core, MongoDB, Sentry, ATV, SMTP, and Dialogi settings
+- [Environment variables](./documentation/environment-variables.md): supported environment variables.
 - [REST API](./documentation/rest-api.md): subscription CRUD, broadcast messages, health checks
 - [CLI commands](./documentation/cli-commands.md): cron scripts, maintenance, and template testing tools
 - [Mock Dialogi server](./documentation/dialogi-server.md): local SMS testing without the real Dialogi API

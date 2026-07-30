@@ -86,6 +86,7 @@ Broadcasts a one-off message to all subscribers of a single site. Every subscrib
 ```json
 {
     "site_id": "<id of a site configuration in conf/, e.g. rekry>",
+    "totp_code": "<current 6-digit code from BROADCAST_TOTP_SECRET>",
     "messages": {
         "fi": { "subject": "<subject>", "body": "<plain text body>", "sms": "<optional SMS text>" },
         "sv": { "subject": "...", "body": "...", "sms": "..." },
@@ -95,6 +96,7 @@ Broadcasts a one-off message to all subscribers of a single site. Every subscrib
 }
 ```
 
+- `totp_code` is required and is the second factor for broadcasting: on top of the API key, the admin must hold the broadcast secret (see `BROADCAST_TOTP_SECRET` in [environment-variables.md](environment-variables.md)). For local testing, use `NBQWW5LWMFUHI2JNMRSXMLLTMVRXEZLU` with e.g. [this site](https://totp.danhersam.com/).
 - All three languages are required; each subscriber receives their own language version wrapped in the site's email template.
 - `subject` and `body` are plain text. Newlines in `body` become line breaks.
 - `sms` SMS texts are sent verbatim and are ignored on sites without `enableSms`.
@@ -103,6 +105,10 @@ Broadcasts a one-off message to all subscribers of a single site. Every subscrib
 Returns `202` with `{ "id": "<broadcast id>" }`. Sending continues in the background because contact details are resolved from ATV in batches, which can take minutes for large sites. Messages are inserted into the shared notification queue and delivered by `hav:send-queue`. Large broadcast can delay regular notifications by a few cron cycles.
 
 Returns `409` if a broadcast for the same site is already processing (started within the last 30 minutes). Test sends neither set nor respect this guard.
+
+Returns `403` if `totp_code` is wrong, and `500` if `BROADCAST_TOTP_SECRET` is not configured (broadcasting fails closed).
+
+Returns `423` when broadcasting is locked (5 consecutive invalid codes). Waiting the 30 minutes clears the lock.
 
 ## Broadcast status
 

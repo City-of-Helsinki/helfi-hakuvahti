@@ -9,8 +9,13 @@ const BroadcastMessage = Type.Object({
 });
 export type BroadcastMessageType = Static<typeof BroadcastMessage>;
 
+/** A processing record older than this no longer blocks new broadcasts. */
+export const PROCESSING_STALE_MS = 30 * 60 * 1000;
+
 export const BroadcastRequest = Type.Object({
   site_id: Type.String(),
+  /** Current code from the BROADCAST_TOTP_SECRET authenticator. */
+  totp_code: Type.String({ pattern: '^[0-9]{6}$' }),
   messages: Type.Object({
     fi: BroadcastMessage,
     sv: BroadcastMessage,
@@ -53,4 +58,5 @@ export interface BroadcastStatusDocument {
   test: boolean;
   created: Date;
   stats: BroadcastStatsType | null;
+  auth_lock?: boolean;
 }

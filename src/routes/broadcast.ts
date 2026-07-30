@@ -1,6 +1,13 @@
 import { ObjectId } from '@fastify/mongodb';
 import * as Sentry from '@sentry/node';
-import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsync } from 'fastify';
+import {
+  blockBroadcasts,
+  isBroadcastBlocked,
+  registerFailedAttempt,
+  resetFailedAttempts,
+  verifyBroadcastCode,
+} from '../lib/broadcastAuth.ts';
 import { BroadcastService } from '../lib/broadcastService.ts';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
 import {
@@ -11,6 +18,7 @@ import {
   type BroadcastStatusDocument,
   BroadcastStatusResponse,
   type BroadcastStatusResponseType,
+  PROCESSING_STALE_MS,
 } from '../types/broadcast.ts';
 import {
   Generic400Error,
@@ -20,9 +28,6 @@ import {
 } from '../types/error.ts';
 import type { SiteConfigurationType } from '../types/siteConfig.ts';
 import { SUBSCRIPTION_LANGUAGES } from '../types/subscription.ts';
-
-/** A processing record older than this no longer blocks new broadcasts. */
-const PROCESSING_STALE_MS = 30 * 60 * 1000;
 
 /** Broadcast status records are kept this long for the status endpoint. */
 const STATUS_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
@@ -39,7 +44,9 @@ const broadcast: FastifyPluginAsync = async (fastify, _opts) => {
         response: {
           202: BroadcastAcceptedResponse,
           400: Generic400Error,
+          403: Generic400Error,
           409: Generic400Error,
+          423: Generic400Error,
           500: Generic500Error,
         },
       },
@@ -50,14 +57,40 @@ const broadcast: FastifyPluginAsync = async (fastify, _opts) => {
         throw new Error('MongoDB connection is not available.');
       }
 
+      const lockedReply = () =>
+        reply
+          .code(423)
+          .header('Content-Type', 'application/json')
+          .send({ error: 'Broadcast API is locked. Try again later.' });
+
+      if (await isBroadcastBlocked(db)) {
+        return lockedReply();
+      }
+
+      // A missing or unreadable secret throws, which the Fastify error handler
+      // turns into a 500 and reports to Sentry.
+      if (!verifyBroadcastCode(request.body.totp_code)) {
+        fastify.log.warn('Invalid broadcast verification code.');
+
+        if (registerFailedAttempt()) {
+          await blockBroadcasts(db, fastify.log);
+
+          return lockedReply();
+        }
+
+        return reply
+          .code(403)
+          .header('Content-Type', 'application/json')
+          .send({ error: 'Invalid verification code.', field: 'totp_code' });
+      }
+
+      resetFailedAttempts();
+
       let siteConfig: SiteConfigurationType;
       try {
         siteConfig = SiteConfigurationLoader.getConfiguration(request.body.site_id);
       } catch {
-        return reply
-          .code(400)
-          .header('Content-Type', 'application/json; charset=utf-8')
-          .send({ error: 'Invalid site_id provided.' });
+        return reply.code(400).header('Content-Type', 'application/json').send({ error: 'Invalid site_id provided.' });
       }
 
       // Subscribers must not be excluded from an SMS broadcast based on
@@ -66,7 +99,7 @@ const broadcast: FastifyPluginAsync = async (fastify, _opts) => {
       if (smsCount !== 0 && smsCount !== SUBSCRIPTION_LANGUAGES.length) {
         return reply
           .code(400)
-          .header('Content-Type', 'application/json; charset=utf-8')
+          .header('Content-Type', 'application/json')
           .send({ error: 'SMS text must be provided for either all languages or none.', field: 'sms' });
       }
 
@@ -76,7 +109,7 @@ const broadcast: FastifyPluginAsync = async (fastify, _opts) => {
         if (!request.body.subscription_ids.every((id) => ObjectId.isValid(id))) {
           return reply
             .code(400)
-            .header('Content-Type', 'application/json; charset=utf-8')
+            .header('Content-Type', 'application/json')
             .send({ error: 'Invalid subscription id provided.', field: 'subscription_ids' });
         }
         subscriptionIds = request.body.subscription_ids.map((id) => new ObjectId(id));
@@ -99,7 +132,7 @@ const broadcast: FastifyPluginAsync = async (fastify, _opts) => {
         if (processing) {
           return reply
             .code(409)
-            .header('Content-Type', 'application/json; charset=utf-8')
+            .header('Content-Type', 'application/json')
             .send({ error: 'A broadcast for this site is already being processed.' });
         }
       }
@@ -133,10 +166,7 @@ const broadcast: FastifyPluginAsync = async (fastify, _opts) => {
             .catch((updateError) => fastify.log.error(updateError));
         });
 
-      return reply
-        .code(202)
-        .header('Content-Type', 'application/json; charset=utf-8')
-        .send({ id: record.insertedId.toString() });
+      return reply.code(202).header('Content-Type', 'application/json').send({ id: record.insertedId.toString() });
     },
   );
 
@@ -157,10 +187,7 @@ const broadcast: FastifyPluginAsync = async (fastify, _opts) => {
     },
     async (request, reply) => {
       if (!ObjectId.isValid(request.params.id)) {
-        return reply
-          .code(400)
-          .header('Content-Type', 'application/json; charset=utf-8')
-          .send({ error: 'Invalid broadcast id' });
+        return reply.code(400).header('Content-Type', 'application/json').send({ error: 'Invalid broadcast id' });
       }
 
       const record = await fastify.mongo.db
@@ -168,10 +195,7 @@ const broadcast: FastifyPluginAsync = async (fastify, _opts) => {
         .findOne({ _id: new ObjectId(request.params.id), type: 'broadcast' });
 
       if (!record) {
-        return reply
-          .code(404)
-          .header('Content-Type', 'application/json; charset=utf-8')
-          .send({ error: 'Broadcast not found.' });
+        return reply.code(404).header('Content-Type', 'application/json').send({ error: 'Broadcast not found.' });
       }
 
       return reply.code(200).header('Content-Type', 'application/json').send({

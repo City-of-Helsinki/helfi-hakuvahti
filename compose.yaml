@@ -23,6 +23,8 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-local}
       NODE_TLS_REJECT_UNAUTHORIZED: ${NODE_TLS_REJECT_UNAUTHORIZED:-1}
       HAKUVAHTI_API_KEY: ${HAKUVAHTI_API_KEY:-123}
+      # Broadcast verification. Local default is base32 for "hakuvahti-dev-secret".
+      BROADCAST_TOTP_SECRET: ${BROADCAST_TOTP_SECRET:-NBQWW5LWMFUHI2JNMRSXMLLTMVRXEZLU}
       # Sentry (optional)
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_RELEASE: ${SENTRY_RELEASE:-}
