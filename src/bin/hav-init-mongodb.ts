@@ -2,7 +2,7 @@
  * MongoDB Database Initialization Script
  *
  * Creates required collections with validation schemas for the Hakuvahti application:
- * - queue: Queue for outbound notifications
+ * - queue: Queue for outbound notifications and broadcast records
  * - subscription: Search subscriptions with user preferences
  *
  * Must be run before starting the application to ensure proper database structure.
@@ -10,6 +10,7 @@
 
 import command from '../lib/command.ts';
 import mongodb from '../plugins/mongodb.ts';
+import { QUEUE_ITEM_TYPES } from '../types/queue.ts';
 
 command(
   async (server) => {
@@ -25,27 +26,61 @@ command(
     let queueResult = null;
     let subscriptionResult = null;
 
-    // Queue collection: stores pending notifications
+    // Queue collection: stores pending notifications and broadcast records.
     const queueValidator = {
       $jsonSchema: {
         bsonType: 'object',
         title: 'Hakuvahti notification queue',
-        required: ['type', 'atv_id', 'content'],
-        properties: {
-          _id: {
-            bsonType: 'objectId',
+        anyOf: [
+          // Outbound notification, drained by hav:send-queue.
+          {
+            required: ['type', 'atv_id', 'content'],
+            properties: {
+              _id: {
+                bsonType: 'objectId',
+              },
+              type: {
+                bsonType: 'string',
+                enum: [...QUEUE_ITEM_TYPES],
+              },
+              atv_id: {
+                bsonType: 'string',
+              },
+              content: {
+                bsonType: 'string',
+              },
+            },
           },
-          type: {
-            bsonType: 'string',
-            enum: ['email', 'sms'],
+          // Broadcast status record (see src/routes/broadcast.ts).
+          {
+            required: ['type', 'site_id', 'status', 'test', 'created'],
+            properties: {
+              _id: {
+                bsonType: 'objectId',
+              },
+              type: {
+                bsonType: 'string',
+                enum: ['broadcast'],
+              },
+              site_id: {
+                bsonType: 'string',
+              },
+              status: {
+                bsonType: 'string',
+                enum: ['processing', 'completed', 'failed'],
+              },
+              test: {
+                bsonType: 'bool',
+              },
+              created: {
+                bsonType: 'date',
+              },
+              stats: {
+                bsonType: ['object', 'null'],
+              },
+            },
           },
-          atv_id: {
-            bsonType: 'string',
-          },
-          content: {
-            bsonType: 'string',
-          },
-        },
+        ],
       },
     };
 
