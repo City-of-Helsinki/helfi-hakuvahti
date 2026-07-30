@@ -35,7 +35,7 @@ const queryElasticProxy = async (
     });
 
     if (!response.ok) {
-      throw new Error(`ElasticSearch proxy responded ${response.status}`);
+      throw new Error(`ElasticSearch proxy responded ${response.status}: ${await response.text()}`);
     }
 
     return (await response.json()) as ElasticProxyJsonResponseType;
