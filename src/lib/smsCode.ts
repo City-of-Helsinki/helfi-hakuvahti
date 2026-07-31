@@ -1,11 +1,28 @@
+import { createHmac } from 'node:crypto';
 import type { ObjectId } from '@fastify/mongodb';
 import type { Collection } from 'mongodb';
 import type { SubscriptionCollectionType } from '../types/subscription.ts';
-import { hotp } from './totp.ts';
 
 export const TIME_WINDOW_MS = 30 * 60 * 1000;
 
-export { hotp };
+export function hotp(secret: Buffer, counter: number, algorithm: string = 'sha1', digits: number = 6): string {
+  const stepBuffer = Buffer.alloc(8);
+
+  stepBuffer.writeBigUInt64BE(BigInt(counter));
+
+  const hmac = createHmac(algorithm, secret).update(stepBuffer).digest();
+
+  // HOTP dynamic truncation (RFC 4226)
+  const offset = hmac[hmac.length - 1] & 0x0f;
+  const code =
+    ((hmac[offset] & 0x7f) << 24) |
+    ((hmac[offset + 1] & 0xff) << 16) |
+    ((hmac[offset + 2] & 0xff) << 8) |
+    (hmac[offset + 3] & 0xff);
+
+  // code = truncation results % (10 ^ digits).
+  return (code % 10 ** digits).toString().padStart(6, '0');
+}
 
 /**
  * Generate a 6-digit TOTP-like code from a secret.
