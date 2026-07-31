@@ -72,9 +72,7 @@ function getSiteConfiguration(siteId: string): SiteConfigurationType {
   try {
     return SiteConfigurationLoader.getConfiguration(siteId);
   } catch (e) {
-    throw new ActionError(500, 'Site configuration not found.', {
-      cause: e,
-    });
+    throw new ActionError(500, 'Site configuration not found.', e);
   }
 }
 
