@@ -1,10 +1,6 @@
 import * as assert from 'node:assert';
 import { after, before, beforeEach, describe, mock, test } from 'node:test';
-import {
-  BroadcastAuthError,
-  resetKeyResolver,
-  verifyBroadcastToken,
-} from '../../src/lib/broadcastAuth.ts';
+import { BroadcastAuthError, resetKeyResolver, verifyBroadcastToken } from '../../src/lib/broadcastAuth.ts';
 import {
   OIDC_CLIENT_ID,
   OIDC_DISCOVERY_URL,
@@ -200,12 +196,7 @@ describe('verifyBroadcastToken', () => {
     const sender = await verifyBroadcastToken(token);
 
     assert.strictEqual(sender.azp, OIDC_CLIENT_ID);
-    assert.deepStrictEqual(requested, [
-      OIDC_DISCOVERY_URL,
-      OIDC_DISCOVERY_URL,
-      OIDC_DISCOVERY_URL,
-      OIDC_JWKS_URI,
-    ]);
+    assert.deepStrictEqual(requested, [OIDC_DISCOVERY_URL, OIDC_DISCOVERY_URL, OIDC_DISCOVERY_URL, OIDC_JWKS_URI]);
 
     // That success is remembered, so the recovered provider is not asked again.
     await verifyBroadcastToken(token);

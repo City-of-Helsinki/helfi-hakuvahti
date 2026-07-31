@@ -1,11 +1,7 @@
 import { ObjectId } from '@fastify/mongodb';
 import * as Sentry from '@sentry/node';
 import type { FastifyPluginAsync } from 'fastify';
-import {
-  BroadcastAuthError,
-  type BroadcastSender,
-  verifyBroadcastToken,
-} from '../lib/broadcastAuth.ts';
+import { BroadcastAuthError, type BroadcastSender, verifyBroadcastToken } from '../lib/broadcastAuth.ts';
 import { BroadcastService } from '../lib/broadcastService.ts';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
 import {
