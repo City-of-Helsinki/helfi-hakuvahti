@@ -58,21 +58,20 @@ async function broadcastWithToken(app: FastifyInstance, overrides: AccessTokenOv
   });
 }
 
-async function waitForBroadcast(app: FastifyInstance, id: string) {
+/**
+ * Waits until the background fan-out has queued the expected notifications.
+ */
+async function waitForQueue(app: FastifyInstance, expected: number) {
   for (let i = 0; i < 100; i++) {
-    const res = await app.inject({
-      method: 'GET',
-      url: `/broadcast/${id}`,
-      headers: { Authorization: 'api-key test' },
-    });
-    assert.strictEqual(res.statusCode, 200);
-    const body = JSON.parse(res.body);
-    if (body.status !== 'processing') {
-      return body;
+    const queued = await app.mongo.db?.collection('queue').countDocuments({});
+
+    if (queued === expected) {
+      return;
     }
+
     await sleep(50);
   }
-  assert.fail('Broadcast did not finish in time.');
+  assert.fail(`Broadcast did not queue ${expected} notification(s) in time.`);
 }
 
 describe('/broadcast', () => {
@@ -217,7 +216,7 @@ describe('/broadcast', () => {
         assert.strictEqual(res.statusCode, 403);
         assert.ok(JSON.parse(res.body).error.includes('access token'));
 
-        // Nothing was queued and no status record was created.
+        // Nothing was queued.
         const queueItems = await app.mongo.db?.collection('queue').find({}).toArray();
         assert.strictEqual(queueItems?.length, 0);
       });
@@ -227,11 +226,22 @@ describe('/broadcast', () => {
   test('accepts a token without the non-standard typ claim', async (t) => {
     const app = await build(t);
     await cleanDatabase(app);
+    const subscriptions = app.mongo.db?.collection('subscription');
+
+    // One subscriber, so that the fan-out has a concrete finishing point.
+    await createSubscription(subscriptions, {
+      site_id: 'rekry',
+      status: SubscriptionStatus.ACTIVE,
+      email_confirmed: true,
+      lang: 'fi',
+      atv_id: 'atv-a',
+      email: '',
+    });
 
     const res = await broadcastWithToken(app, { claims: { typ: undefined } });
 
     assert.strictEqual(res.statusCode, 202);
-    await waitForBroadcast(app, JSON.parse(res.body).id);
+    await waitForQueue(app, 1);
   });
 
   test('broadcasting is disabled without a configured issuer', async (t) => {
@@ -270,77 +280,21 @@ describe('/broadcast', () => {
 
     const res = await broadcast(app, validPayload());
 
+    // A 202 carries no body: nothing reports back on a broadcast any more.
     assert.strictEqual(res.statusCode, 202);
-    const { id } = JSON.parse(res.body);
-    assert.ok(id);
+    assert.strictEqual(res.body, '');
 
-    const status = await waitForBroadcast(app, id);
-    assert.strictEqual(status.status, 'completed');
-    assert.strictEqual(status.site_id, 'rekry');
-    assert.strictEqual(status.test, false);
-    assert.deepStrictEqual(status.stats, {
-      subscriptionsChecked: 3,
-      emailsQueued: 2,
-      smsQueued: 0,
-      missingContacts: 0,
-    });
+    // Two of the three subscriptions of the site, the third deduplicated away.
+    await waitForQueue(app, 2);
 
-    const queueItems = await app.mongo.db
-      ?.collection('queue')
-      .find({ type: { $in: ['email', 'sms'] } })
-      .toArray();
+    const queueItems = await app.mongo.db?.collection('queue').find({}).toArray();
     assert.strictEqual(queueItems?.length, 2);
     const fiItem = queueItems?.find((item) => item.atv_id === 'atv-a');
     assert.ok(fiItem?.content.includes('<title>Huoltokatko</title>'));
     assert.ok(fiItem?.content.includes('FI body'));
-
-    // The status record shares the queue collection.
-    const statusRecord = await app.mongo.db?.collection('queue').findOne({ type: 'broadcast' });
-    assert.strictEqual(statusRecord?.status, 'completed');
   });
 
-  test('rejects a broadcast while another one is processing', async (t) => {
-    const app = await build(t);
-    await cleanDatabase(app);
-
-    await app.mongo.db?.collection('queue').insertOne({
-      type: 'broadcast',
-      site_id: 'rekry',
-      status: 'processing',
-      test: false,
-      created: new Date(),
-      stats: null,
-    });
-
-    const res = await broadcast(app, validPayload());
-
-    assert.strictEqual(res.statusCode, 409);
-  });
-
-  test('ignores stale and test processing records', async (t) => {
-    const app = await build(t);
-    await cleanDatabase(app);
-
-    await app.mongo.db?.collection('queue').insertMany([
-      // Stale: a pod killed mid-broadcast must not block the site forever.
-      {
-        type: 'broadcast',
-        site_id: 'rekry',
-        status: 'processing',
-        test: false,
-        created: new Date(Date.now() - 31 * 60 * 1000),
-        stats: null,
-      },
-      // Test sends never block a real broadcast.
-      { type: 'broadcast', site_id: 'rekry', status: 'processing', test: true, created: new Date(), stats: null },
-    ]);
-
-    const res = await broadcast(app, validPayload());
-
-    assert.strictEqual(res.statusCode, 202);
-  });
-
-  test('test mode sends only to the given subscriptions and skips the guard', async (t) => {
+  test('test mode sends only to the given subscriptions', async (t) => {
     const app = await build(t);
     await cleanDatabase(app);
     const subscriptions = app.mongo.db?.collection('subscription');
@@ -349,50 +303,15 @@ describe('/broadcast', () => {
     const targetId = await createSubscription(subscriptions, { ...active, atv_id: 'atv-a', email: '' });
     await createSubscription(subscriptions, { ...active, atv_id: 'atv-b', email: '' });
 
-    // A full broadcast in progress must not block a test send.
-    await app.mongo.db?.collection('queue').insertOne({
-      type: 'broadcast',
-      site_id: 'rekry',
-      status: 'processing',
-      test: false,
-      created: new Date(),
-      stats: null,
-    });
-
     const res = await broadcast(app, validPayload({ subscription_ids: [targetId.toString()] }));
 
     assert.strictEqual(res.statusCode, 202);
-    const { id } = JSON.parse(res.body);
 
-    const status = await waitForBroadcast(app, id);
-    assert.strictEqual(status.status, 'completed');
-    assert.strictEqual(status.test, true);
-    assert.strictEqual(status.stats.subscriptionsChecked, 1);
-    assert.strictEqual(status.stats.emailsQueued, 1);
+    // Only the targeted subscription, not the other subscriber of the site.
+    await waitForQueue(app, 1);
 
-    const queueItems = await app.mongo.db
-      ?.collection('queue')
-      .find({ type: { $in: ['email', 'sms'] } })
-      .toArray();
+    const queueItems = await app.mongo.db?.collection('queue').find({}).toArray();
     assert.strictEqual(queueItems?.length, 1);
     assert.strictEqual(queueItems?.[0].atv_id, 'atv-a');
-  });
-
-  test('broadcast status returns 404 for unknown and 400 for malformed ids', async (t) => {
-    const app = await build(t);
-
-    const notFound = await app.inject({
-      method: 'GET',
-      url: '/broadcast/000000000000000000000000',
-      headers: { Authorization: 'api-key test' },
-    });
-    assert.strictEqual(notFound.statusCode, 404);
-
-    const malformed = await app.inject({
-      method: 'GET',
-      url: '/broadcast/not-an-id',
-      headers: { Authorization: 'api-key test' },
-    });
-    assert.strictEqual(malformed.statusCode, 400);
   });
 });

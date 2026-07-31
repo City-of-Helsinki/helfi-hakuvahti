@@ -9,9 +9,6 @@ const BroadcastMessage = Type.Object({
 });
 export type BroadcastMessageType = Static<typeof BroadcastMessage>;
 
-/** A processing record older than this no longer blocks new broadcasts. */
-export const PROCESSING_STALE_MS = 30 * 60 * 1000;
-
 /**
  * The access token of the admin sending the broadcast.
  *
@@ -34,36 +31,11 @@ export const BroadcastRequest = Type.Object({
 });
 export type BroadcastRequestType = Static<typeof BroadcastRequest>;
 
-export const BroadcastAcceptedResponse = Type.Object({
-  id: Type.String(),
-});
-export type BroadcastAcceptedResponseType = Static<typeof BroadcastAcceptedResponse>;
-
-export const BroadcastStats = Type.Object({
-  subscriptionsChecked: Type.Number(),
-  emailsQueued: Type.Number(),
-  smsQueued: Type.Number(),
+/** What a finished broadcast queued, logged once the fan-out resolves. */
+export interface BroadcastStatsType {
+  subscriptionsChecked: number;
+  emailsQueued: number;
+  smsQueued: number;
   /** Subscriptions whose ATV document or contact details were missing. */
-  missingContacts: Type.Number(),
-});
-export type BroadcastStatsType = Static<typeof BroadcastStats>;
-
-export const BroadcastStatusResponse = Type.Object({
-  id: Type.String(),
-  site_id: Type.String(),
-  status: Type.Union([Type.Literal('processing'), Type.Literal('completed'), Type.Literal('failed')]),
-  test: Type.Boolean(),
-  created: Type.String(),
-  stats: Type.Union([BroadcastStats, Type.Null()]),
-});
-export type BroadcastStatusResponseType = Static<typeof BroadcastStatusResponse>;
-
-/** Broadcast status record. */
-export interface BroadcastStatusDocument {
-  type: 'broadcast';
-  site_id: string;
-  status: 'processing' | 'completed' | 'failed';
-  test: boolean;
-  created: Date;
-  stats: BroadcastStatsType | null;
+  missingContacts: number;
 }

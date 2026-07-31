@@ -107,35 +107,11 @@ X-Access-Token: <OpenID Connect access token of the admin sending the broadcast>
 - `sms` SMS texts are sent verbatim and are ignored on sites without `enableSms`.
 - `subscription_ids` (optional) enables test mode: the message is sent only to those subscriptions of the site, so admins can preview the message on their own subscriptions before the real broadcast.
 
-Returns `202` with `{ "id": "<broadcast id>" }`. Sending continues in the background because contact details are resolved from ATV in batches, which can take minutes for large sites. Messages are inserted into the shared notification queue and delivered by `hav:send-queue`. Large broadcast can delay regular notifications by a few cron cycles.
-
-Returns `409` if a broadcast for the same site is already processing (started within the last 30 minutes). Test sends neither set nor respect this guard.
+Returns `202` with an empty body. Sending continues in the background because contact details are resolved from ATV in batches, which can take minutes for large sites. Messages are inserted into the shared notification queue and delivered by `hav:send-queue`. Large broadcast can delay regular notifications by a few cron cycles.
 
 Returns `400` if `X-Access-Token` is missing, and `403` if the token cannot be verified: a bad signature, an expired token, another issuer, or an `azp` that is not in `OIDC_ALLOWED_CLIENTS`. The admin has to log in again in that case.
 
 Returns `500` if the `OIDC_*` variables are not configured or the issuer's discovery document cannot be read, so broadcasting fails closed.
-
-## Broadcast status
-
-`GET` `/broadcast/:id`
-
-```json
-{
-    "id": "...",
-    "site_id": "rekry",
-    "status": "processing" | "completed" | "failed",
-    "test": false,
-    "created": "<ISO date>",
-    "stats": {
-        "subscriptionsChecked": 0,
-        "emailsQueued": 0,
-        "smsQueued": 0,
-        "missingContacts": 0
-    }
-}
-```
-
-`stats` is `null` until the broadcast finishes. `missingContacts` counts subscriptions whose ATV document had no contact details.
 
 ## Health checks
 

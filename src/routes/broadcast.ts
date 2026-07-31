@@ -5,16 +5,10 @@ import { BroadcastAuthError, type BroadcastSender, verifyBroadcastToken } from '
 import { BroadcastService } from '../lib/broadcastService.ts';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
 import {
-  BroadcastAcceptedResponse,
-  type BroadcastAcceptedResponseType,
   BroadcastHeaders,
   type BroadcastHeadersType,
   BroadcastRequest,
   type BroadcastRequestType,
-  type BroadcastStatusDocument,
-  BroadcastStatusResponse,
-  type BroadcastStatusResponseType,
-  PROCESSING_STALE_MS,
 } from '../types/broadcast.ts';
 import {
   Generic400Error,
@@ -25,14 +19,11 @@ import {
 import type { SiteConfigurationType } from '../types/siteConfig.ts';
 import { SUBSCRIPTION_LANGUAGES } from '../types/subscription.ts';
 
-/** Broadcast status records are kept this long for the status endpoint. */
-const STATUS_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
-
 const broadcast: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.post<{
     Body: BroadcastRequestType;
     Headers: BroadcastHeadersType;
-    Reply: BroadcastAcceptedResponseType | Generic400ErrorType | Generic500ErrorType;
+    Reply: Generic400ErrorType | Generic500ErrorType | undefined;
   }>(
     '/broadcast',
     {
@@ -40,10 +31,8 @@ const broadcast: FastifyPluginAsync = async (fastify, _opts) => {
         body: BroadcastRequest,
         headers: BroadcastHeaders,
         response: {
-          202: BroadcastAcceptedResponse,
           400: Generic400Error,
           403: Generic400Error,
-          409: Generic400Error,
           500: Generic500Error,
         },
       },
@@ -103,100 +92,22 @@ const broadcast: FastifyPluginAsync = async (fastify, _opts) => {
       }
       const isTest = subscriptionIds !== undefined;
 
-      const statusCollection = db.collection<BroadcastStatusDocument>('queue');
+      const sentBy = `for site ${request.body.site_id} (test: ${isTest}) by sub ${sender.sub} via ${sender.azp}`;
 
-      // Guard full broadcasts against double submission. Test sends neither
-      // set nor respect the guard.
-      if (!isTest) {
-        const processing = await statusCollection.findOne({
-          type: 'broadcast',
-          site_id: request.body.site_id,
-          status: 'processing',
-          test: { $ne: true },
-          created: { $gt: new Date(Date.now() - PROCESSING_STALE_MS) },
-        });
-
-        if (processing) {
-          return reply
-            .code(409)
-            .header('Content-Type', 'application/json')
-            .send({ error: 'A broadcast for this site is already being processed.' });
-        }
-      }
-
-      await statusCollection.deleteMany({
-        type: 'broadcast',
-        created: { $lt: new Date(Date.now() - STATUS_RETENTION_MS) },
-      });
-
-      const record = await statusCollection.insertOne({
-        type: 'broadcast',
-        site_id: request.body.site_id,
-        status: 'processing',
-        test: isTest,
-        created: new Date(),
-        stats: null,
-      });
-
-      fastify.log.info(
-        `Broadcast ${record.insertedId.toString()} for site ${request.body.site_id} (test: ${isTest}) sent by sub ${sender.sub} via ${sender.azp}.`,
-      );
+      fastify.log.info(`Broadcast ${sentBy} accepted.`);
 
       // Fan-out can take minutes for large sites (contact details are
-      // resolved from ATV in batches), so it runs after the reply.
+      // resolved from ATV in batches), so it runs after the reply. Nothing
+      // reports back to the caller. The log and Sentry are the only outcome.
       new BroadcastService({ db, atv: fastify.atv })
         .broadcast(siteConfig, request.body.messages, subscriptionIds)
-        .then((stats) =>
-          statusCollection.updateOne({ _id: record.insertedId }, { $set: { status: 'completed', stats } }),
-        )
-        .catch(async (error) => {
+        .then((stats) => fastify.log.info(`Broadcast ${sentBy} queued ${JSON.stringify(stats)}.`))
+        .catch((error) => {
           Sentry.captureException(error);
           fastify.log.error(error);
-          await statusCollection
-            .updateOne({ _id: record.insertedId }, { $set: { status: 'failed' } })
-            .catch((updateError) => fastify.log.error(updateError));
         });
 
-      return reply.code(202).header('Content-Type', 'application/json').send({ id: record.insertedId.toString() });
-    },
-  );
-
-  fastify.get<{
-    Params: { id: string };
-    Reply: BroadcastStatusResponseType | Generic400ErrorType | Generic500ErrorType;
-  }>(
-    '/broadcast/:id',
-    {
-      schema: {
-        response: {
-          200: BroadcastStatusResponse,
-          400: Generic400Error,
-          404: Generic400Error,
-          500: Generic500Error,
-        },
-      },
-    },
-    async (request, reply) => {
-      if (!ObjectId.isValid(request.params.id)) {
-        return reply.code(400).header('Content-Type', 'application/json').send({ error: 'Invalid broadcast id' });
-      }
-
-      const record = await fastify.mongo.db
-        ?.collection<BroadcastStatusDocument>('queue')
-        .findOne({ _id: new ObjectId(request.params.id), type: 'broadcast' });
-
-      if (!record) {
-        return reply.code(404).header('Content-Type', 'application/json').send({ error: 'Broadcast not found.' });
-      }
-
-      return reply.code(200).header('Content-Type', 'application/json').send({
-        id: record._id.toString(),
-        site_id: record.site_id,
-        status: record.status,
-        test: record.test,
-        created: record.created.toISOString(),
-        stats: record.stats,
-      });
+      return reply.code(202).send(undefined);
     },
   );
 };
