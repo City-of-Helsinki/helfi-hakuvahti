@@ -10,7 +10,7 @@ import {
   SubscriptionStatus,
 } from '../types/subscription.ts';
 import { ATV } from './atv.ts';
-import { broadcastEmail } from './email.ts';
+import { broadcastEmail, broadcastSms } from './email.ts';
 import { BATCH_SIZE } from './queueService.ts';
 import { isEmailActive, isSmsActive } from './subscriptionProcessor.ts';
 
@@ -65,15 +65,15 @@ export class BroadcastService {
     messages: BroadcastRequestType['messages'],
     subscriptionIds?: ObjectId[],
   ): Promise<BroadcastStatsType> {
+    // Both channels are rendered from the same subject and body.
     const emailByLang = {} as ContentByLanguage;
+    const smsByLang = siteConfig.subscription.enableSms ? ({} as ContentByLanguage) : undefined;
     for (const lang of SUBSCRIPTION_LANGUAGES) {
       emailByLang[lang] = await broadcastEmail(lang, messages[lang], siteConfig);
+      if (smsByLang) {
+        smsByLang[lang] = await broadcastSms(lang, messages[lang], siteConfig);
+      }
     }
-
-    const smsByLang =
-      siteConfig.subscription.enableSms && SUBSCRIPTION_LANGUAGES.every((lang) => messages[lang].sms)
-        ? (Object.fromEntries(SUBSCRIPTION_LANGUAGES.map((lang) => [lang, messages[lang].sms])) as ContentByLanguage)
-        : undefined;
 
     const filter: Filter<SubscriptionCollectionType> = {
       site_id: siteConfig.id,

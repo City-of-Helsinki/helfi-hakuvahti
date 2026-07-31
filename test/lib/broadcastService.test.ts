@@ -7,12 +7,6 @@ import { SubscriptionStatus } from '../../src/types/subscription.ts';
 import { createSiteConfig, createSubscription } from './utils.ts';
 
 const messages = {
-  fi: { subject: 'Huoltokatko', body: 'FI body', sms: 'FI sms' },
-  sv: { subject: 'Underhåll', body: 'SV body', sms: 'SV sms' },
-  en: { subject: 'Maintenance', body: 'EN body', sms: 'EN sms' },
-};
-
-const emailOnlyMessages = {
   fi: { subject: 'Huoltokatko', body: 'FI body' },
   sv: { subject: 'Underhåll', body: 'SV body' },
   en: { subject: 'Maintenance', body: 'EN body' },
@@ -131,7 +125,7 @@ describe('BroadcastService', () => {
     const queueItems = await db.collection('queue').find().toArray();
     assert.strictEqual(queueItems.length, 2);
     const smsItem = queueItems.find((item) => item.type === 'sms');
-    assert.strictEqual(smsItem?.content, 'FI sms');
+    assert.strictEqual(smsItem?.content.trim(), 'Huoltokatko\n\nFI body');
   });
 
   test('deduplicates subscriptions sharing a phone number', async () => {
@@ -153,23 +147,14 @@ describe('BroadcastService', () => {
     assert.strictEqual(await db.collection('queue').countDocuments(), 1);
   });
 
-  test('sends no SMS when the site has SMS disabled or the payload has no SMS texts', async () => {
+  test('sends no SMS when the site has SMS disabled', async () => {
     const db = mongoClient.db();
     atvDocs = { 'atv-1': { email: 'a@example.com', sms: '+358401234567' } };
     await db
       .collection('subscription')
       .insertOne(createSubscription({ atv_id: 'atv-1', email_confirmed: true, sms_confirmed: true }));
 
-    // SMS texts present but site has enableSms: false.
-    let stats = await buildService().broadcast(createSiteConfig(), messages);
-    assert.strictEqual(stats.smsQueued, 0);
-
-    // Site allows SMS but the payload has no SMS texts.
-    await db.collection('queue').deleteMany({});
-    const smsSite = createSiteConfig({
-      subscription: { maxAge: 90, unconfirmedMaxAge: 7, expiryNotificationDays: 14, enableSms: true },
-    });
-    stats = await buildService().broadcast(smsSite, emailOnlyMessages);
+    const stats = await buildService().broadcast(createSiteConfig(), messages);
     assert.strictEqual(stats.smsQueued, 0);
     assert.strictEqual(stats.emailsQueued, 1);
   });

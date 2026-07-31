@@ -230,6 +230,19 @@ export const broadcastEmail = async (
     siteConfig,
   );
 
+// The same one-off broadcast message as plain text, for SMS.
+// A long body simply becomes a multipart SMS.
+export const broadcastSms = async (
+  lang: SubscriptionCollectionLanguageType,
+  data: { subject: string; body: string },
+  siteConfig: SiteConfigurationType,
+) =>
+  sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/broadcast.txt`, {
+    ...buildTranslationContext(lang, siteConfig),
+    subject: data.subject,
+    body: data.body,
+  });
+
 // SMS notification for new search results
 export const newHitsSms = async (
   lang: SubscriptionCollectionLanguageType,

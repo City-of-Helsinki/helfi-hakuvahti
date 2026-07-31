@@ -22,7 +22,6 @@ import {
   type Generic500ErrorType,
 } from '../types/error.ts';
 import type { SiteConfigurationType } from '../types/siteConfig.ts';
-import { SUBSCRIPTION_LANGUAGES } from '../types/subscription.ts';
 
 const broadcast: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.post<{
@@ -90,16 +89,6 @@ const broadcast: FastifyPluginAsync = async (fastify, _opts) => {
           .code(403)
           .header('Content-Type', 'application/json')
           .send({ error: 'Not authorized to broadcast for this site.', field: 'access_token' });
-      }
-
-      // Subscribers must not be excluded from an SMS broadcast based on
-      // their language, so SMS texts are all-or-none.
-      const smsCount = SUBSCRIPTION_LANGUAGES.filter((lang) => request.body.messages[lang].sms).length;
-      if (smsCount !== 0 && smsCount !== SUBSCRIPTION_LANGUAGES.length) {
-        return reply
-          .code(400)
-          .header('Content-Type', 'application/json')
-          .send({ error: 'SMS text must be provided for either all languages or none.', field: 'sms' });
       }
 
       // Test mode: send only to the given subscriptions.

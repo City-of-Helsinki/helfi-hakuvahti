@@ -150,11 +150,6 @@ describe('/broadcast', () => {
         payload: validPayload({ messages: { ...messages, fi: { subject: '', body: 'FI body' } } }),
       },
       {
-        name: 'SMS text for only one language',
-        payload: validPayload({ messages: { ...messages, fi: { ...messages.fi, sms: 'FI sms' } } }),
-        expectedError: 'SMS text must be provided',
-      },
-      {
         name: 'malformed subscription id',
         payload: validPayload({ subscription_ids: ['not-an-object-id'] }),
         expectedError: 'Invalid subscription id',

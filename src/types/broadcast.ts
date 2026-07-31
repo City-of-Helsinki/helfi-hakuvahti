@@ -4,8 +4,6 @@ const BroadcastMessage = Type.Object({
   subject: Type.String({ minLength: 1, maxLength: 255 }),
   /** Plain text. Escaped and converted to HTML before rendering. */
   body: Type.String({ minLength: 1, maxLength: 10000 }),
-  /** Plain text, sent verbatim as the SMS content. */
-  sms: Type.Optional(Type.String({ minLength: 1, maxLength: 500 })),
 });
 export type BroadcastMessageType = Static<typeof BroadcastMessage>;
 

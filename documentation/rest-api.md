@@ -93,9 +93,9 @@ X-Access-Token: <OpenID Connect access token of the admin sending the broadcast>
 {
     "site_id": "<id of a site configuration in conf/, e.g. rekry>",
     "messages": {
-        "fi": { "subject": "<subject>", "body": "<plain text body>", "sms": "<optional SMS text>" },
-        "sv": { "subject": "...", "body": "...", "sms": "..." },
-        "en": { "subject": "...", "body": "...", "sms": "..." }
+        "fi": { "subject": "<subject>", "body": "<plain text body>" },
+        "sv": { "subject": "...", "body": "..." },
+        "en": { "subject": "...", "body": "..." }
     },
     "subscription_ids": ["<optional: send only to these subscriptions>"]
 }
@@ -105,7 +105,7 @@ X-Access-Token: <OpenID Connect access token of the admin sending the broadcast>
 - The admin also has to be **allowed to broadcast for this particular site**. The token's `ad_groups` claim has to contain one of the values in the `broadcast.adGroups` list of the site's `conf/{site}.json` for the current `ENVIRONMENT`.
 - All three languages are required; each subscriber receives their own language version wrapped in the site's email template.
 - `subject` and `body` are plain text. Newlines in `body` become line breaks.
-- `sms` SMS texts are sent verbatim and are ignored on sites without `enableSms`.
+- All channels are composed from the same `subject` and `body`.
 - `subscription_ids` (optional) enables test mode: the message is sent only to those subscriptions of the site, so admins can preview the message on their own subscriptions before the real broadcast.
 
 Returns `202` with an empty body. Sending continues in the background because contact details are resolved from ATV in batches, which can take minutes for large sites. Messages are inserted into the shared notification queue and delivered by `hav:send-queue`. Large broadcast can delay regular notifications by a few cron cycles.
