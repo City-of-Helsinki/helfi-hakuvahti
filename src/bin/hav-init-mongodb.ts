@@ -78,9 +78,6 @@ command(
               stats: {
                 bsonType: ['object', 'null'],
               },
-              auth_lock: {
-                bsonType: 'bool',
-              },
             },
           },
         ],

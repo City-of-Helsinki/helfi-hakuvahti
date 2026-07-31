@@ -83,10 +83,15 @@ Id-only (no hash). Caller MUST rate-limit.
 
 Broadcasts a one-off message to all subscribers of a single site. Every subscriber gets the message on each channel they have confirmed: emails go to email-confirmed subscribers, SMS to sms-confirmed subscribers on sites with `enableSms`. Recipients are deduplicated per channel (one email per address, one SMS per phone number). The most recently renewed one decides the language.
 
+Requires the `X-Access-Token` header in addition to the API key:
+
+```
+X-Access-Token: <OpenID Connect access token of the admin sending the broadcast>
+```
+
 ```json
 {
     "site_id": "<id of a site configuration in conf/, e.g. rekry>",
-    "totp_code": "<current 6-digit code from BROADCAST_TOTP_SECRET>",
     "messages": {
         "fi": { "subject": "<subject>", "body": "<plain text body>", "sms": "<optional SMS text>" },
         "sv": { "subject": "...", "body": "...", "sms": "..." },
@@ -96,7 +101,7 @@ Broadcasts a one-off message to all subscribers of a single site. Every subscrib
 }
 ```
 
-- `totp_code` is required and is the second factor for broadcasting: on top of the API key, the admin must hold the broadcast secret (see `BROADCAST_TOTP_SECRET` in [environment-variables.md](environment-variables.md)). For local testing, use `NBQWW5LWMFUHI2JNMRSXMLLTMVRXEZLU` with e.g. [this site](https://totp.danhersam.com/).
+- `X-Access-Token` is required. The API key says the request comes from one of our Drupal sites; the access token says which admin is behind it. It is verified against the identity provider's signing keys, and its `azp` claim has to name an allowed client (see the `OIDC_*` variables in [environment-variables.md](environment-variables.md)). Drupal renews the token before sending, so a token that has expired means the admin's session is no longer usable.
 - All three languages are required; each subscriber receives their own language version wrapped in the site's email template.
 - `subject` and `body` are plain text. Newlines in `body` become line breaks.
 - `sms` SMS texts are sent verbatim and are ignored on sites without `enableSms`.
@@ -106,9 +111,9 @@ Returns `202` with `{ "id": "<broadcast id>" }`. Sending continues in the backgr
 
 Returns `409` if a broadcast for the same site is already processing (started within the last 30 minutes). Test sends neither set nor respect this guard.
 
-Returns `403` if `totp_code` is wrong, and `500` if `BROADCAST_TOTP_SECRET` is not configured (broadcasting fails closed).
+Returns `400` if `X-Access-Token` is missing, and `403` if the token cannot be verified: a bad signature, an expired token, another issuer, or an `azp` that is not in `OIDC_ALLOWED_CLIENTS`. The admin has to log in again in that case.
 
-Returns `423` when broadcasting is locked (5 consecutive invalid codes). Waiting the 30 minutes clears the lock.
+Returns `500` if the `OIDC_*` variables are not configured or the issuer's discovery document cannot be read, so broadcasting fails closed.
 
 ## Broadcast status
 

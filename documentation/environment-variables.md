@@ -8,14 +8,16 @@
 `FASTIFY_PORT` Port where Hakuvahti runs. Do not change this in local dev.
 
 ## Broadcast
-`BROADCAST_TOTP_SECRET` Base32 TOTP secret. Required for `POST /broadcast` requests.
-The request must carry 6-digit code `totp_code`, or it is rejected. When unset or
-unreadable, broadcasting is disabled.
+Broadcasting is authorized with the OpenID Connect access token of the admin sending the
+message.
 
-Generate the secret once per environment outside of the application, e.g.
-`head -c 20 /dev/urandom | base32`, store it in the environment variables and share it
-to the admin's authenticator app with the default parameters: SHA-1, 6 digits, 30 second
-period.
+`OIDC_ISSUER` The issuer the access token must come from, i.e. the Keycloak realm URL
+(e.g. `https://tunnistus.test.hel.ninja/auth/realms/helsinki-tunnistus`). Tokens issued by
+anything else are rejected. The keys the token signature is verified against are found via
+the issuer's `.well-known/openid-configuration` document.
+
+`OIDC_ALLOWED_CLIENTS` Comma separated list of the OpenID Connect client ids allowed to
+broadcast.
 
 ## MongoDB
 `MONGODB` MongoDB connection URL.

@@ -2,17 +2,17 @@ import { ObjectId } from '@fastify/mongodb';
 import * as Sentry from '@sentry/node';
 import type { FastifyPluginAsync } from 'fastify';
 import {
-  blockBroadcasts,
-  isBroadcastBlocked,
-  registerFailedAttempt,
-  resetFailedAttempts,
-  verifyBroadcastCode,
+  BroadcastAuthError,
+  type BroadcastSender,
+  verifyBroadcastToken,
 } from '../lib/broadcastAuth.ts';
 import { BroadcastService } from '../lib/broadcastService.ts';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
 import {
   BroadcastAcceptedResponse,
   type BroadcastAcceptedResponseType,
+  BroadcastHeaders,
+  type BroadcastHeadersType,
   BroadcastRequest,
   type BroadcastRequestType,
   type BroadcastStatusDocument,
@@ -35,18 +35,19 @@ const STATUS_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const broadcast: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.post<{
     Body: BroadcastRequestType;
+    Headers: BroadcastHeadersType;
     Reply: BroadcastAcceptedResponseType | Generic400ErrorType | Generic500ErrorType;
   }>(
     '/broadcast',
     {
       schema: {
         body: BroadcastRequest,
+        headers: BroadcastHeaders,
         response: {
           202: BroadcastAcceptedResponse,
           400: Generic400Error,
           403: Generic400Error,
           409: Generic400Error,
-          423: Generic400Error,
           500: Generic500Error,
         },
       },
@@ -57,34 +58,24 @@ const broadcast: FastifyPluginAsync = async (fastify, _opts) => {
         throw new Error('MongoDB connection is not available.');
       }
 
-      const lockedReply = () =>
-        reply
-          .code(423)
-          .header('Content-Type', 'application/json')
-          .send({ error: 'Broadcast API is locked. Try again later.' });
-
-      if (await isBroadcastBlocked(db)) {
-        return lockedReply();
-      }
-
-      // A missing or unreadable secret throws, which the Fastify error handler
-      // turns into a 500 and reports to Sentry.
-      if (!verifyBroadcastCode(request.body.totp_code)) {
-        fastify.log.warn('Invalid broadcast verification code.');
-
-        if (registerFailedAttempt()) {
-          await blockBroadcasts(db, fastify.log);
-
-          return lockedReply();
+      let sender: BroadcastSender;
+      try {
+        sender = await verifyBroadcastToken(request.headers['x-access-token']);
+      } catch (error) {
+        // Anything that is not a rejected token is a problem on our end. Let it
+        // through to the error handler, which turns it into a 500 and reports it
+        // to Sentry, so broadcasting fails closed on a missing configuration.
+        if (!(error instanceof BroadcastAuthError)) {
+          throw error;
         }
+
+        fastify.log.warn(`Rejected broadcast access token: ${error.message}`);
 
         return reply
           .code(403)
           .header('Content-Type', 'application/json')
-          .send({ error: 'Invalid verification code.', field: 'totp_code' });
+          .send({ error: 'Invalid or expired access token.', field: 'access_token' });
       }
-
-      resetFailedAttempts();
 
       let siteConfig: SiteConfigurationType;
       try {
@@ -150,6 +141,10 @@ const broadcast: FastifyPluginAsync = async (fastify, _opts) => {
         created: new Date(),
         stats: null,
       });
+
+      fastify.log.info(
+        `Broadcast ${record.insertedId.toString()} for site ${request.body.site_id} (test: ${isTest}) sent by sub ${sender.sub} via ${sender.azp}.`,
+      );
 
       // Fan-out can take minutes for large sites (contact details are
       // resolved from ATV in batches), so it runs after the reply.

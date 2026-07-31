@@ -23,8 +23,9 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-local}
       NODE_TLS_REJECT_UNAUTHORIZED: ${NODE_TLS_REJECT_UNAUTHORIZED:-1}
       HAKUVAHTI_API_KEY: ${HAKUVAHTI_API_KEY:-123}
-      # Broadcast verification. Local default is base32 for "hakuvahti-dev-secret".
-      BROADCAST_TOTP_SECRET: ${BROADCAST_TOTP_SECRET:-NBQWW5LWMFUHI2JNMRSXMLLTMVRXEZLU}
+      # Broadcast authorization. Defaults point at the Tunnistamo test realm.
+      OIDC_ISSUER: ${OIDC_ISSUER:-https://tunnistus.test.hel.ninja/auth/realms/helsinki-tunnistus}
+      OIDC_ALLOWED_CLIENTS: ${OIDC_ALLOWED_CLIENTS:-helfi-etusivu-dev}
       # Sentry (optional)
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_RELEASE: ${SENTRY_RELEASE:-}

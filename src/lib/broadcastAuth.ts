@@ -1,91 +1,179 @@
-import * as Sentry from '@sentry/node';
-import type { FastifyBaseLogger } from 'fastify';
-import type { Db } from 'mongodb';
-import { type BroadcastStatusDocument, PROCESSING_STALE_MS } from '../types/broadcast.ts';
-import { SiteConfigurationLoader } from './siteConfigurationLoader.ts';
-import { decodeBase32, TOTP_STEP_MS, verifyTotp } from './totp.ts';
+import {createRemoteJWKSet, type JWTPayload, jwtVerify, type JWTVerifyGetKey} from 'jose';
 
 /**
- * Second factor for the broadcast endpoint.
+ * Authorization for the broadcast endpoint.
  *
- * Broadcasting reaches every subscriber of a site, so we must take extra care
- * to protect the endpoint: the admin must also pass valid TOPT code with the request.
+ * Broadcasting reaches every subscriber of a site, so we must take extra care to
+ * protect the endpoint.
+ *  - The api key says the Drupal site is authorized to call Hakuvahti API.
+ *  - OpenID Connect access token determines that the AD user is allowed to broadcast.
  */
-
-/** Consecutive invalid codes that block broadcasting. */
-export const MAX_FAILED_ATTEMPTS = 5;
 
 /**
- * Consecutive invalid codes seen by this process.
- *
- * With several replicas an attacker gets MAX_FAILED_ATTEMPTS per replica.
- * The ban itself is stored in MongoDB so one failure in any replica
- * blocks future attempts.
+ * Thrown when a token is not acceptable.
  */
-let failedAttempts = 0;
+export class BroadcastAuthError extends Error {}
 
-/**
- * Verify a broadcast code against BROADCAST_TOTP_SECRET.
- */
-export function verifyBroadcastCode(code: string): boolean {
-  const secret = process.env.BROADCAST_TOTP_SECRET;
+/** A verified broadcast sender. */
+export interface BroadcastSender {
+  /** Identity provider's subject identifier. */
+  sub: string;
+  /** Client id of the Drupal site the broadcast came from. */
+  azp: string;
+  email?: string;
+}
 
-  if (!secret) {
-    throw new Error('BROADCAST_TOTP_SECRET is not set.');
+/** Tolerance in seconds for clock differences between us and the provider. */
+const CLOCK_TOLERANCE = 5;
+
+/** How long we wait for the provider's discovery document. */
+const DISCOVERY_TIMEOUT_MS = 10000;
+
+type KeyResolver = JWTVerifyGetKey;
+
+/** Cached per issuer, since the discovery document belongs to the issuer. */
+const keyResolvers = new Map<string, Promise<KeyResolver>>();
+
+function requireEnvironmentVariable(name: string): string {
+  const value = process.env[name];
+
+  if (!value) {
+    throw new Error(`${name} is not set.`);
   }
 
-  return verifyTotp(decodeBase32(secret), code, Math.floor(Date.now() / TOTP_STEP_MS));
+  return value;
+}
+
+interface BroadcastAuthConfiguration {
+  issuer: string;
+  allowedClients: string[];
 }
 
 /**
- * Count an invalid code.
+ * The configuration broadcasting is authorized against.
  */
-export function registerFailedAttempt(): boolean {
-  failedAttempts += 1;
+function readConfiguration(): BroadcastAuthConfiguration {
+  const issuer = requireEnvironmentVariable('OIDC_ISSUER');
+  const allowedClients = requireEnvironmentVariable('OIDC_ALLOWED_CLIENTS')
+    .split(',')
+    .map((client) => client.trim())
+    .filter(Boolean);
 
-  if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
-    failedAttempts = 0;
-    return true;
+  if (allowedClients.length === 0) {
+    throw new Error('OIDC_ALLOWED_CLIENTS does not contain any client ids.');
   }
 
-  return false;
-}
-
-/** Only consecutive failures count, so a valid code clears the counter. */
-export function resetFailedAttempts(): void {
-  failedAttempts = 0;
+  return { issuer, allowedClients };
 }
 
 /**
- * Block broadcasting for every site and report it to Sentry.
+ * Reads the JWKS URI off the issuer's OpenID Connect discovery document.
  */
-export async function blockBroadcasts(db: Db, log: FastifyBaseLogger): Promise<void> {
-  const created = new Date();
-  const records: BroadcastStatusDocument[] = SiteConfigurationLoader.getSiteIds().map((siteId) => ({
-    type: 'broadcast',
-    site_id: siteId,
-    status: 'processing',
-    test: false,
-    created,
-    stats: null,
-    auth_lock: true,
-  }));
+async function discoverJwksUri(issuer: string): Promise<URL> {
+  // Per OpenID Connect Discovery the path is appended to the issuer, which for
+  // a Keycloak realm already has one.
+  const discoveryUrl = new URL(`${issuer.replace(/\/$/, '')}/.well-known/openid-configuration`);
 
-  await db.collection<BroadcastStatusDocument>('queue').insertMany(records, { ordered: false });
-
-  const message = `Broadcast API blocked after ${MAX_FAILED_ATTEMPTS} invalid verification codes.`;
-
-  log.error(message);
-  Sentry.captureMessage(message, 'error');
-}
-
-/** True while broadcasting is blocked by repeated invalid codes. */
-export async function isBroadcastBlocked(db: Db): Promise<boolean> {
-  const record = await db.collection<BroadcastStatusDocument>('queue').findOne({
-    type: 'broadcast',
-    auth_lock: true,
-    created: { $gt: new Date(Date.now() - PROCESSING_STALE_MS) },
+  const response = await fetch(discoveryUrl, {
+    headers: { Accept: 'application/json' },
+    signal: AbortSignal.timeout(DISCOVERY_TIMEOUT_MS),
   });
 
-  return record !== null;
+  if (!response.ok) {
+    throw new Error(`${discoveryUrl.toString()} responded ${response.status}.`);
+  }
+
+  const document = (await response.json()) as { issuer?: unknown; jwks_uri?: unknown };
+
+  // The document must name the issuer we asked about. Anything else means we are
+  // not talking to the provider we think we are.
+  if (document.issuer !== issuer) {
+    throw new Error(`${discoveryUrl.toString()} is for issuer "${String(document.issuer)}", expected "${issuer}".`);
+  }
+
+  if (typeof document.jwks_uri !== 'string' || document.jwks_uri === '') {
+    throw new Error(`${discoveryUrl.toString()} has no jwks_uri.`);
+  }
+
+  return new URL(document.jwks_uri);
+}
+
+/**
+ * Resolves the keys access tokens are verified against.
+ */
+function getKeyResolver(issuer: string): Promise<KeyResolver> {
+  const known = keyResolvers.get(issuer);
+
+  if (known) {
+    return known;
+  }
+
+  const resolver = discoverJwksUri(issuer).then((jwksUri) => createRemoteJWKSet(jwksUri));
+
+  // A failed discovery must not be remembered.
+  const cached: Promise<KeyResolver> = resolver.catch((error: unknown) => {
+    if (keyResolvers.get(issuer) === cached) {
+      keyResolvers.delete(issuer);
+    }
+
+    throw error;
+  });
+
+  keyResolvers.set(issuer, cached);
+
+  return cached;
+}
+
+/** Forgets the cached key resolvers. */
+export function resetKeyResolver(): void {
+  keyResolvers.clear();
+}
+
+/**
+ * Verifies the access token of the admin sending a broadcast.
+ */
+export async function verifyBroadcastToken(token: string | undefined): Promise<BroadcastSender> {
+  const { issuer, allowedClients } = readConfiguration();
+
+  if (!token) {
+    throw new BroadcastAuthError('The request has no access token.');
+  }
+
+  const resolveKey = await getKeyResolver(issuer);
+
+  let payload: JWTPayload;
+  try {
+    // Verifies the signature and the exp and iss claims. A failure to fetch the
+    // keys also ends up here; the logged reason tells the two apart.
+    ({ payload } = await jwtVerify(token, resolveKey, { issuer, clockTolerance: CLOCK_TOLERANCE }));
+  } catch (error) {
+    throw new BroadcastAuthError(error instanceof Error ? error.message : 'The access token is not valid.');
+  }
+
+  // Access tokens are marked as Bearer. This check should forbid id tokens.
+  if (typeof payload.typ === 'string' && payload.typ !== 'Bearer') {
+    throw new BroadcastAuthError(`Expected a Bearer token, got "${payload.typ}".`);
+  }
+
+  const azp = getStringClaim(payload, 'azp');
+
+  if (!allowedClients.includes(azp)) {
+    throw new BroadcastAuthError(`The token was issued to "${azp}", which is not an allowed client.`);
+  }
+
+  return {
+    sub: getStringClaim(payload, 'sub'),
+    azp,
+    email: typeof payload.email === 'string' ? payload.email : undefined,
+  };
+}
+
+function getStringClaim(payload: JWTPayload, claim: string): string {
+  const value = payload[claim];
+
+  if (typeof value !== 'string' || value === '') {
+    throw new BroadcastAuthError(`The token has no ${claim} claim.`);
+  }
+
+  return value;
 }

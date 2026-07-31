@@ -2,11 +2,14 @@ import * as assert from 'node:assert';
 import { before, describe, mock, test } from 'node:test';
 import { setTimeout as sleep } from 'node:timers/promises';
 import type { FastifyInstance } from 'fastify';
-import { MAX_FAILED_ATTEMPTS, resetFailedAttempts } from '../../src/lib/broadcastAuth.ts';
-import { SiteConfigurationLoader } from '../../src/lib/siteConfigurationLoader.ts';
-import { decodeBase32, generateTotp, TOTP_STEP_MS } from '../../src/lib/totp.ts';
 import { SubscriptionStatus } from '../../src/types/subscription.ts';
-import { build, createSubscription } from '../helper.ts';
+import {
+  type AccessTokenOverrides,
+  build,
+  createSubscription,
+  oidcProviderResponse,
+  signAccessToken,
+} from '../helper.ts';
 
 // Contact details returned by the mocked ATV batch-list endpoint, by ATV id.
 const atvDocs: Record<string, { email?: string; sms?: string }> = {
@@ -15,25 +18,15 @@ const atvDocs: Record<string, { email?: string; sms?: string }> = {
   'atv-b2': { email: 'b@example.com' },
 };
 
-// Base32 of the RFC 6238 test secret "12345678901234567890".
-process.env.BROADCAST_TOTP_SECRET = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
-
-/** Code an admin with the secret in their authenticator app would see now. */
-function currentCode(): string {
-  return generateTotp(decodeBase32(process.env.BROADCAST_TOTP_SECRET ?? ''), Math.floor(Date.now() / TOTP_STEP_MS));
-}
-
 const messages = {
   fi: { subject: 'Huoltokatko', body: 'FI body' },
   sv: { subject: 'Underhåll', body: 'SV body' },
   en: { subject: 'Maintenance', body: 'EN body' },
 };
 
-/** A payload with a freshly generated verification code. */
 function validPayload(overrides: Record<string, unknown> = {}) {
   return {
     site_id: 'rekry',
-    totp_code: currentCode(),
     messages,
     ...overrides,
   };
@@ -43,16 +36,25 @@ async function cleanDatabase(app: FastifyInstance) {
   const db = app.mongo.db;
   await db?.collection('subscription').deleteMany({});
   await db?.collection('queue').deleteMany({});
-  // The failed code counter lives in the process, not in the database.
-  resetFailedAttempts();
 }
 
-function broadcast(app: FastifyInstance, payload: Record<string, unknown>) {
+/** Sends a broadcast with an access token an admin would have. */
+async function broadcast(app: FastifyInstance, payload: Record<string, unknown>) {
   return app.inject({
     method: 'POST',
     url: '/broadcast',
-    headers: { Authorization: 'api-key test' },
+    headers: { Authorization: 'api-key test', 'X-Access-Token': await signAccessToken() },
     payload,
+  });
+}
+
+/** Sends a broadcast with an access token built from the given overrides. */
+async function broadcastWithToken(app: FastifyInstance, overrides: AccessTokenOverrides) {
+  return app.inject({
+    method: 'POST',
+    url: '/broadcast',
+    headers: { Authorization: 'api-key test', 'X-Access-Token': await signAccessToken(overrides) },
+    payload: validPayload(),
   });
 }
 
@@ -75,13 +77,23 @@ async function waitForBroadcast(app: FastifyInstance, id: string) {
 
 describe('/broadcast', () => {
   before(() => {
-    mock.method(globalThis, 'fetch', async (url: string, options?: { body?: string }) => {
-      if (url.includes('/v1/documents/batch-list/')) {
+    mock.method(globalThis, 'fetch', async (url: string | URL, options?: { body?: string }) => {
+      const target = url.toString();
+
+      if (target.includes('/v1/documents/batch-list/')) {
         const { document_ids: ids } = JSON.parse(options?.body ?? '{}') as { document_ids: string[] };
         const docs = ids.filter((id) => atvDocs[id]).map((id) => ({ id, content: atvDocs[id] }));
         return new Response(JSON.stringify(docs), { status: 200, headers: { 'Content-Type': 'application/json' } });
       }
-      throw new Error(`Unexpected fetch URL: ${url}`);
+
+      // The signing keys the access tokens are verified against.
+      const provider = oidcProviderResponse(target);
+
+      if (provider) {
+        return provider;
+      }
+
+      throw new Error(`Unexpected fetch URL: ${target}`);
     });
   });
 
@@ -91,11 +103,28 @@ describe('/broadcast', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/broadcast',
-      headers: { Authorization: 'api-key wrong' },
+      headers: { Authorization: 'api-key wrong', 'X-Access-Token': await signAccessToken() },
       payload: validPayload(),
     });
 
     assert.strictEqual(res.statusCode, 403);
+  });
+
+  test('requires an access token', async (t) => {
+    const app = await build(t);
+    await cleanDatabase(app);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/broadcast',
+      headers: { Authorization: 'api-key test' },
+      payload: validPayload(),
+    });
+
+    assert.strictEqual(res.statusCode, 400);
+
+    const queueItems = await app.mongo.db?.collection('queue').find({}).toArray();
+    assert.strictEqual(queueItems?.length, 0);
   });
 
   test('rejects invalid input', async (t) => {
@@ -131,16 +160,8 @@ describe('/broadcast', () => {
         payload: validPayload({ subscription_ids: [] }),
       },
       {
-        name: 'missing verification code',
-        payload: { site_id: 'rekry', messages },
-      },
-      {
-        name: 'too short verification code',
-        payload: validPayload({ totp_code: '12345' }),
-      },
-      {
-        name: 'non-numeric verification code',
-        payload: validPayload({ totp_code: 'abcdef' }),
+        name: 'missing site_id',
+        payload: { messages },
       },
     ];
 
@@ -158,129 +179,79 @@ describe('/broadcast', () => {
     }
   });
 
-  test('rejects a wrong verification code', async (t) => {
+  test('rejects unacceptable access tokens', async (t) => {
     const app = await build(t);
     await cleanDatabase(app);
 
-    const res = await broadcast(app, validPayload({ totp_code: '000000' }));
+    const testCases: Array<{ name: string; overrides: AccessTokenOverrides }> = [
+      {
+        name: 'signed with an unknown key',
+        overrides: { foreignKey: true },
+      },
+      {
+        name: 'issued by another realm',
+        overrides: { issuer: 'https://oidc.test/realms/somewhere-else' },
+      },
+      {
+        name: 'expired',
+        overrides: { expiresAt: Math.floor(Date.now() / 1000) - 60 },
+      },
+      {
+        name: 'issued to a client that is not allowed to broadcast',
+        overrides: { claims: { azp: 'some-other-client' } },
+      },
+      {
+        name: 'without an azp claim',
+        overrides: { claims: { azp: undefined } },
+      },
+      {
+        name: 'an id token rather than an access token',
+        overrides: { claims: { typ: 'ID' } },
+      },
+    ];
 
-    assert.strictEqual(res.statusCode, 403);
-    const body = JSON.parse(res.body);
-    assert.ok(body.error.includes('Invalid verification code'));
+    for (const { name, overrides } of testCases) {
+      await t.test(name, async () => {
+        const res = await broadcastWithToken(app, overrides);
 
-    // Nothing was queued and no status record was created.
-    const queueItems = await app.mongo.db?.collection('queue').find({}).toArray();
-    assert.strictEqual(queueItems?.length, 0);
-  });
+        assert.strictEqual(res.statusCode, 403);
+        assert.ok(JSON.parse(res.body).error.includes('access token'));
 
-  test('locks broadcasting after repeated wrong verification codes', async (t) => {
-    const app = await build(t);
-    await cleanDatabase(app);
-
-    for (let attempt = 1; attempt < MAX_FAILED_ATTEMPTS; attempt++) {
-      const res = await broadcast(app, validPayload({ totp_code: '000000' }));
-      assert.strictEqual(res.statusCode, 403, `attempt ${attempt} should be rejected but not lock`);
+        // Nothing was queued and no status record was created.
+        const queueItems = await app.mongo.db?.collection('queue').find({}).toArray();
+        assert.strictEqual(queueItems?.length, 0);
+      });
     }
-
-    const locking = await broadcast(app, validPayload({ totp_code: '000000' }));
-    assert.strictEqual(locking.statusCode, 423);
-    assert.ok(JSON.parse(locking.body).error.includes('locked'));
-
-    // Every site is blocked, not just the one that was targeted.
-    const lockRecords = await app.mongo.db?.collection('queue').find({ type: 'broadcast', auth_lock: true }).toArray();
-    assert.strictEqual(lockRecords?.length, SiteConfigurationLoader.getSiteIds().length);
-    assert.deepStrictEqual(
-      lockRecords?.map((record) => record.site_id).sort(),
-      [...SiteConfigurationLoader.getSiteIds()].sort(),
-    );
-
-    // A valid code no longer helps.
-    const withValidCode = await broadcast(app, validPayload());
-    assert.strictEqual(withValidCode.statusCode, 423);
-
-    // Test sends bypass the normal double submission guard, but not the lock.
-    const subscriptions = app.mongo.db?.collection('subscription');
-    const targetId = await createSubscription(subscriptions, {
-      site_id: 'rekry',
-      status: SubscriptionStatus.ACTIVE,
-      email_confirmed: true,
-      lang: 'fi',
-      atv_id: 'atv-a',
-      email: '',
-    });
-    const testSend = await broadcast(app, validPayload({ subscription_ids: [targetId.toString()] }));
-    assert.strictEqual(testSend.statusCode, 423);
-
-    const queueItems = await app.mongo.db
-      ?.collection('queue')
-      .find({ type: { $in: ['email', 'sms'] } })
-      .toArray();
-    assert.strictEqual(queueItems?.length, 0);
   });
 
-  test('a stale lock no longer blocks broadcasting', async (t) => {
+  test('accepts a token without the non-standard typ claim', async (t) => {
     const app = await build(t);
     await cleanDatabase(app);
 
-    await app.mongo.db?.collection('queue').insertOne({
-      type: 'broadcast',
-      site_id: 'rekry',
-      status: 'processing',
-      test: false,
-      created: new Date(Date.now() - 31 * 60 * 1000),
-      stats: null,
-      auth_lock: true,
-    });
-
-    const res = await broadcast(app, validPayload());
+    const res = await broadcastWithToken(app, { claims: { typ: undefined } });
 
     assert.strictEqual(res.statusCode, 202);
     await waitForBroadcast(app, JSON.parse(res.body).id);
   });
 
-  test('a valid code clears the failed attempt count', async (t) => {
+  test('broadcasting is disabled without a configured issuer', async (t) => {
     const app = await build(t);
     await cleanDatabase(app);
 
-    for (let attempt = 1; attempt < MAX_FAILED_ATTEMPTS; attempt++) {
-      const res = await broadcast(app, validPayload({ totp_code: '000000' }));
-      assert.strictEqual(res.statusCode, 403);
-    }
-
-    const accepted = await broadcast(app, validPayload());
-    assert.strictEqual(accepted.statusCode, 202);
-    await waitForBroadcast(app, JSON.parse(accepted.body).id);
-
-    // The counter started over, so the same number of failures does not lock.
-    for (let attempt = 1; attempt < MAX_FAILED_ATTEMPTS; attempt++) {
-      const res = await broadcast(app, validPayload({ totp_code: '000000' }));
-      assert.strictEqual(res.statusCode, 403, `attempt ${attempt} should not lock after a valid code`);
-    }
-
-    const lockRecord = await app.mongo.db?.collection('queue').findOne({ type: 'broadcast', auth_lock: true });
-    assert.strictEqual(lockRecord, null);
-  });
-
-  test('broadcasting is disabled without a configured secret', async (t) => {
-    const app = await build(t);
-    await cleanDatabase(app);
-
-    const secret = process.env.BROADCAST_TOTP_SECRET;
-    // Build the payload while the secret is still available: even a valid
-    // code must be rejected once the secret is gone.
-    const payload = validPayload();
-    process.env.BROADCAST_TOTP_SECRET = '';
+    const issuer = process.env.OIDC_ISSUER;
+    process.env.OIDC_ISSUER = '';
 
     try {
-      const res = await broadcast(app, payload);
+      const res = await broadcast(app, validPayload());
 
+      // A misconfigured environment cannot broadcast, and the failure is ours
+      // rather than the sender's.
       assert.strictEqual(res.statusCode, 500);
 
-      // Nothing was queued: a misconfigured environment cannot broadcast.
       const queueItems = await app.mongo.db?.collection('queue').find({}).toArray();
       assert.strictEqual(queueItems?.length, 0);
     } finally {
-      process.env.BROADCAST_TOTP_SECRET = secret;
+      process.env.OIDC_ISSUER = issuer;
     }
   });
 

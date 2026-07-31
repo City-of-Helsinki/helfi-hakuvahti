@@ -6,6 +6,7 @@ import type * as test from 'node:test';
 import type { ObjectId } from '@fastify/mongodb';
 import Fastify, { type FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
+import { exportJWK, generateKeyPair, type JSONWebKeySet, SignJWT } from 'jose';
 import type { Collection } from 'mongodb';
 import app from '../src/app.ts';
 import { SubscriptionStatus } from '../src/types/subscription.ts';
@@ -15,6 +16,85 @@ export type TestContext = {
 };
 
 process.env.HAKUVAHTI_API_KEY = 'test';
+
+const OIDC_REALMS = 'https://oidc.test/realms/';
+
+const DISCOVERY_PATH = '/.well-known/openid-configuration';
+const CERTS_PATH = '/protocol/openid-connect/certs';
+
+export const OIDC_ISSUER = `${OIDC_REALMS}hakuvahti`;
+export const OIDC_DISCOVERY_URL = `${OIDC_ISSUER}${DISCOVERY_PATH}`;
+export const OIDC_JWKS_URI = `${OIDC_ISSUER}${CERTS_PATH}`;
+export const OIDC_CLIENT_ID = 'helfi-test';
+
+const SIGNING_ALGORITHM = 'RS256';
+const KEY_ID = 'test-key';
+
+const { publicKey, privateKey } = await generateKeyPair(SIGNING_ALGORITHM, { extractable: true });
+
+// A second key that the application does not know about, for signatures that
+// must not be accepted.
+const { privateKey: foreignPrivateKey } = await generateKeyPair(SIGNING_ALGORITHM, { extractable: true });
+
+process.env.OIDC_ISSUER = OIDC_ISSUER;
+process.env.OIDC_ALLOWED_CLIENTS = OIDC_CLIENT_ID;
+
+/** The key set the stand-in provider publishes, i.e. what the tests sign with. */
+export const OIDC_JWKS: JSONWebKeySet = {
+  keys: [{ ...(await exportJWK(publicKey)), kid: KEY_ID, alg: SIGNING_ALGORITHM, use: 'sig' }],
+};
+
+/**
+ * Answers the requests token verification makes to the identity provider, so
+ * that no real one is reached.
+ */
+export function oidcProviderResponse(url: string): Response | undefined {
+  if (!url.startsWith(OIDC_REALMS)) {
+    return undefined;
+  }
+
+  if (url.endsWith(DISCOVERY_PATH)) {
+    const issuer = url.slice(0, -DISCOVERY_PATH.length);
+
+    return Response.json({ issuer, jwks_uri: `${issuer}${CERTS_PATH}` });
+  }
+
+  if (url.endsWith(CERTS_PATH)) {
+    return Response.json(OIDC_JWKS);
+  }
+
+  return undefined;
+}
+
+export type AccessTokenOverrides = {
+  issuer?: string;
+  subject?: string;
+  expiresAt?: number | string;
+  claims?: Record<string, unknown>;
+  /** Sign with a key the application does not trust. */
+  foreignKey?: boolean;
+};
+
+/**
+ * Creates an access token like the one Keycloak issues to a Drupal site.
+ */
+export function signAccessToken(overrides: AccessTokenOverrides = {}): Promise<string> {
+  const {
+    issuer = OIDC_ISSUER,
+    subject = 'f5b1a0c2-0000-4000-8000-000000000001',
+    expiresAt = '5m',
+    claims = {},
+    foreignKey = false,
+  } = overrides;
+
+  return new SignJWT({ typ: 'Bearer', azp: OIDC_CLIENT_ID, email: 'admin@example.com', ...claims })
+    .setProtectedHeader({ alg: SIGNING_ALGORITHM, kid: KEY_ID })
+    .setIssuer(issuer)
+    .setSubject(subject)
+    .setIssuedAt()
+    .setExpirationTime(expiresAt)
+    .sign(foreignKey ? foreignPrivateKey : privateKey);
+}
 
 // Fill in this config with all the configurations
 // needed for testing the application
