@@ -1,6 +1,6 @@
 import { ObjectId } from '@fastify/mongodb';
 import type { Collection, Filter } from 'mongodb';
-import { type SiteConfigurationType } from '../types/siteConfig.ts';
+import type { SiteConfigurationType } from '../types/siteConfig.ts';
 import { type SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription.ts';
 import { ATV } from './atv.ts';
 import { SiteConfigurationLoader } from './siteConfigurationLoader.ts';

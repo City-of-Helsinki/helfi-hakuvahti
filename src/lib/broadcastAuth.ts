@@ -1,4 +1,4 @@
-import { createRemoteJWKSet, type JWTPayload, jwtVerify, type JWTVerifyGetKey } from 'jose';
+import { createRemoteJWKSet, type JWTPayload, type JWTVerifyGetKey, jwtVerify } from 'jose';
 
 /**
  * Authorization for the broadcast endpoint.
