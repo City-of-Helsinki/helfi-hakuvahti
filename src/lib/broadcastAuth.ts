@@ -1,12 +1,16 @@
 import { createRemoteJWKSet, type JWTPayload, type JWTVerifyGetKey, jwtVerify } from 'jose';
+import type { SiteConfigurationType } from '../types/siteConfig.ts';
 
 /**
  * Authorization for the broadcast endpoint.
  *
  * Broadcasting reaches every subscriber of a site, so we must take extra care to
- * protect the endpoint.
+ * protect the endpoint. Three separate things have to hold:
  *  - The api key says the Drupal site is authorized to call Hakuvahti API.
- *  - OpenID Connect access token determines that the AD user is allowed to broadcast.
+ *  - The OpenID Connect access token identifies an AD user who logged in to one
+ *    of the clients in OIDC_ALLOWED_CLIENTS.
+ *  - The token's ad_groups claim names a group that the target site allows to
+ *    broadcast for it, see broadcast.adGroups in conf/{site}.json.
  */
 
 /**
@@ -21,6 +25,8 @@ export interface BroadcastSender {
   /** Client id of the Drupal site the broadcast came from. */
   azp: string;
   email?: string;
+  /** The AD groups of the token's ad_groups claim. */
+  adGroups: string[];
 }
 
 /** Tolerance in seconds for clock differences between us and the provider. */
@@ -165,7 +171,45 @@ export async function verifyBroadcastToken(token: string | undefined): Promise<B
     sub: getStringClaim(payload, 'sub'),
     azp,
     email: typeof payload.email === 'string' ? payload.email : undefined,
+    adGroups: getAdGroups(payload),
   };
+}
+
+/**
+ * Checks that the sender belongs to a group the site lets broadcast for it.
+ *
+ * Verifying the token only says who the sender is. This is what says they are
+ * allowed to reach the subscribers of this particular site.
+ *
+ * @returns The group that matched.
+ */
+export function authorizeBroadcastSender(sender: BroadcastSender, siteConfig: SiteConfigurationType): string {
+  const configured = (siteConfig.broadcast?.adGroups ?? []).filter(
+    (group) => typeof group === 'string' && group !== '',
+  );
+
+  // Checked before the sender, since our own missing configuration must not be
+  // reported as the sender lacking a permission.
+  if (configured.length === 0) {
+    throw new Error(`Site "${siteConfig.id}" has no broadcast.adGroups configured, so broadcasting to it is disabled.`);
+  }
+
+  if (sender.adGroups.length === 0) {
+    throw new BroadcastAuthError(
+      'The token has no ad_groups claim. The client is likely missing the add-ad-groups-claim scope.',
+    );
+  }
+
+  const membership = new Set(sender.adGroups);
+  const match = configured.find((group) => membership.has(group));
+
+  if (match === undefined) {
+    throw new BroadcastAuthError(
+      `Sub ${sender.sub} is not a member of any group allowed to broadcast for "${siteConfig.id}".`,
+    );
+  }
+
+  return match;
 }
 
 function getStringClaim(payload: JWTPayload, claim: string): string {
@@ -176,4 +220,18 @@ function getStringClaim(payload: JWTPayload, claim: string): string {
   }
 
   return value;
+}
+
+/**
+ * The AD groups of the token, however the provider named them.
+ *
+ * Missing or malformed is an empty list rather than an error: whether groups are
+ * needed at all is up to the site being broadcast to, which is not known here.
+ */
+function getAdGroups(payload: JWTPayload): string[] {
+  if (!Array.isArray(payload.ad_groups)) {
+    return [];
+  }
+
+  return payload.ad_groups.filter((group): group is string => typeof group === 'string' && group !== '');
 }

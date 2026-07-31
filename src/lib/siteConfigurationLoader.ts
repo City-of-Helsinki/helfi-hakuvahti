@@ -110,6 +110,7 @@ export class SiteConfigurationLoader {
         subscription: envConfig.subscription,
         mail: envConfig.mail,
         elasticProxyUrl: envConfig.elasticProxyUrl,
+        broadcast: envConfig.broadcast,
         translations,
         matchField: rawConfig.matchField,
         fieldFormats,

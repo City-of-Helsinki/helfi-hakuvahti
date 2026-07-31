@@ -1,7 +1,12 @@
 import { ObjectId } from '@fastify/mongodb';
 import * as Sentry from '@sentry/node';
 import type { FastifyPluginAsync } from 'fastify';
-import { BroadcastAuthError, type BroadcastSender, verifyBroadcastToken } from '../lib/broadcastAuth.ts';
+import {
+  authorizeBroadcastSender,
+  BroadcastAuthError,
+  type BroadcastSender,
+  verifyBroadcastToken,
+} from '../lib/broadcastAuth.ts';
 import { BroadcastService } from '../lib/broadcastService.ts';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
 import {
@@ -69,6 +74,24 @@ const broadcast: FastifyPluginAsync = async (fastify, _opts) => {
         return reply.code(400).header('Content-Type', 'application/json').send({ error: 'Invalid site_id provided.' });
       }
 
+      let senderGroup: string;
+      try {
+        senderGroup = authorizeBroadcastSender(sender, siteConfig);
+      } catch (error) {
+        // As above: a site without configured groups is our problem, so it
+        // becomes a 500 rather than a permission denial.
+        if (!(error instanceof BroadcastAuthError)) {
+          throw error;
+        }
+
+        fastify.log.warn(`Rejected broadcast for site ${request.body.site_id}: ${error.message}`);
+
+        return reply
+          .code(403)
+          .header('Content-Type', 'application/json')
+          .send({ error: 'Not authorized to broadcast for this site.', field: 'access_token' });
+      }
+
       // Subscribers must not be excluded from an SMS broadcast based on
       // their language, so SMS texts are all-or-none.
       const smsCount = SUBSCRIPTION_LANGUAGES.filter((lang) => request.body.messages[lang].sms).length;
@@ -92,7 +115,7 @@ const broadcast: FastifyPluginAsync = async (fastify, _opts) => {
       }
       const isTest = subscriptionIds !== undefined;
 
-      const sentBy = `for site ${request.body.site_id} (test: ${isTest}) by sub ${sender.sub} via ${sender.azp}`;
+      const sentBy = `for site ${request.body.site_id} (test: ${isTest}) by sub ${sender.sub} via ${sender.azp} (group ${senderGroup})`;
 
       fastify.log.info(`Broadcast ${sentBy} accepted.`);
 

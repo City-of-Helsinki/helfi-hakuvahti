@@ -34,11 +34,23 @@ export const SiteMailSettings = Type.Object({
 });
 export type SiteMailSettingsType = Static<typeof SiteMailSettings>;
 
+export const SiteBroadcastSettings = Type.Object({
+  /**
+   * The AD groups whose members may broadcast for the site, each entry matched
+   * against the token's ad_groups claim as is.
+   */
+  adGroups: Type.Array(Type.String()),
+});
+export type SiteBroadcastSettingsType = Static<typeof SiteBroadcastSettings>;
+
 export const SiteEnvironmentConfig = Type.Object({
   urls: SiteLanguageUrls,
   subscription: SiteSubscriptionSettings,
   mail: SiteMailSettings,
   elasticProxyUrl: Type.String(),
+  // Optional, since the sites and environments that never broadcast must still
+  // load. A site without it simply cannot be broadcast to.
+  broadcast: Type.Optional(SiteBroadcastSettings),
 });
 export type SiteEnvironmentConfigType = Static<typeof SiteEnvironmentConfig>;
 
@@ -60,6 +72,7 @@ export const SiteConfiguration = Type.Object({
   subscription: SiteSubscriptionSettings,
   mail: SiteMailSettings,
   elasticProxyUrl: Type.String(),
+  broadcast: Type.Optional(SiteBroadcastSettings),
   translations: Type.Optional(TranslationMap),
   matchField: Type.String(),
   fieldFormats: Type.Optional(Type.Record(Type.String(), Type.String())),

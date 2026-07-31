@@ -189,7 +189,13 @@
       "templatePath": "etusivu",
       "maxHitsInEmail": 10
     },
-    "elasticProxyUrl": "http://helfi-etusivu-elastic-proxy:8080/news"
+    "elasticProxyUrl": "http://helfi-etusivu-elastic-proxy:8080/news",
+    "broadcast": {
+      "adGroups": [
+        "Drupal_Helfi_kaupunkitaso_paakayttajat",
+        "947058f4-697e-41bb-baf5-f69b49e5579a"
+      ]
+    }
   },
   "dev": {
     "urls": {
@@ -208,7 +214,13 @@
       "templatePath": "etusivu",
       "maxHitsInEmail": 10
     },
-    "elasticProxyUrl": "https://helfi-etusivu-elastic-proxy.test.hel.ninja/news"
+    "elasticProxyUrl": "https://helfi-etusivu-elastic-proxy.test.hel.ninja/news",
+    "broadcast": {
+      "adGroups": [
+        "Drupal_Helfi_kaupunkitaso_paakayttajat",
+        "947058f4-697e-41bb-baf5-f69b49e5579a"
+      ]
+    }
   },
   "staging": {
     "urls": {
@@ -227,7 +239,13 @@
       "templatePath": "etusivu",
       "maxHitsInEmail": 10
     },
-    "elasticProxyUrl": "https://helfi-etusivu-elastic-proxy.stage.hel.ninja/news"
+    "elasticProxyUrl": "https://helfi-etusivu-elastic-proxy.stage.hel.ninja/news",
+    "broadcast": {
+      "adGroups": [
+        "Drupal_Helfi_kaupunkitaso_paakayttajat",
+        "947058f4-697e-41bb-baf5-f69b49e5579a"
+      ]
+    }
   },
   "production": {
     "urls": {
@@ -246,6 +264,12 @@
       "templatePath": "etusivu",
       "maxHitsInEmail": 10
     },
-    "elasticProxyUrl": "https://helfi-etusivu-elastic-proxy.api.hel.ninja/news"
+    "elasticProxyUrl": "https://helfi-etusivu-elastic-proxy.api.hel.ninja/news",
+    "broadcast": {
+      "adGroups": [
+        "Drupal_Helfi_kaupunkitaso_paakayttajat",
+        "947058f4-697e-41bb-baf5-f69b49e5579a"
+      ]
+    }
   }
 }

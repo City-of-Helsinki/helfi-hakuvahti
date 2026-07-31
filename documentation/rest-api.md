@@ -102,6 +102,7 @@ X-Access-Token: <OpenID Connect access token of the admin sending the broadcast>
 ```
 
 - `X-Access-Token` is required. The API key says the request comes from one of our Drupal sites; the access token says which admin is behind it. It is verified against the identity provider's signing keys, and its `azp` claim has to name an allowed client (see the `OIDC_*` variables in [environment-variables.md](environment-variables.md)). Drupal renews the token before sending, so a token that has expired means the admin's session is no longer usable.
+- The admin also has to be **allowed to broadcast for this particular site**. The token's `ad_groups` claim has to contain one of the values in the `broadcast.adGroups` list of the site's `conf/{site}.json` for the current `ENVIRONMENT`.
 - All three languages are required; each subscriber receives their own language version wrapped in the site's email template.
 - `subject` and `body` are plain text. Newlines in `body` become line breaks.
 - `sms` SMS texts are sent verbatim and are ignored on sites without `enableSms`.
@@ -109,9 +110,11 @@ X-Access-Token: <OpenID Connect access token of the admin sending the broadcast>
 
 Returns `202` with an empty body. Sending continues in the background because contact details are resolved from ATV in batches, which can take minutes for large sites. Messages are inserted into the shared notification queue and delivered by `hav:send-queue`. Large broadcast can delay regular notifications by a few cron cycles.
 
-Returns `400` if `X-Access-Token` is missing, and `403` if the token cannot be verified: a bad signature, an expired token, another issuer, or an `azp` that is not in `OIDC_ALLOWED_CLIENTS`. The admin has to log in again in that case.
+Returns `400` if `X-Access-Token` is missing, and `403` if the token cannot be verified.
 
-Returns `500` if the `OIDC_*` variables are not configured or the issuer's discovery document cannot be read, so broadcasting fails closed.
+Returns `403` with `Not authorized to broadcast for this site.` if the token is fine but the admin is in none of the site's `broadcast.adGroups`, or the token carries no `ad_groups` claim at all.
+
+Returns `500` if the `OIDC_*` variables are not configured, the issuer's discovery document cannot be read, or the site has no `broadcast.adGroups` configured for the current environment, so broadcasting fails closed.
 
 ## Health checks
 

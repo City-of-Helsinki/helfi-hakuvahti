@@ -9,6 +9,8 @@ import fp from 'fastify-plugin';
 import { exportJWK, generateKeyPair, type JSONWebKeySet, SignJWT } from 'jose';
 import type { Collection } from 'mongodb';
 import app from '../src/app.ts';
+import { SiteConfigurationLoader } from '../src/lib/siteConfigurationLoader.ts';
+import type { SiteBroadcastSettingsType } from '../src/types/siteConfig.ts';
 import { SubscriptionStatus } from '../src/types/subscription.ts';
 
 export type TestContext = {
@@ -26,6 +28,11 @@ export const OIDC_ISSUER = `${OIDC_REALMS}hakuvahti`;
 export const OIDC_DISCOVERY_URL = `${OIDC_ISSUER}${DISCOVERY_PATH}`;
 export const OIDC_JWKS_URI = `${OIDC_ISSUER}${CERTS_PATH}`;
 export const OIDC_CLIENT_ID = 'helfi-test';
+
+/**
+ * The AD group the signed tokens belong to.
+ */
+export const TEST_AD_GROUP_ID = '00000000-0000-4000-8000-0000000000a1';
 
 const SIGNING_ALGORITHM = 'RS256';
 const KEY_ID = 'test-key';
@@ -87,13 +94,38 @@ export function signAccessToken(overrides: AccessTokenOverrides = {}): Promise<s
     foreignKey = false,
   } = overrides;
 
-  return new SignJWT({ typ: 'Bearer', azp: OIDC_CLIENT_ID, email: 'admin@example.com', ...claims })
+  return new SignJWT({
+    typ: 'Bearer',
+    azp: OIDC_CLIENT_ID,
+    email: 'admin@example.com',
+    ad_groups: [TEST_AD_GROUP_ID],
+    ...claims,
+  })
     .setProtectedHeader({ alg: SIGNING_ALGORITHM, kid: KEY_ID })
     .setIssuer(issuer)
     .setSubject(subject)
     .setIssuedAt()
     .setExpirationTime(expiresAt)
     .sign(foreignKey ? foreignPrivateKey : privateKey);
+}
+
+/**
+ * Lets the tokens of signAccessToken broadcast for a site.
+ *
+ * @returns A function that restores the previous groups of the site.
+ */
+export function allowTestAdGroups(
+  siteId: string,
+  adGroups: SiteBroadcastSettingsType['adGroups'] = [TEST_AD_GROUP_ID],
+): () => void {
+  const siteConfig = SiteConfigurationLoader.getConfiguration(siteId);
+  const previous = siteConfig.broadcast;
+
+  siteConfig.broadcast = { adGroups };
+
+  return () => {
+    siteConfig.broadcast = previous;
+  };
 }
 
 // Fill in this config with all the configurations

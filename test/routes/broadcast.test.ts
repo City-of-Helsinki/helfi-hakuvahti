@@ -5,6 +5,7 @@ import type { FastifyInstance } from 'fastify';
 import { SubscriptionStatus } from '../../src/types/subscription.ts';
 import {
   type AccessTokenOverrides,
+  allowTestAdGroups,
   build,
   createSubscription,
   oidcProviderResponse,
@@ -76,6 +77,10 @@ async function waitForQueue(app: FastifyInstance, expected: number) {
 
 describe('/broadcast', () => {
   before(() => {
+    // Which AD groups may broadcast is deployment configuration, so the tokens
+    // the tests sign are granted the group here rather than in conf/.
+    allowTestAdGroups('rekry');
+
     mock.method(globalThis, 'fetch', async (url: string | URL, options?: { body?: string }) => {
       const target = url.toString();
 
@@ -242,6 +247,57 @@ describe('/broadcast', () => {
 
     assert.strictEqual(res.statusCode, 202);
     await waitForQueue(app, 1);
+  });
+
+  test('rejects a sender who is not in an AD group of the site', async (t) => {
+    const app = await build(t);
+    await cleanDatabase(app);
+
+    const testCases: Array<{ name: string; overrides: AccessTokenOverrides }> = [
+      {
+        name: 'in other AD groups than the site allows',
+        overrides: { claims: { ad_groups: ['some-other-group'] } },
+      },
+      {
+        // A client without the add-ad-groups-claim scope looks like this.
+        name: 'without the ad_groups claim',
+        overrides: { claims: { ad_groups: undefined } },
+      },
+    ];
+
+    for (const { name, overrides } of testCases) {
+      await t.test(name, async () => {
+        const res = await broadcastWithToken(app, overrides);
+
+        // A valid token of a known client, so this is about the permission
+        // rather than the token itself.
+        assert.strictEqual(res.statusCode, 403);
+        assert.strictEqual(JSON.parse(res.body).error, 'Not authorized to broadcast for this site.');
+
+        const queueItems = await app.mongo.db?.collection('queue').find({}).toArray();
+        assert.strictEqual(queueItems?.length, 0);
+      });
+    }
+  });
+
+  test('broadcasting a site without configured AD groups is disabled', async (t) => {
+    const app = await build(t);
+    await cleanDatabase(app);
+
+    const restore = allowTestAdGroups('rekry', []);
+
+    try {
+      const res = await broadcast(app, validPayload());
+
+      // Nobody being allowed is a forgotten configuration, not a sender without
+      // a permission, so it fails closed as ours rather than as a 403.
+      assert.strictEqual(res.statusCode, 500);
+
+      const queueItems = await app.mongo.db?.collection('queue').find({}).toArray();
+      assert.strictEqual(queueItems?.length, 0);
+    } finally {
+      restore();
+    }
   });
 
   test('broadcasting is disabled without a configured issuer', async (t) => {
