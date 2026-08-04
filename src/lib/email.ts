@@ -45,6 +45,18 @@ export const translate = (
 
 type SprightlyContext = Record<string, string>;
 
+// sprightly interpolates {{ var }} without escaping, so any user-provided
+// value must be escaped before it is passed to a template.
+export const escapeHtml = (value: string): string =>
+  value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+
+export const nl2br = (value: string): string => value.replaceAll('\n', '<br />');
+
 export const buildTranslationContext = (
   lang: SubscriptionCollectionLanguageType,
   siteConfig: SiteConfigurationType,
@@ -199,6 +211,37 @@ export const newHitsEmail = async (
     throw error;
   }
 };
+
+// One-off broadcast message with admin-provided plain text subject and body.
+export const broadcastEmail = async (
+  lang: SubscriptionCollectionLanguageType,
+  data: { subject: string; body: string },
+  siteConfig: SiteConfigurationType,
+) =>
+  wrapWithLayout(
+    `${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/broadcast.html`,
+    {
+      lang,
+      subject: escapeHtml(data.subject),
+      body: nl2br(escapeHtml(data.body)),
+    },
+    lang,
+    escapeHtml(data.subject),
+    siteConfig,
+  );
+
+// The same one-off broadcast message as plain text, for SMS.
+// A long body simply becomes a multipart SMS.
+export const broadcastSms = async (
+  lang: SubscriptionCollectionLanguageType,
+  data: { subject: string; body: string },
+  siteConfig: SiteConfigurationType,
+) =>
+  sprightly(`${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/sms/broadcast.txt`, {
+    ...buildTranslationContext(lang, siteConfig),
+    subject: data.subject,
+    body: data.body,
+  });
 
 // SMS notification for new search results
 export const newHitsSms = async (

@@ -1,9 +1,6 @@
 import * as assert from 'node:assert';
 import { describe, test } from 'node:test';
-import {
-  calculateExpectedDeleteAfter,
-  needsDeleteAfterSync,
-} from '../../src/lib/subscriptionProcessor.ts';
+import { calculateExpectedDeleteAfter, needsDeleteAfterSync } from '../../src/lib/subscriptionProcessor.ts';
 
 describe('ATV delete_after sync helpers', () => {
   test('calculateExpectedDeleteAfter adds maxAge days to created date', () => {
@@ -22,9 +19,6 @@ describe('ATV delete_after sync helpers', () => {
   });
 
   test('needsDeleteAfterSync returns true when dates differ', () => {
-    assert.strictEqual(
-      needsDeleteAfterSync(new Date('2025-04-15'), new Date('2025-04-16')),
-      true,
-    );
+    assert.strictEqual(needsDeleteAfterSync(new Date('2025-04-15'), new Date('2025-04-16')), true);
   });
 });

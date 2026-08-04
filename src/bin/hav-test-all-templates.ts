@@ -7,7 +7,7 @@ import { stringArg } from '../lib/parse-args.ts';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
 import mailer from '../plugins/mailer.ts';
 import type { SiteConfigurationType } from '../types/siteConfig.ts';
-import type { SubscriptionCollectionLanguageType } from '../types/subscription.ts';
+import { SUBSCRIPTION_LANGUAGES } from '../types/subscription.ts';
 
 // npm run hav:test-all-templates -- --email=test@test.fi
 //
@@ -16,7 +16,6 @@ import type { SubscriptionCollectionLanguageType } from '../types/subscription.t
 // SMS templates are wrapped in a minimal HTML body for readability.
 // No ATV, no queue, no subscriptions needed
 
-const LANGUAGES: SubscriptionCollectionLanguageType[] = ['fi', 'en', 'sv'];
 const TEMPLATE_BASE = 'src/templates';
 
 const templateExists = (siteConfig: SiteConfigurationType, relativePath: string): boolean =>
@@ -121,7 +120,7 @@ async function renderAndSendSiteTemplates(
   const hits = SITE_DUMMY_HITS[siteId] ?? SITE_DUMMY_HITS.rekry;
   const testData = buildTestData(siteConfig);
 
-  for (const lang of LANGUAGES) {
+  for (const lang of SUBSCRIPTION_LANGUAGES) {
     // 1. Confirmation email
     const confirmHtml = await confirmationEmail(lang, testData.confirmation, siteConfig);
     await sendTemplate(emailSender, testEmail, confirmHtml);
@@ -178,10 +177,6 @@ command(
 
     for (const siteId of siteIds) {
       const siteConfig = SiteConfigurationLoader.getConfiguration(siteId);
-      if (!siteConfig) {
-        console.warn(`Skipping ${siteId}: configuration not found`);
-        continue;
-      }
 
       console.log(
         `Rendering templates for: ${siteId} (SMS templates: ${siteConfig.subscription.enableSms ? 'yes' : 'no'})`,

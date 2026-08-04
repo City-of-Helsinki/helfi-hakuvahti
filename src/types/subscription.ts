@@ -13,7 +13,8 @@ export const SubscriptionStatusResponse = Type.Object({
 });
 export type SubscriptionStatusResponseType = Static<typeof SubscriptionStatusResponse>;
 
-export const SubscriptionCollectionLanguage = Type.Union([Type.Literal('en'), Type.Literal('fi'), Type.Literal('sv')]);
+export const SUBSCRIPTION_LANGUAGES = ['fi', 'sv', 'en'] as const;
+export const SubscriptionCollectionLanguage = Type.Union(SUBSCRIPTION_LANGUAGES.map((lang) => Type.Literal(lang)));
 export type SubscriptionCollectionLanguageType = Static<typeof SubscriptionCollectionLanguage>;
 
 export const SubscriptionCollection = Type.Object({

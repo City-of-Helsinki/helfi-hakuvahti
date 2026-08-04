@@ -5,7 +5,7 @@ import type { Db } from 'mongodb';
 import type { Transporter } from 'nodemailer';
 import type { DialogiClient } from '../plugins/dialogi.ts';
 import type { AtvDocumentType } from '../types/atv.ts';
-import type { QueueItem, QueueItemType } from '../types/queue.ts';
+import { QUEUE_ITEM_TYPES, type QueueItem, type QueueItemType } from '../types/queue.ts';
 import type { ATV } from './atv.ts';
 
 export const BATCH_SIZE = 100;
@@ -45,7 +45,11 @@ export class QueueService {
     let hasMoreResults = true;
 
     while (hasMoreResults) {
-      const result = (await this.queueCollection.find({}).limit(this.batchSize).toArray()) as QueueItem[];
+      // Only drain notifications from the queue.
+      const result = (await this.queueCollection
+        .find({ type: { $in: [...QUEUE_ITEM_TYPES] } })
+        .limit(this.batchSize)
+        .toArray()) as QueueItem[];
 
       if (result.length === 0) {
         hasMoreResults = false;

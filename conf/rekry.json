@@ -205,7 +205,13 @@
       "templatePath": "rekry",
       "maxHitsInEmail": 10
     },
-    "elasticProxyUrl": "http://helfi-rekry-elastic-proxy:8080/job_listings"
+    "elasticProxyUrl": "http://helfi-rekry-elastic-proxy:8080/job_listings",
+    "broadcast": {
+      "adGroups": [
+        "Drupal_Helfi_kaupunkitaso_paakayttajat",
+        "947058f4-697e-41bb-baf5-f69b49e5579a"
+      ]
+    }
   },
   "dev": {
     "urls": {
@@ -226,7 +232,13 @@
       "templatePath": "rekry",
       "maxHitsInEmail": 10
     },
-    "elasticProxyUrl": "https://helfi-rekry-elastic-proxy.test.hel.ninja/job_listings"
+    "elasticProxyUrl": "https://helfi-rekry-elastic-proxy.test.hel.ninja/job_listings",
+    "broadcast": {
+      "adGroups": [
+        "Drupal_Helfi_kaupunkitaso_paakayttajat",
+        "947058f4-697e-41bb-baf5-f69b49e5579a"
+      ]
+    }
   },
   "staging": {
     "urls": {
@@ -247,7 +259,13 @@
       "templatePath": "rekry",
       "maxHitsInEmail": 10
     },
-    "elasticProxyUrl": "https://rekry-elastic-proxy-staging.api.hel.ninja/job_listings"
+    "elasticProxyUrl": "https://rekry-elastic-proxy-staging.api.hel.ninja/job_listings",
+    "broadcast": {
+      "adGroups": [
+        "Drupal_Helfi_kaupunkitaso_paakayttajat",
+        "947058f4-697e-41bb-baf5-f69b49e5579a"
+      ]
+    }
   },
   "production": {
     "urls": {
@@ -268,6 +286,12 @@
       "templatePath": "rekry",
       "maxHitsInEmail": 10
     },
-    "elasticProxyUrl": "https://helfi-rekry-elastic-proxy.api.hel.ninja/job_listings"
+    "elasticProxyUrl": "https://helfi-rekry-elastic-proxy.api.hel.ninja/job_listings",
+    "broadcast": {
+      "adGroups": [
+        "Drupal_Helfi_kaupunkitaso_paakayttajat",
+        "947058f4-697e-41bb-baf5-f69b49e5579a"
+      ]
+    }
   }
 }

@@ -10,6 +10,7 @@
 
 import command from '../lib/command.ts';
 import mongodb from '../plugins/mongodb.ts';
+import { QUEUE_ITEM_TYPES } from '../types/queue.ts';
 
 command(
   async (server) => {
@@ -37,7 +38,7 @@ command(
           },
           type: {
             bsonType: 'string',
-            enum: ['email', 'sms'],
+            enum: [...QUEUE_ITEM_TYPES],
           },
           atv_id: {
             bsonType: 'string',

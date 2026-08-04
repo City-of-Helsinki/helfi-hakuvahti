@@ -25,10 +25,10 @@ export interface ProcessingStats {
   smsQueued: number;
 }
 
-const isEmailActive = (sub: Partial<SubscriptionCollectionType>): boolean =>
+export const isEmailActive = (sub: Partial<SubscriptionCollectionType>): boolean =>
   sub.email_confirmed !== undefined ? sub.email_confirmed === true : sub.status === SubscriptionStatus.ACTIVE; // legacy fallback
 
-const isSmsActive = (sub: Partial<SubscriptionCollectionType>): boolean => sub.sms_confirmed === true;
+export const isSmsActive = (sub: Partial<SubscriptionCollectionType>): boolean => sub.sms_confirmed === true;
 
 const checkShouldSendExpiryNotification = (
   subscription: Partial<SubscriptionCollectionType>,

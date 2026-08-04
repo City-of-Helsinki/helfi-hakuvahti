@@ -266,7 +266,13 @@
       "templatePath": "kymp",
       "maxHitsInEmail": 10
     },
-    "elasticProxyUrl": "https://liikenne-elastic-proxy.test.hel.ninja/mobilenote_data"
+    "elasticProxyUrl": "https://liikenne-elastic-proxy.test.hel.ninja/mobilenote_data",
+    "broadcast": {
+      "adGroups": [
+        "Drupal_Helfi_kaupunkitaso_paakayttajat",
+        "947058f4-697e-41bb-baf5-f69b49e5579a"
+      ]
+    }
   },
   "staging": {
     "urls": {
@@ -287,7 +293,13 @@
       "templatePath": "kymp",
       "maxHitsInEmail": 10
     },
-    "elasticProxyUrl": "https://liikenne-elastic-proxy.stage.hel.ninja/mobilenote_data"
+    "elasticProxyUrl": "https://liikenne-elastic-proxy.stage.hel.ninja/mobilenote_data",
+    "broadcast": {
+      "adGroups": [
+        "Drupal_Helfi_kaupunkitaso_paakayttajat",
+        "947058f4-697e-41bb-baf5-f69b49e5579a"
+      ]
+    }
   },
   "production": {
     "urls": {
@@ -308,7 +320,13 @@
       "templatePath": "kymp",
       "maxHitsInEmail": 10
     },
-    "elasticProxyUrl": "https://liikenne-elastic-proxy.api.hel.ninja/mobilenote_data"
+    "elasticProxyUrl": "https://liikenne-elastic-proxy.api.hel.ninja/mobilenote_data",
+    "broadcast": {
+      "adGroups": [
+        "Drupal_Helfi_kaupunkitaso_paakayttajat",
+        "947058f4-697e-41bb-baf5-f69b49e5579a"
+      ]
+    }
   },
   "local": {
     "urls": {
@@ -329,6 +347,12 @@
       "templatePath": "kymp",
       "maxHitsInEmail": 10
     },
-    "elasticProxyUrl": "http://helfi-kymp-elastic-proxy:8080/mobilenote_data"
+    "elasticProxyUrl": "http://helfi-kymp-elastic-proxy:8080/mobilenote_data",
+    "broadcast": {
+      "adGroups": [
+        "Drupal_Helfi_kaupunkitaso_paakayttajat",
+        "947058f4-697e-41bb-baf5-f69b49e5579a"
+      ]
+    }
   }
 }

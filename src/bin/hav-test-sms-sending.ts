@@ -3,6 +3,7 @@ import command from '../lib/command.ts';
 import { newHitsSms } from '../lib/email.ts';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
 import dialogi from '../plugins/dialogi.ts';
+import { SUBSCRIPTION_LANGUAGES } from '../types/subscription.ts';
 
 // Test script to verify SMS sending via Elisa Dialogi API
 command(
@@ -32,9 +33,7 @@ command(
       console.log(`Using site configuration: ${siteId}\n`);
 
       // Test with each language
-      const languages = ['fi', 'sv', 'en'] as const;
-
-      for (const lang of languages) {
+      for (const lang of SUBSCRIPTION_LANGUAGES) {
         console.log(`Testing ${lang.toUpperCase()} SMS...`);
 
         // Generate SMS content with dummy data

@@ -81,5 +81,4 @@ describe('hav-update-subscription-length', () => {
       assert.strictEqual(result, '2. Failed: xyz789 | Error: Unknown error');
     });
   });
-
 });

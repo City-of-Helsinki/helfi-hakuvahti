@@ -218,11 +218,10 @@ test('SiteConfigurationLoader', async (t) => {
     assert.strictEqual(rekryConfig.mail.templatePath, 'rekry');
   });
 
-  await t.test('static getConfiguration returns undefined for non-existent site', () => {
+  await t.test('static getConfiguration throws for non-existent site', () => {
     process.env.ENVIRONMENT = 'local';
 
-    const config = SiteConfigurationLoader.getConfiguration('non-existent');
-    assert.strictEqual(config, undefined);
+    assert.throws(() => SiteConfigurationLoader.getConfiguration('non-existent'), /Invalid site_id: non-existent/);
   });
 
   await t.test('static getSiteIds returns array of site IDs', () => {

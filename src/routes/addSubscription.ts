@@ -13,6 +13,7 @@ import {
   type Generic500ErrorType,
 } from '../types/error.ts';
 import type { QueueInsertDocument } from '../types/queue.ts';
+import type { SiteConfigurationType } from '../types/siteConfig.ts';
 import {
   type SubscriptionCollectionType,
   SubscriptionRequest,
@@ -131,9 +132,10 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
       }
 
       // Load site configuration
-      const siteConfig = SiteConfigurationLoader.getConfiguration(request.body.site_id);
-
-      if (!siteConfig) {
+      let siteConfig: SiteConfigurationType;
+      try {
+        siteConfig = SiteConfigurationLoader.getConfiguration(request.body.site_id);
+      } catch {
         return reply
           .code(400)
           .header('Content-Type', 'application/json; charset=utf-8')

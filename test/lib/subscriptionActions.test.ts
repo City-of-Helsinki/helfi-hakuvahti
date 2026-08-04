@@ -31,22 +31,25 @@ describe('subscriptionActions', () => {
   const insertSubscription = async (data: Record<string, unknown> = {}) => {
     const id = new ObjectId();
     const now = new Date();
-    await mongo.db().collection<SubscriptionCollectionType>('subscription').insertOne({
-      _id: id,
-      email: 'test-atv-doc-id',
-      atv_id: 'test-atv-doc-id',
-      elastic_query: 'test-query',
-      query: '/search?q=test',
-      site_id: 'rekry',
-      hash: 'test-hash',
-      lang: 'fi',
-      status: SubscriptionStatus.INACTIVE,
-      expiry_notification_sent: SubscriptionStatus.INACTIVE,
-      created: now,
-      modified: now,
-      sms_secret: 'test-secret',
-      ...data,
-    } as SubscriptionCollectionType);
+    await mongo
+      .db()
+      .collection<SubscriptionCollectionType>('subscription')
+      .insertOne({
+        _id: id,
+        email: 'test-atv-doc-id',
+        atv_id: 'test-atv-doc-id',
+        elastic_query: 'test-query',
+        query: '/search?q=test',
+        site_id: 'rekry',
+        hash: 'test-hash',
+        lang: 'fi',
+        status: SubscriptionStatus.INACTIVE,
+        expiry_notification_sent: SubscriptionStatus.INACTIVE,
+        created: now,
+        modified: now,
+        sms_secret: 'test-secret',
+        ...data,
+      } as SubscriptionCollectionType);
     return id;
   };
 
@@ -86,16 +89,22 @@ describe('subscriptionActions', () => {
         status: new Int32(SubscriptionStatus.ACTIVE),
         sms_confirmed: true,
       });
-      await assert.rejects(() => confirmSubscription(collection, { _id: confirmedId }, 'sms'), (error: ActionError) => {
-        assert.strictEqual(error.statusCode, 404);
-        return true;
-      });
+      await assert.rejects(
+        () => confirmSubscription(collection, { _id: confirmedId }, 'sms'),
+        (error: ActionError) => {
+          assert.strictEqual(error.statusCode, 404);
+          return true;
+        },
+      );
 
       // Non-existent
-      await assert.rejects(() => confirmSubscription(collection, { _id: new ObjectId() }, 'sms'), (error: ActionError) => {
-        assert.strictEqual(error.statusCode, 404);
-        return true;
-      });
+      await assert.rejects(
+        () => confirmSubscription(collection, { _id: new ObjectId() }, 'sms'),
+        (error: ActionError) => {
+          assert.strictEqual(error.statusCode, 404);
+          return true;
+        },
+      );
     });
 
     test('confirming SMS does not set email_confirmed', async () => {
@@ -124,10 +133,13 @@ describe('subscriptionActions', () => {
     test('throws 404 for non-existent subscription', async () => {
       const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
-      await assert.rejects(() => deleteSubscription(collection, { _id: new ObjectId() }), (error: ActionError) => {
-        assert.strictEqual(error.statusCode, 404);
-        return true;
-      });
+      await assert.rejects(
+        () => deleteSubscription(collection, { _id: new ObjectId() }),
+        (error: ActionError) => {
+          assert.strictEqual(error.statusCode, 404);
+          return true;
+        },
+      );
     });
   });
 
@@ -138,10 +150,13 @@ describe('subscriptionActions', () => {
       const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
       const inactiveId = await insertSubscription();
-      await assert.rejects(() => renewSubscription(collection, { _id: inactiveId }, noOpAtv), (error: ActionError) => {
-        assert.strictEqual(error.statusCode, 400);
-        return true;
-      });
+      await assert.rejects(
+        () => renewSubscription(collection, { _id: inactiveId }, noOpAtv),
+        (error: ActionError) => {
+          assert.strictEqual(error.statusCode, 400);
+          return true;
+        },
+      );
     });
 
     test('throws 500 when ATV update fails during renewal', async () => {
@@ -150,13 +165,18 @@ describe('subscriptionActions', () => {
       const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
       const failingAtv = {
-        updateDocumentDeleteAfter: async () => { throw new Error('ATV unavailable'); },
+        updateDocumentDeleteAfter: async () => {
+          throw new Error('ATV unavailable');
+        },
       } as unknown as ATV;
 
-      await assert.rejects(() => renewSubscription(collection, { _id: id }, failingAtv), (error: ActionError) => {
-        assert.strictEqual(error.statusCode, 500);
-        return true;
-      });
+      await assert.rejects(
+        () => renewSubscription(collection, { _id: id }, failingAtv),
+        (error: ActionError) => {
+          assert.strictEqual(error.statusCode, 500);
+          return true;
+        },
+      );
     });
 
     test('successfully renews and updates all fields', async () => {

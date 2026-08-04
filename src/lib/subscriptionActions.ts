@@ -1,5 +1,6 @@
 import { ObjectId } from '@fastify/mongodb';
 import type { Collection, Filter } from 'mongodb';
+import type { SiteConfigurationType } from '../types/siteConfig.ts';
 import { type SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription.ts';
 import { ATV } from './atv.ts';
 import { SiteConfigurationLoader } from './siteConfigurationLoader.ts';
@@ -10,8 +11,8 @@ export type SubscriptionChannel = 'email' | 'sms';
 
 export class ActionError extends Error {
   statusCode: number;
-  constructor(statusCode: number, message: string) {
-    super(message);
+  constructor(statusCode: number, message: string, cause?: unknown) {
+    super(message, { cause });
     this.statusCode = statusCode;
   }
 }
@@ -65,6 +66,17 @@ export async function deleteSubscription(
 }
 
 /**
+ * Wraps SiteConfigurationLoader.getConfiguration exception type.
+ */
+function getSiteConfiguration(siteId: string): SiteConfigurationType {
+  try {
+    return SiteConfigurationLoader.getConfiguration(siteId);
+  } catch (e) {
+    throw new ActionError(500, 'Site configuration not found.', e);
+  }
+}
+
+/**
  * Renews a subscription with full validation.
  * Finds the subscription by filter, validates status and renewal window,
  * updates ATV document, and resets subscription timestamps.
@@ -85,12 +97,7 @@ export async function renewSubscription(
     throw new ActionError(400, 'Only active subscriptions can be renewed.');
   }
 
-  // Load site configuration
-  const siteConfig = SiteConfigurationLoader.getConfiguration(subscription.site_id);
-  if (!siteConfig) {
-    throw new ActionError(500, 'Site configuration not found.');
-  }
-
+  const siteConfig = getSiteConfiguration(subscription.site_id);
   const { maxAge } = siteConfig.subscription;
 
   // Update ATV document delete_after

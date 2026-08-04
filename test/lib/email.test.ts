@@ -52,26 +52,14 @@ const SMS_HIT_ITEM_TEMPLATE = path.join(SMS_DIR, 'hit_item.txt');
 const createTestTemplates = async () => {
   await fs.mkdir(TEMPLATE_ROOT, { recursive: true });
   await fs.mkdir(SMS_DIR, { recursive: true });
-  await fs.writeFile(
-    INNER_TEMPLATE,
-    '<div class="inner">{{ foo }}<span>{{ custom_value }}</span></div>',
-    'utf-8',
-  );
+  await fs.writeFile(INNER_TEMPLATE, '<div class="inner">{{ foo }}<span>{{ custom_value }}</span></div>', 'utf-8');
   await fs.writeFile(
     LAYOUT_TEMPLATE,
     '<html><body><main>{{ content }}</main><footer>{{ foo }} - {{ title }}</footer></body></html>',
     'utf-8',
   );
-  await fs.writeFile(
-    SMS_NEWHITS_TEMPLATE,
-    'New results for {{ search_description }}: {{ hits }}',
-    'utf-8',
-  );
-  await fs.writeFile(
-    SMS_HIT_ITEM_TEMPLATE,
-    '{{ address }} ({{ valid_from }} - {{ valid_to }})\n',
-    'utf-8',
-  );
+  await fs.writeFile(SMS_NEWHITS_TEMPLATE, 'New results for {{ search_description }}: {{ hits }}', 'utf-8');
+  await fs.writeFile(SMS_HIT_ITEM_TEMPLATE, '{{ address }} ({{ valid_from }} - {{ valid_to }})\n', 'utf-8');
 };
 
 before(async () => {
@@ -101,10 +89,7 @@ test('translate falls back to empty string when key or language missing', () => 
   assert.equal(missingLang, '');
 });
 
-const executeWrap = (
-  lang: SubscriptionCollectionLanguageType,
-  customValue: string,
-) =>
+const executeWrap = (lang: SubscriptionCollectionLanguageType, customValue: string) =>
   wrapWithLayout(
     path.join('src', 'templates', baseConfig.mail.templatePath, 'inner_fi.html'),
     { custom_value: customValue },
@@ -151,12 +136,12 @@ test('newHitsSms renders hits through hit_item template with field formatters', 
     {
       address: ['Mannerheimintie 1'],
       valid_from: [1709568000], // 2024-03-04 in epoch seconds
-      valid_to: [1712160000],   // 2024-04-03 in epoch seconds
+      valid_to: [1712160000], // 2024-04-03 in epoch seconds
     },
     {
       address: ['Aleksanterinkatu 52'],
       valid_from: [1709568000],
-      valid_to: [1714752000],   // 2024-05-03 in epoch seconds
+      valid_to: [1714752000], // 2024-05-03 in epoch seconds
     },
   ];
 

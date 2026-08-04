@@ -37,10 +37,15 @@ export class SiteConfigurationLoader {
   /**
    * Gets a specific site configuration by ID
    * @param siteId - The site ID to get configuration for
-   * @return The site configuration or undefined if not found
+   * @return The site configuration
+   * @throws If no configuration exists for the given site ID
    */
-  static getConfiguration(siteId: string): SiteConfigurationType | undefined {
-    return SiteConfigurationLoader.getInstance().configurations[siteId];
+  static getConfiguration(siteId: string): SiteConfigurationType {
+    const siteConfig = SiteConfigurationLoader.getInstance().configurations[siteId];
+    if (!siteConfig) {
+      throw new Error(`Invalid site_id: ${siteId}`);
+    }
+    return siteConfig;
   }
 
   static getSiteIds(): string[] {
@@ -105,6 +110,7 @@ export class SiteConfigurationLoader {
         subscription: envConfig.subscription,
         mail: envConfig.mail,
         elasticProxyUrl: envConfig.elasticProxyUrl,
+        broadcast: envConfig.broadcast,
         translations,
         matchField: rawConfig.matchField,
         fieldFormats,
