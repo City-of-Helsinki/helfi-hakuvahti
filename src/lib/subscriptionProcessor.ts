@@ -9,10 +9,12 @@ import { type SubscriptionCollectionType, SubscriptionStatus } from '../types/su
 import { ATV } from './atv.ts';
 import { expiryEmail, newHitsEmail, newHitsSms, renewalSms } from './email.ts';
 import { SiteConfigurationLoader } from './siteConfigurationLoader.ts';
+import type { Statistics } from './statistics.ts';
 
 export interface SubscriptionProcessorDeps {
   mongo: FastifyMongoObject & FastifyMongoNestedObject;
   atv: ATV;
+  statistics: Statistics;
   queryElasticProxy(elasticProxyBaseUrl: string, elasticQueryJson: string): Promise<ElasticProxyJsonResponseType>;
 }
 
@@ -75,11 +77,13 @@ export const needsDeleteAfterSync = (storedDeleteAfter: Date | undefined, expect
 export class SubscriptionProcessor {
   private readonly mongo: SubscriptionProcessorDeps['mongo'];
   private readonly atv: SubscriptionProcessorDeps['atv'];
+  private readonly statistics: SubscriptionProcessorDeps['statistics'];
   private readonly queryElasticProxy: SubscriptionProcessorDeps['queryElasticProxy'];
 
-  constructor({ mongo, atv, queryElasticProxy }: SubscriptionProcessorDeps) {
+  constructor({ mongo, atv, statistics, queryElasticProxy }: SubscriptionProcessorDeps) {
     this.mongo = mongo;
     this.atv = atv;
+    this.statistics = statistics;
     this.queryElasticProxy = queryElasticProxy;
   }
 
@@ -355,6 +359,43 @@ export class SubscriptionProcessor {
 
       return Promise.resolve();
     }, Promise.resolve());
+
+    await this.recordDailySnapshot(siteConfig.id, isDryRun);
+  }
+
+  /**
+   * Measures the live subscription counts and stores them on today's statistics
+   * document, as an independent check on the event counters: the day-to-day delta
+   * should track net_change, and a persistent divergence means an event is being
+   * missed.
+   *
+   * The expiry sweep runs for every site before any is processed, so this lands
+   * after the day's deletions rather than straddling them.
+   */
+  private async recordDailySnapshot(siteId: string, isDryRun: boolean): Promise<void> {
+    if (isDryRun) {
+      return;
+    }
+
+    const collection = this.mongo.db?.collection('subscription');
+    if (!collection) {
+      return;
+    }
+
+    try {
+      const [active, unconfirmed] = await Promise.all([
+        collection.countDocuments({ site_id: siteId, status: SubscriptionStatus.ACTIVE }),
+        collection.countDocuments({ site_id: siteId, status: SubscriptionStatus.INACTIVE }),
+      ]);
+
+      await this.statistics.recordSnapshot(siteId, { active, unconfirmed });
+    } catch (error) {
+      // Throwing here would abort this site and, since the caller stops on the
+      // first failure, every site after it. A lost snapshot costs one point in
+      // the active-count series.
+      console.error(`Failed to measure subscription counts for ${siteId}`, error);
+      Sentry.captureException(error);
+    }
   }
 
   private async getNewHitsFromElasticsearch(

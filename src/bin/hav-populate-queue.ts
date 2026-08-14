@@ -2,43 +2,14 @@ import * as Sentry from '@sentry/node';
 import command, { type Server } from '../lib/command.ts';
 import { stringArg } from '../lib/parse-args.ts';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
+import { expireSubscriptions } from '../lib/subscriptionExpiry.ts';
 import { type ProcessingStats, SubscriptionProcessor } from '../lib/subscriptionProcessor.ts';
 import atv from '../plugins/atv.ts';
 import base64Plugin from '../plugins/base64.ts';
 import elasticproxy from '../plugins/elasticproxy.ts';
 import mongodb from '../plugins/mongodb.ts';
+import statistics from '../plugins/statistics.ts';
 import { SubscriptionStatus } from '../types/subscription.ts';
-
-/**
- * Deletes subscriptions older than a specified number of days with a certain status for a specific site.
- *
- * @param server - fastify instance.
- * @param modifyStatus - the status to modify subscriptions
- * @param olderThanDays - the number of days to consider for deletion
- * @param siteId - the site ID to filter subscriptions
- * @return Promise that resolves when the subscriptions are deleted
- */
-const massDeleteSubscriptions = async (
-  server: Server,
-  modifyStatus: SubscriptionStatus,
-  olderThanDays: number,
-  siteId: string,
-): Promise<void> => {
-  const collection = server.mongo.db?.collection('subscription');
-  const dateLimit: Date = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000);
-
-  try {
-    await collection?.deleteMany({
-      status: modifyStatus,
-      site_id: siteId,
-      created: { $lt: dateLimit },
-    });
-  } catch (error) {
-    throw new Error('Could not delete subscriptions. See logs for errors.', {
-      cause: error,
-    });
-  }
-};
 
 /**
  * Main application function that processes all site configurations.
@@ -67,6 +38,7 @@ const processSubscriptions = async (
   const processor = new SubscriptionProcessor({
     mongo: server.mongo,
     atv: server.atv,
+    statistics: server.statistics,
     queryElasticProxy: server.queryElasticProxy,
   });
 
@@ -135,18 +107,30 @@ command(
     // Load site configurations
     const siteConfigs = SiteConfigurationLoader.getConfigurations();
 
-    // Clean up expired subscriptions for each site
+    const db = server.mongo.db;
+    if (!db) {
+      throw new Error('MongoDB connection not available');
+    }
+
+    // Clean up expired subscriptions for each site. --site filters only the
+    // processing below, so a single-site run still expires every site — leaving
+    // the others with counters but no snapshot for that day.
     for (const [siteId, siteConfig] of Object.entries(siteConfigs)) {
       // Remove expired subscriptions that haven't been confirmed
-      await massDeleteSubscriptions(
-        server,
-        SubscriptionStatus.INACTIVE,
-        siteConfig.subscription.unconfirmedMaxAge,
+      await expireSubscriptions(db, server.statistics, {
         siteId,
-      );
+        status: SubscriptionStatus.INACTIVE,
+        olderThanDays: siteConfig.subscription.unconfirmedMaxAge,
+        isDryRun,
+      });
 
       // Remove expired subscriptions
-      await massDeleteSubscriptions(server, SubscriptionStatus.ACTIVE, siteConfig.subscription.maxAge, siteId);
+      await expireSubscriptions(db, server.statistics, {
+        siteId,
+        status: SubscriptionStatus.ACTIVE,
+        olderThanDays: siteConfig.subscription.maxAge,
+        isDryRun,
+      });
     }
 
     // Loop through subscriptions and add new results to email queue
@@ -158,5 +142,6 @@ command(
     elasticproxy,
     base64Plugin,
     atv,
+    statistics,
   ],
 );

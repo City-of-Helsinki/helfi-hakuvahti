@@ -2,7 +2,9 @@ import * as assert from 'node:assert';
 import { after, before, beforeEach, describe, mock, test } from 'node:test';
 import { MongoClient } from 'mongodb';
 import type { ATV } from '../../src/lib/atv.ts';
+import { Statistics } from '../../src/lib/statistics.ts';
 import { type ProcessingStats, SubscriptionProcessor } from '../../src/lib/subscriptionProcessor.ts';
+import { SubscriptionStatus } from '../../src/types/subscription.ts';
 import { base64, createSiteConfig, createSubscription, emptyElasticResponse } from './utils.ts';
 
 const createStats = (): ProcessingStats => ({
@@ -27,6 +29,7 @@ describe('SubscriptionProcessor', () => {
         getDocument: atvGetDocument,
         updateDocumentDeleteAfter: atvUpdateDocumentDeleteAfter,
       } as any,
+      statistics: new Statistics({ db: mongoClient.db() }),
       queryElasticProxy,
     });
 
@@ -48,6 +51,7 @@ describe('SubscriptionProcessor', () => {
     const db = mongoClient.db();
     await db.collection('subscription').deleteMany({});
     await db.collection('queue').deleteMany({});
+    await db.collection('statistics').deleteMany({ site_id: 'test-site' });
   });
 
   test('skips subscriptions not matching site_id', async () => {
@@ -268,5 +272,70 @@ describe('SubscriptionProcessor', () => {
 
     const updated = await db.collection('subscription').findOne({ _id: sub._id });
     assert.ok(updated!.delete_after, 'delete_after should be set in DB');
+  });
+
+  describe('daily snapshot', () => {
+    /** Today's statistics document for the fixture site. */
+    const snapshot = async () =>
+      (await mongoClient.db().collection('statistics').findOne({ _id: `test-site:${Statistics.day()}` }))?.snapshot;
+
+    test('measures live active and unconfirmed counts', async () => {
+      const db = mongoClient.db();
+      await db.collection('subscription').insertMany([
+        createSubscription(),
+        createSubscription({ lang: 'sv' }),
+        createSubscription({ status: SubscriptionStatus.INACTIVE }),
+        // Another site's rows must not be counted.
+        createSubscription({ site_id: 'other-site' }),
+      ]);
+
+      queryElasticProxy.mock.mockImplementation(async () => emptyElasticResponse());
+
+      await buildProcessor().processSiteSubscriptions(createSiteConfig(), createStats(), false);
+
+      const result = await snapshot();
+      assert.strictEqual(result?.active, 2);
+      assert.strictEqual(result?.unconfirmed, 1);
+      assert.ok(result?.at instanceof Date);
+    });
+
+    test('writes nothing on a dry run', async () => {
+      const db = mongoClient.db();
+      await db.collection('subscription').insertOne(createSubscription());
+
+      queryElasticProxy.mock.mockImplementation(async () => emptyElasticResponse());
+
+      await buildProcessor().processSiteSubscriptions(createSiteConfig(), createStats(), true);
+
+      assert.strictEqual(await snapshot(), undefined);
+    });
+
+    test('a failure to measure does not fail the notification run', async () => {
+      const db = mongoClient.db();
+      await db.collection('subscription').insertOne(createSubscription());
+
+      queryElasticProxy.mock.mockImplementation(async () => emptyElasticResponse());
+
+      const processor = new SubscriptionProcessor({
+        mongo: { db } as any,
+        atv: { getDocument: atvGetDocument, updateDocumentDeleteAfter: atvUpdateDocumentDeleteAfter } as any,
+        statistics: { recordSnapshot: () => Promise.reject(new Error('unreachable')) } as any,
+        queryElasticProxy,
+      });
+
+      // Measuring happens after the notifications are queued. Throwing here
+      // would abort this site and every site after it.
+      await assert.doesNotReject(() => processor.processSiteSubscriptions(createSiteConfig(), createStats(), false));
+    });
+
+    test('records zeroes for a site with no subscriptions', async () => {
+      queryElasticProxy.mock.mockImplementation(async () => emptyElasticResponse());
+
+      await buildProcessor().processSiteSubscriptions(createSiteConfig(), createStats(), false);
+
+      const result = await snapshot();
+      assert.strictEqual(result?.active, 0);
+      assert.strictEqual(result?.unconfirmed, 0);
+    });
   });
 });
