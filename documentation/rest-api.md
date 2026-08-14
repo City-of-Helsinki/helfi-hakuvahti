@@ -116,6 +116,65 @@ Returns `403` with `Not authorized to broadcast for this site.` if the token is 
 
 Returns `500` if the `OIDC_*` variables are not configured, the issuer's discovery document cannot be read, or the site has no `broadcast.adGroups` configured for the current environment, so broadcasting fails closed.
 
+## Key figures
+
+`GET` `/stats/:site_id`
+
+Per-site subscription figures for product owners. One site per request — a hakuvahti *is* a `site_id`.
+
+| Parameter | In | Default | Values |
+|---|---|---|---|
+| `site_id` | path | — | must match a filename under `conf/` |
+| `interval` | query | `month` | `day`, `month` |
+| `from` | query | 12 months / 30 days back | `YYYY-MM-DD` |
+| `to` | query | today | `YYYY-MM-DD` |
+| `format` | query | `json` | `json`, `csv` |
+
+Authorization is the shared API key, same as every other endpoint. Any key holder can read any site — the response is aggregate counts with no personal data in it. Per-admin scoping belongs in Drupal, which already knows who owns which site.
+
+```json
+{
+    "site_id": "rekry",
+    "generated_at": "2027-02-05T09:12:33.000Z",
+    "collecting_since": "2026-09-15",
+    "range": { "from": "2026-02-01", "to": "2027-02-28", "interval": "month" },
+    "current": { "active": 5388, "unconfirmed": 41 },
+    "periods": [
+        {
+            "period": "2026-10",
+            "created": 455, "confirmed": 402,
+            "cancelled": 38, "cancelled_unconfirmed": 0,
+            "expired": 131, "expired_unconfirmed": 53,
+            "confirmed_by_lang": { "fi": 373, "sv": 17, "en": 12 },
+            "net_change": 233, "active_end": 5010,
+            "backfilled": false, "incomplete": false
+        }
+    ]
+}
+```
+
+### Reading the numbers
+
+- `current` is counted live off `subscription`, so it is right even if the cron has not run today. Everything under `periods` comes from stored counters.
+- **`confirmed` is the "new subscriptions" figure**, not `created`. `created` counts signups that began; `confirmed` counts the ones that became active, and only once per subscription even when the subscriber confirms both email and SMS. The conversion rate is `confirmed / created`.
+- `cancelled` is *keskeytetty* — the user unsubscribed. `expired` is *vanhentunut* — the subscription reached the site's `maxAge` and the cron deleted it. The `_unconfirmed` variants are the same events for subscriptions that never became active, kept separate so churn is not inflated by people who never finished signing up.
+- `net_change` is `confirmed − cancelled − expired`. Its running total should track the `active_end` series; a persistent divergence between them means an event is being missed. It is `null` — not `0` — when the period has no stored data at all, so "nothing was recorded" cannot be read as "no churn happened". A quiet period that *was* being monitored reports a real `0`, because the cron leaves a daily measurement behind even on a day when nothing else happens.
+- `active_end` is the last measured active count in the period, `null` if the cron wrote no measurement for it. Gaps are reported as gaps rather than carried forward.
+- `confirmed_by_lang` always sums to `confirmed` exactly, because a subscription has exactly one language. It is safe to read as a partition and to turn into percentages.
+- `range` echoes the **effective** range. `from` snaps back to the start of its period and `to` out to the end of its, so a period is never half-reported; `to` is clamped to today; and a very long range is capped (366 days / 120 months).
+
+### Three things that will otherwise be misread
+
+- `collecting_since` — periods before it read zero because nothing was being recorded, not because nothing happened. Do not render pre-launch zeroes as real.
+- `backfilled` — the period's `confirmed` was reconstructed from surviving subscriptions and undercounts; the other counters do not exist for it at all. `net_change` is `null` rather than a flattering number.
+- `incomplete` — the period has not ended, so its counters are still growing. Without surfacing this, "this month" next to "last month" reads as a collapse that is only the calendar.
+
+A configured site with no data yet is `200` with `collecting_since: null` and a zero-filled series, not `404`.
+
+Returns `400` with `{ "error": "Invalid site_id provided." }` for a site with no configuration, and `{ "error": "Invalid date.", "field": "from" }` for a date the calendar does not have, such as `2026-02-31`.
+
+`?format=csv` returns the `periods` only, as a UTF-8 CSV with a byte order mark, `;` delimiters and CRLF line endings, which opens in Finnish-locale Excel without the import wizard. Nulls are empty fields. Only `confirmed` is broken out by language there — the full split would be eighteen columns.
+
 ## Health checks
 
 `/healthz` — 200 if the server is up.
