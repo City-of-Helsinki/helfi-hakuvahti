@@ -3,17 +3,20 @@ import { after, before, beforeEach, describe, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';
 import { Int32, MongoClient } from 'mongodb';
 import type { ATV } from '../../src/lib/atv.ts';
+import { Statistics } from '../../src/lib/statistics.ts';
 import {
   ActionError,
   confirmSubscription,
   deleteSubscription,
   renewSubscription,
 } from '../../src/lib/subscriptionActions.ts';
+import type { StatisticsCollectionType } from '../../src/types/statistics.ts';
 import { type SubscriptionCollectionType, SubscriptionStatus } from '../../src/types/subscription.ts';
 
 describe('subscriptionActions', () => {
   assert.ok(process.env.MONGODB);
   const mongo = new MongoClient(process.env.MONGODB);
+  const statistics = new Statistics({ db: mongo.db() });
 
   before(async () => {
     await mongo.connect();
@@ -25,7 +28,15 @@ describe('subscriptionActions', () => {
 
   beforeEach(async () => {
     await mongo.db().collection<SubscriptionCollectionType>('subscription').deleteMany({});
+    await mongo.db().collection('statistics').deleteMany({ site_id: 'rekry' });
   });
+
+  /** Today's counters for the site the fixtures use. */
+  const counters = async (): Promise<StatisticsCollectionType | null> =>
+    (await mongo
+      .db()
+      .collection('statistics')
+      .findOne({ _id: `rekry:${Statistics.day()}` })) as StatisticsCollectionType | null;
 
   // Helper to insert a subscription (matching MongoDB JSON Schema validation)
   const insertSubscription = async (data: Record<string, unknown> = {}) => {
@@ -59,7 +70,7 @@ describe('subscriptionActions', () => {
       const id = await insertSubscription({ sms_confirmed: false });
       const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
-      await confirmSubscription(collection, { _id: id }, 'sms');
+      await confirmSubscription(collection, { _id: id }, 'sms', statistics);
 
       const doc = await collection.findOne({ _id: id });
       assert.ok(doc);
@@ -72,7 +83,7 @@ describe('subscriptionActions', () => {
       const id = await insertSubscription({ email_confirmed: false, sms_confirmed: false });
       const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
-      await confirmSubscription(collection, { _id: id }, 'email');
+      await confirmSubscription(collection, { _id: id }, 'email', statistics);
 
       const doc = await collection.findOne({ _id: id });
       assert.ok(doc);
@@ -90,7 +101,7 @@ describe('subscriptionActions', () => {
         sms_confirmed: true,
       });
       await assert.rejects(
-        () => confirmSubscription(collection, { _id: confirmedId }, 'sms'),
+        () => confirmSubscription(collection, { _id: confirmedId }, 'sms', statistics),
         (error: ActionError) => {
           assert.strictEqual(error.statusCode, 404);
           return true;
@@ -99,7 +110,7 @@ describe('subscriptionActions', () => {
 
       // Non-existent
       await assert.rejects(
-        () => confirmSubscription(collection, { _id: new ObjectId() }, 'sms'),
+        () => confirmSubscription(collection, { _id: new ObjectId() }, 'sms', statistics),
         (error: ActionError) => {
           assert.strictEqual(error.statusCode, 404);
           return true;
@@ -111,12 +122,33 @@ describe('subscriptionActions', () => {
       const id = await insertSubscription({ sms_confirmed: false, email_confirmed: false });
       const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
-      await confirmSubscription(collection, { _id: id }, 'sms');
+      await confirmSubscription(collection, { _id: id }, 'sms', statistics);
 
       const doc = await collection.findOne({ _id: id });
       assert.ok(doc);
       assert.strictEqual(doc.sms_confirmed, true);
       assert.strictEqual(doc.email_confirmed, false, 'email_confirmed should remain false');
+    });
+
+    test('counts a confirmation once per subscription, not once per channel', async () => {
+      const id = await insertSubscription({ email_confirmed: false, sms_confirmed: false, lang: 'sv' });
+      const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
+
+      // One subscriber, two channels, one activation.
+      await confirmSubscription(collection, { _id: id }, 'email', statistics);
+      await confirmSubscription(collection, { _id: id }, 'sms', statistics);
+
+      const stats = await counters();
+      assert.strictEqual(stats?.events?.confirmed, 1);
+      assert.strictEqual(stats?.lang?.sv?.confirmed, 1);
+    });
+
+    test('records nothing when the confirmation 404s', async () => {
+      const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
+
+      await assert.rejects(() => confirmSubscription(collection, { _id: new ObjectId() }, 'sms', statistics));
+
+      assert.strictEqual(await counters(), null);
     });
   });
 
@@ -125,7 +157,7 @@ describe('subscriptionActions', () => {
       const id = await insertSubscription();
       const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
-      await deleteSubscription(collection, { _id: id });
+      await deleteSubscription(collection, { _id: id }, statistics);
 
       assert.strictEqual(await collection.findOne({ _id: id }), null);
     });
@@ -134,12 +166,33 @@ describe('subscriptionActions', () => {
       const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
 
       await assert.rejects(
-        () => deleteSubscription(collection, { _id: new ObjectId() }),
+        () => deleteSubscription(collection, { _id: new ObjectId() }, statistics),
         (error: ActionError) => {
           assert.strictEqual(error.statusCode, 404);
           return true;
         },
       );
+
+      assert.strictEqual(await counters(), null);
+    });
+
+    test('separates a cancelled live subscription from an abandoned signup', async () => {
+      const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
+
+      const activeId = await insertSubscription({ status: new Int32(SubscriptionStatus.ACTIVE) });
+      const unconfirmedId = await insertSubscription({ lang: 'en' });
+
+      await deleteSubscription(collection, { _id: activeId }, statistics);
+      await deleteSubscription(collection, { _id: unconfirmedId }, statistics);
+
+      const stats = await counters();
+      assert.strictEqual(stats?.events?.cancelled, 1);
+      assert.strictEqual(stats?.events?.cancelled_unconfirmed, 1);
+
+      // The language keys partition the totals exactly.
+      assert.strictEqual(stats?.lang?.fi?.cancelled, 1);
+      assert.strictEqual(stats?.lang?.en?.cancelled_unconfirmed, 1);
+      assert.strictEqual(stats?.lang?.fi?.cancelled_unconfirmed, undefined);
     });
   });
 

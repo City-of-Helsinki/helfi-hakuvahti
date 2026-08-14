@@ -4,6 +4,7 @@ import type { SiteConfigurationType } from '../types/siteConfig.ts';
 import { type SubscriptionCollectionType, SubscriptionStatus } from '../types/subscription.ts';
 import { ATV } from './atv.ts';
 import { SiteConfigurationLoader } from './siteConfigurationLoader.ts';
+import type { Statistics } from './statistics.ts';
 
 export type SubscriptionCollection = Collection<SubscriptionCollectionType>;
 export type SubscriptionFilter = Filter<SubscriptionCollectionType>;
@@ -35,6 +36,7 @@ export async function confirmSubscription(
   collection: SubscriptionCollection | undefined,
   filter: SubscriptionFilter,
   channel: SubscriptionChannel,
+  statistics: Statistics,
 ): Promise<void> {
   const confirmedField = `${channel}_confirmed` as 'email_confirmed' | 'sms_confirmed';
 
@@ -44,10 +46,26 @@ export async function confirmSubscription(
     modified: new Date(),
   };
 
-  const result = await collection?.updateOne({ [confirmedField]: false, ...filter }, { $set });
+  // findOneAndUpdate so the previous status is known, which is what allows one
+  // count per subscription rather than one per channel. The filter still requires
+  // the channel to be unconfirmed, so a repeat confirmation matches nothing.
+  const before = await collection?.findOneAndUpdate(
+    { [confirmedField]: false, ...filter },
+    { $set },
+    {
+      returnDocument: 'before',
+      // Pinned: with metadata included this resolves to an always-truthy wrapper,
+      // turning the 404 below into a silent success.
+      includeResultMetadata: false,
+    },
+  );
 
-  if (!result || result.modifiedCount === 0) {
+  if (!before) {
     throw new ActionError(404, 'Subscription not found or already confirmed.');
+  }
+
+  if (before.status !== SubscriptionStatus.ACTIVE) {
+    await statistics.record(before.site_id, 'confirmed', { lang: before.lang });
   }
 }
 
@@ -57,12 +75,21 @@ export async function confirmSubscription(
 export async function deleteSubscription(
   collection: SubscriptionCollection | undefined,
   filter: SubscriptionFilter,
+  statistics: Statistics,
 ): Promise<void> {
-  const result = await collection?.deleteOne(filter);
+  // findOneAndDelete because this is the only moment "the user cancelled" is
+  // distinguishable from "it expired": afterwards both are an absent row.
+  const deleted = await collection?.findOneAndDelete(filter, { includeResultMetadata: false });
 
-  if (!result || result.deletedCount === 0) {
+  if (!deleted) {
     throw new ActionError(404, 'Subscription not found.');
   }
+
+  await statistics.record(
+    deleted.site_id,
+    deleted.status === SubscriptionStatus.ACTIVE ? 'cancelled' : 'cancelled_unconfirmed',
+    { lang: deleted.lang },
+  );
 }
 
 /**

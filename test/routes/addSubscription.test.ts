@@ -1,6 +1,7 @@
 import * as assert from 'node:assert';
 import { before, describe, mock, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';
+import { Statistics } from '../../src/lib/statistics.ts';
 import { SubscriptionStatus } from '../../src/types/subscription.ts';
 import { build } from '../helper.ts';
 
@@ -180,6 +181,27 @@ describe('/subscription', () => {
         );
       });
     }
+  });
+
+  test('counts the signup against the site and language', async (t) => {
+    const app = await build(t);
+    const statistics = app.mongo.db?.collection('statistics');
+    const _id = `rekry:${Statistics.day()}`;
+
+    await statistics?.deleteOne({ _id });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/subscription',
+      headers: { Authorization: 'api-key test' },
+      payload: { ...validPayload, lang: 'sv' },
+    });
+
+    assert.strictEqual(res.statusCode, 200);
+
+    const counters = await statistics?.findOne({ _id });
+    assert.strictEqual(counters?.events?.created, 1);
+    assert.strictEqual(counters?.lang?.sv?.created, 1);
   });
 });
 
