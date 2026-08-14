@@ -224,6 +224,15 @@ test('SiteConfigurationLoader', async (t) => {
     assert.throws(() => SiteConfigurationLoader.getConfiguration('non-existent'), /Invalid site_id: non-existent/);
   });
 
+  await t.test('static getConfiguration rejects inherited property names', () => {
+    process.env.ENVIRONMENT = 'local';
+
+    // A plain lookup resolves these to something truthy off Object.prototype.
+    for (const siteId of ['constructor', 'toString', 'valueOf', 'hasOwnProperty', '__proto__']) {
+      assert.throws(() => SiteConfigurationLoader.getConfiguration(siteId), new RegExp(`Invalid site_id`), siteId);
+    }
+  });
+
   await t.test('static getSiteIds returns array of site IDs', () => {
     process.env.ENVIRONMENT = 'local';
 

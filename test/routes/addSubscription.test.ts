@@ -56,6 +56,13 @@ describe('/subscription', () => {
         expectedError: 'Invalid site_id',
       },
       {
+        // Resolves off Object.prototype on a plain lookup, so it has to be
+        // rejected before the handler reaches ATV.
+        name: 'site_id that is an inherited property name',
+        payload: { ...validPayload, site_id: 'constructor' },
+        expectedError: 'Invalid site_id',
+      },
+      {
         name: 'missing email',
         payload: { ...validPayload, email: undefined },
       },
