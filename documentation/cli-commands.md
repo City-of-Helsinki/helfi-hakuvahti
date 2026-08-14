@@ -49,6 +49,21 @@ Creates the `queue`, `subscription`, and `statistics` collections with their JSO
 
 Nothing breaks if it is never run: collections are created on first write, and no query depends on a validator or an index for correctness — on Cosmos DB the validators do not apply at all. The command reports the parts it could not apply rather than failing. See [architecture.md](./architecture.md).
 
+## Backfill statistics
+
+`npm run hav:backfill-statistics -- [--site=<id>] [--dry-run]`
+
+Reconstructs historical `confirmed` counters for the days before live collection started, from the subscriptions that still exist. Useful for populating a test or QA database so the `/stats` endpoint and its consumers have a realistic series to work against.
+
+- `--site=<id>` — one site only; omit to process all.
+- `--dry-run` — report what would be written, write nothing.
+
+Re-runnable: it writes absolute recomputed values, not increments, and only for days strictly before the earliest day that was collected live. Everything it writes is flagged `backfilled: true`.
+
+**The numbers it produces undercount, by construction.** Anyone who unsubscribed or expired has already been deleted, so they cannot be counted, and only `confirmed` is reconstructed at all — `created` from survivors would show a permanent 100% conversion rate, and cancellations and expiries are unrecoverable. That is what the `backfilled` flag warns consumers about, and why those periods report no `net_change`.
+
+Subscriptions with no `first_created` cannot be dated and are counted as skipped in the summary. Do not be tempted to fall back to `created`: it is reset on renewal, so it would misdate every renewed subscription.
+
 ## Send notifications from queue
 
 `npm run hav:send-queue`
