@@ -26,8 +26,7 @@ export type StatEventType = (typeof STAT_EVENTS)[number];
 
 /**
  * Every counter, zero-filled. The single source of truth for counter names:
- * stored documents hold a Partial of this, responses the full set, and the CSV
- * header derives from it.
+ * stored documents hold a Partial of this, responses the full set.
  */
 export const StatCounts = Type.Object({
   created: Type.Number(),
@@ -57,7 +56,10 @@ export const StatisticsCollection = Type.Object({
   /** YYYY-MM-DD, Europe/Helsinki. See Statistics.day(). */
   day: Type.String(),
   created: Type.Date(),
-  /** Written only by hav:backfill-statistics. Absent means false. */
+  /**
+   * Written and read only by hav:backfill-statistics, to tell its own output from
+   * measured days so re-runs stay idempotent. Not part of the API.
+   */
   backfilled: Type.Optional(Type.Boolean()),
   events: Type.Optional(Type.Partial(StatCounts)),
   lang: Type.Optional(Type.Partial(ByLanguage(Type.Partial(StatCounts)))),
@@ -69,7 +71,7 @@ export type StatisticsCollectionType = Static<typeof StatisticsCollection>;
 
 const IsoDay = Type.String({ pattern: '^\\d{4}-\\d{2}-\\d{2}$' });
 
-/** The grain the store holds, and the grain the CSV needs. */
+/** The grain the store holds, and the grain a monthly report needs. */
 export const StatsInterval = Type.Union([Type.Literal('day'), Type.Literal('month')]);
 export type StatsIntervalType = Static<typeof StatsInterval>;
 
@@ -77,7 +79,6 @@ export const StatsQuery = Type.Object({
   interval: Type.Optional(StatsInterval),
   from: Type.Optional(IsoDay),
   to: Type.Optional(IsoDay),
-  format: Type.Optional(Type.Union([Type.Literal('json'), Type.Literal('csv')])),
 });
 export type StatsQueryType = Static<typeof StatsQuery>;
 
@@ -86,10 +87,9 @@ export const StatsPeriod = Type.Composite([
   Type.Object({
     period: Type.String(),
     confirmed_by_lang: ByLanguage(Type.Number()),
-    /** Null when nothing was recorded for the period, and when it is backfilled. */
+    /** Null when nothing was recorded for the period. */
     net_change: Type.Union([Type.Number(), Type.Null()]),
     active_end: Type.Union([Type.Number(), Type.Null()]),
-    backfilled: Type.Boolean(),
     /** The period has not ended, so its counters are still growing. */
     incomplete: Type.Boolean(),
   }),

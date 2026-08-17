@@ -33,8 +33,8 @@ const document = (day: string, overrides: Partial<StatisticsCollectionType> = {}
 });
 
 /**
- * Two days that sum to one full month, a backfilled month, and a day inside the
- * month still running — the four cases a consumer has to tell apart.
+ * Two days that sum to one full month, an older month, and a day inside the month
+ * still running.
  */
 const fixtures = (): StatisticsCollectionType[] => [
   document(`${BACKFILL_MONTH}-03`, {
@@ -179,15 +179,15 @@ describe('/stats/:site_id', () => {
       assert.strictEqual(current.confirmed, 3);
     });
 
-    test('flags a backfilled month and withholds its net_change', async (t) => {
+    test('sums a month that holds a single day', async (t) => {
       const app = await seeded(t);
       const res = await app.inject({ method: 'GET', url: `/stats/${SITE}`, headers: AUTH });
       const body = asJson(res.body);
 
       const month = body.periods.find((period) => period.period === BACKFILL_MONTH);
-      assert.strictEqual(month?.backfilled, true);
-      assert.strictEqual(month.confirmed, 11);
-      assert.strictEqual(month.net_change, null);
+      assert.strictEqual(month?.confirmed, 11);
+      assert.strictEqual(month.net_change, 11);
+      assert.deepStrictEqual(month.confirmed_by_lang, { fi: 10, sv: 0, en: 1 });
     });
 
     test('reports the earliest recorded day', async (t) => {
@@ -302,43 +302,4 @@ describe('/stats/:site_id', () => {
     });
   });
 
-  describe('CSV export', () => {
-    test('is served as a downloadable spreadsheet', async (t) => {
-      const app = await seeded(t);
-      const res = await app.inject({ method: 'GET', url: `/stats/${SITE}?format=csv`, headers: AUTH });
-
-      assert.strictEqual(res.statusCode, 200);
-      assert.strictEqual(res.headers['content-type'], 'text/csv; charset=utf-8');
-      assert.match(
-        String(res.headers['content-disposition']),
-        new RegExp(`^attachment; filename="hakuvahti-rekry-.+-${CURRENT_MONTH}\\.csv"$`),
-      );
-    });
-
-    test('carries the same figures as the JSON', async (t) => {
-      const app = await seeded(t);
-      const res = await app.inject({ method: 'GET', url: `/stats/${SITE}?format=csv`, headers: AUTH });
-
-      const body = res.body;
-      assert.ok(body.startsWith('﻿'), 'byte order mark');
-
-      const lines = body.slice(1).split('\r\n');
-      assert.ok(lines[0].startsWith('period;created;confirmed;'));
-
-      const month = lines.find((line) => line.startsWith(FULL_MONTH));
-      assert.strictEqual(month, `${FULL_MONTH};455;402;38;0;131;53;233;5010;373;17;12;false;false`);
-
-      const backfilled = lines.find((line) => line.startsWith(BACKFILL_MONTH));
-      assert.strictEqual(backfilled, `${BACKFILL_MONTH};0;11;0;0;0;0;;;10;0;1;true;false`);
-    });
-
-    test('has one row per period plus a header', async (t) => {
-      const app = await seeded(t);
-      const res = await app.inject({ method: 'GET', url: `/stats/${SITE}?format=csv`, headers: AUTH });
-
-      const lines = res.body.slice(1).split('\r\n').filter(Boolean);
-
-      assert.strictEqual(lines.length, 14, '13 months plus the header');
-    });
-  });
 });

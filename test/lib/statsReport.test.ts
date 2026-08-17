@@ -1,6 +1,6 @@
 import * as assert from 'node:assert';
 import { describe, test } from 'node:test';
-import { buildPeriods, parseDay, periodOf, periodsIn, resolveRange, toCsv } from '../../src/lib/statsReport.ts';
+import { buildPeriods, parseDay, periodOf, periodsIn, resolveRange } from '../../src/lib/statsReport.ts';
 import type { StatisticsCollectionType } from '../../src/types/statistics.ts';
 
 /** A fixed "today" so day-boundary behaviour is deterministic. */
@@ -168,7 +168,6 @@ describe('statsReport', () => {
       assert.strictEqual(june.net_change, 233, '402 - 38 - 131');
       assert.strictEqual(june.active_end, 5010, 'the later of the two snapshots');
       assert.strictEqual(june.incomplete, false);
-      assert.strictEqual(june.backfilled, false);
     });
 
     test('splits confirmations by language, summing to the total', () => {
@@ -224,8 +223,10 @@ describe('statsReport', () => {
       assert.strictEqual(june.active_end, 812);
     });
 
-    test('withholds net_change for backfilled periods', () => {
-      const backfilled = [
+    test('reads a reconstructed period like any other', () => {
+      // The backfill flag is internal to that command; the report does not
+      // distinguish its output.
+      const reconstructed = [
         document('2026-05-03', {
           backfilled: true,
           events: { confirmed: 11 },
@@ -233,11 +234,10 @@ describe('statsReport', () => {
         }),
       ];
 
-      const [may] = buildPeriods(backfilled, { interval: 'month', from: '2026-05-01', to: '2026-05-31' }, TODAY);
+      const [may] = buildPeriods(reconstructed, { interval: 'month', from: '2026-05-01', to: '2026-05-31' }, TODAY);
 
       assert.strictEqual(may.confirmed, 11);
-      assert.strictEqual(may.backfilled, true);
-      assert.strictEqual(may.net_change, null, 'the inputs are known-incomplete');
+      assert.strictEqual(may.net_change, 11, 'nothing to subtract, so the net change is the confirmations');
       assert.deepStrictEqual(may.confirmed_by_lang, { fi: 10, sv: 0, en: 1 });
     });
 
@@ -258,51 +258,4 @@ describe('statsReport', () => {
     });
   });
 
-  describe('toCsv', () => {
-    const periods = buildPeriods(
-      [
-        document('2026-06-14', {
-          events: { created: 12, confirmed: 10, cancelled: 1 },
-          lang: { fi: { created: 11, confirmed: 9, cancelled: 1 }, sv: { created: 1, confirmed: 1 } },
-          snapshot: { at: new Date('2026-06-14T04:00:00Z'), active: 500, unconfirmed: 3 },
-        }),
-      ],
-      { interval: 'month', from: '2026-06-01', to: '2026-06-30' },
-      TODAY,
-    );
-
-    test('opens in a Finnish-locale spreadsheet', () => {
-      const csv = toCsv(periods);
-
-      assert.ok(csv.startsWith('﻿'), 'starts with a byte order mark');
-      assert.ok(csv.endsWith('\r\n'), 'CRLF line endings');
-      assert.ok(csv.includes(';'), 'semicolon delimited');
-      assert.ok(!csv.includes('\n\n'));
-    });
-
-    test('has one header row and one row per period', () => {
-      const [header, row, ...rest] = toCsv(periods).slice(1).split('\r\n');
-
-      assert.strictEqual(
-        header,
-        'period;created;confirmed;cancelled;cancelled_unconfirmed;expired;expired_unconfirmed;' +
-          'net_change;active_end;confirmed_fi;confirmed_sv;confirmed_en;backfilled;incomplete',
-      );
-      assert.strictEqual(row, '2026-06;12;10;1;0;0;0;9;500;9;1;0;false;false');
-      assert.deepStrictEqual(rest, [''], 'trailing newline only');
-    });
-
-    test('renders a null as an empty field, not the word null', () => {
-      const backfilled = buildPeriods(
-        [document('2026-05-03', { backfilled: true, events: { confirmed: 11 } })],
-        { interval: 'month', from: '2026-05-01', to: '2026-05-31' },
-        TODAY,
-      );
-
-      const row = toCsv(backfilled).slice(1).split('\r\n')[1];
-
-      assert.strictEqual(row, '2026-05;0;11;0;0;0;0;;;0;0;0;true;false');
-      assert.ok(!row.includes('null'));
-    });
-  });
 });

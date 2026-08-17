@@ -58,9 +58,9 @@ Reconstructs historical `confirmed` counters for the days before live collection
 - `--site=<id>` — one site only; omit to process all.
 - `--dry-run` — report what would be written, write nothing.
 
-Re-runnable: it writes absolute recomputed values, not increments, and only for days strictly before the earliest day that was collected live. Everything it writes is flagged `backfilled: true`.
+Re-runnable: it writes absolute recomputed values, not increments, and only for days strictly before the earliest day that was collected live. Its output carries an internal `backfilled` flag, which is how a re-run tells measured days from its own; the flag is not exposed by the API.
 
-**The numbers it produces undercount, by construction.** Anyone who unsubscribed or expired has already been deleted, so they cannot be counted, and only `confirmed` is reconstructed at all — `created` from survivors would show a permanent 100% conversion rate, and cancellations and expiries are unrecoverable. That is what the `backfilled` flag warns consumers about, and why those periods report no `net_change`.
+**The numbers it produces undercount, by construction.** Anyone who unsubscribed or expired has already been deleted, so they cannot be counted, and only `confirmed` is reconstructed at all — `created` from survivors would show a permanent 100% conversion rate, and cancellations and expiries are unrecoverable. `/stats` does not distinguish reconstructed days from measured ones, so use this on test and QA databases only.
 
 Subscriptions with no `first_created` cannot be dated and are counted as skipped in the summary. Do not be tempted to fall back to `created`: it is reset on renewal, so it would misdate every renewed subscription.
 

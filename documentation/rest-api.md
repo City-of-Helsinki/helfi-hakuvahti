@@ -128,7 +128,6 @@ Per-site subscription figures for product owners. One site per request — a hak
 | `interval` | query | `month` | `day`, `month` |
 | `from` | query | 12 months / 30 days back | `YYYY-MM-DD` |
 | `to` | query | today | `YYYY-MM-DD` |
-| `format` | query | `json` | `json`, `csv` |
 
 Authorization is the shared API key, same as every other endpoint. Any key holder can read any site — the response is aggregate counts with no personal data in it. Per-admin scoping belongs in Drupal, which already knows who owns which site.
 
@@ -146,8 +145,7 @@ Authorization is the shared API key, same as every other endpoint. Any key holde
             "cancelled": 38, "cancelled_unconfirmed": 0,
             "expired": 131, "expired_unconfirmed": 53,
             "confirmed_by_lang": { "fi": 373, "sv": 17, "en": 12 },
-            "net_change": 233, "active_end": 5010,
-            "backfilled": false, "incomplete": false
+            "net_change": 233, "active_end": 5010, "incomplete": false
         }
     ]
 }
@@ -163,17 +161,16 @@ Authorization is the shared API key, same as every other endpoint. Any key holde
 - `confirmed_by_lang` always sums to `confirmed` exactly, because a subscription has exactly one language. It is safe to read as a partition and to turn into percentages.
 - `range` echoes the **effective** range. `from` snaps back to the start of its period and `to` out to the end of its, so a period is never half-reported; `to` is clamped to today; and a very long range is capped (366 days / 120 months).
 
-### Three things that will otherwise be misread
+### Two things that will otherwise be misread
 
 - `collecting_since` — periods before it read zero because nothing was being recorded, not because nothing happened. Do not render pre-launch zeroes as real.
-- `backfilled` — the period's `confirmed` was reconstructed from surviving subscriptions and undercounts; the other counters do not exist for it at all. `net_change` is `null` rather than a flattering number.
 - `incomplete` — the period has not ended, so its counters are still growing. Without surfacing this, "this month" next to "last month" reads as a collapse that is only the calendar.
 
 A configured site with no data yet is `200` with `collecting_since: null` and a zero-filled series, not `404`.
 
 Returns `400` with `{ "error": "Invalid site_id provided." }` for a site with no configuration, and `{ "error": "Invalid date.", "field": "from" }` for a date the calendar does not have, such as `2026-02-31`.
 
-`?format=csv` returns the `periods` only, as a UTF-8 CSV with a byte order mark, `;` delimiters and CRLF line endings, which opens in Finnish-locale Excel without the import wizard. Nulls are empty fields. Only `confirmed` is broken out by language there — the full split would be eighteen columns.
+The response is JSON only. A spreadsheet export is the consumer's to render — `confirmed_by_lang` and the monthly rollup are already in the shape a table needs.
 
 ## Health checks
 

@@ -157,7 +157,6 @@ export function buildPeriods(
 
     const days = byPeriod.get(period) ?? [];
     let active_end: number | null = null;
-    let backfilled = false;
 
     for (const day of days) {
       for (const event of STAT_EVENTS) {
@@ -171,10 +170,6 @@ export function buildPeriods(
       if (day.snapshot) {
         active_end = day.snapshot.active;
       }
-
-      if (day.backfilled) {
-        backfilled = true;
-      }
     }
 
     return {
@@ -185,51 +180,9 @@ export function buildPeriods(
       // "nothing was recorded" cannot read as "no churn happened". A period with
       // documents but no events is a genuine zero, because the cron leaves a
       // measurement behind even on a quiet day.
-      net_change: backfilled || days.length === 0 ? null : counts.confirmed - counts.cancelled - counts.expired,
+      net_change: days.length === 0 ? null : counts.confirmed - counts.cancelled - counts.expired,
       active_end,
-      backfilled,
       incomplete: endOfPeriod(period, range.interval) >= today,
     };
   });
-}
-
-interface CsvColumn {
-  header: string;
-  value: (period: StatsPeriodType) => string;
-}
-
-/** Nulls are an empty field, not the string "null". */
-const nullable = (value: number | null): string => (value === null ? '' : String(value));
-
-/**
- * Only `confirmed` is split by language: all six counters by three languages is
- * unreadable in a spreadsheet.
- */
-const CSV_COLUMNS: CsvColumn[] = [
-  { header: 'period', value: (period) => period.period },
-  ...STAT_EVENTS.map((event) => ({ header: event, value: (period: StatsPeriodType) => String(period[event]) })),
-  { header: 'net_change', value: (period) => nullable(period.net_change) },
-  { header: 'active_end', value: (period) => nullable(period.active_end) },
-  ...SUBSCRIPTION_LANGUAGES.map((lang) => ({
-    header: `confirmed_${lang}`,
-    value: (period: StatsPeriodType) => String(period.confirmed_by_lang[lang]),
-  })),
-  { header: 'backfilled', value: (period) => String(period.backfilled) },
-  { header: 'incomplete', value: (period) => String(period.incomplete) },
-];
-
-/**
- * Renders the periods so they open in Excel without the import wizard:
- * semicolons, because Finnish-locale Excel splits on those, CRLF, and a byte
- * order mark so a future text column survives as UTF-8.
- *
- * No escaping: every value is a number, a boolean or a date label.
- */
-export function toCsv(periods: StatsPeriodType[]): string {
-  const rows = [
-    CSV_COLUMNS.map((column) => column.header),
-    ...periods.map((period) => CSV_COLUMNS.map((column) => column.value(period))),
-  ];
-
-  return `\ufeff${rows.map((row) => row.join(';')).join('\r\n')}\r\n`;
 }

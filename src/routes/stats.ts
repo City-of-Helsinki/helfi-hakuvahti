@@ -1,12 +1,13 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { SiteConfigurationLoader } from '../lib/siteConfigurationLoader.ts';
 import { Statistics } from '../lib/statistics.ts';
-import { buildPeriods, parseDay, periodOf, resolveRange, toCsv } from '../lib/statsReport.ts';
+import { buildPeriods, parseDay, resolveRange } from '../lib/statsReport.ts';
 import { Generic400Error, type Generic400ErrorType } from '../types/error.ts';
 import {
   type StatisticsCollectionType,
   StatsQuery,
   type StatsQueryType,
+  StatsResponse,
   type StatsResponseType,
 } from '../types/statistics.ts';
 import { SubscriptionStatus } from '../types/subscription.ts';
@@ -21,22 +22,21 @@ const stats: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.get<{
     Params: { site_id: string };
     Querystring: StatsQueryType;
-    Reply: StatsResponseType | Generic400ErrorType | string;
+    Reply: StatsResponseType | Generic400ErrorType;
   }>(
     '/stats/:site_id',
     {
       schema: {
         querystring: StatsQuery,
-        // No 200 schema on purpose: this route answers with JSON or CSV, and a
-        // response serializer bound to one would mangle the other.
         response: {
+          200: StatsResponse,
           400: Generic400Error,
         },
       },
     },
     async (request, reply) => {
       const { site_id } = request.params;
-      const { interval = 'month', format = 'json', from, to } = request.query;
+      const { interval = 'month', from, to } = request.query;
 
       try {
         SiteConfigurationLoader.getConfiguration(site_id);
@@ -89,16 +89,6 @@ const stats: FastifyPluginAsync = async (fastify, _opts) => {
       ]);
 
       const periods = buildPeriods(documents, range, today);
-
-      if (format === 'csv') {
-        const filename = `hakuvahti-${site_id}-${periodOf(range.from, interval)}-${periodOf(range.to, interval)}.csv`;
-
-        return reply
-          .code(200)
-          .header('Content-Type', 'text/csv; charset=utf-8')
-          .header('Content-Disposition', `attachment; filename="${filename}"`)
-          .send(toCsv(periods));
-      }
 
       // A configured site with no data answers 200 with a zero-filled series: a
       // 404 would be indistinguishable from a typo in the path.
