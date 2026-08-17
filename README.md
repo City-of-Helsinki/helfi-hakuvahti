@@ -44,5 +44,6 @@ make down
 - [Environment variables](./documentation/environment-variables.md): supported environment variables.
 - [REST API](./documentation/rest-api.md): subscription CRUD, broadcast messages, health checks
 - [CLI commands](./documentation/cli-commands.md): cron scripts, maintenance, and template testing tools
+- [Statistics](./documentation/statistics-testing.md): where the `/stats` figures come from, and how to exercise each counter
 - [Mock Dialogi server](./documentation/dialogi-server.md): local SMS testing without the real Dialogi API
 - [Testing with Rekry](./documentation/testing.md): Testing walkthrough against a local Rekry site
