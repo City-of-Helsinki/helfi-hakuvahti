@@ -37,7 +37,7 @@ One document per site per day, keyed `site_id:day`, for example `rekry:2026-08-1
             └───────────────────────────────────────────────────────────────────┘
 ```
 
-Every transition that changes the number of subscriptions writes exactly one counter. The self-loop is the one that surprises people: confirming a second channel activates nothing new, so it counts nothing.
+Every transition that changes the number of subscriptions writes exactly one counter. The self-loop writes none: confirming a second channel activates nothing new.
 
 | Counter | Written when | Code | How to trigger it |
 |---|---|---|---|
@@ -184,18 +184,17 @@ docker compose exec -T mongodb mongosh hakuvahti --quiet --eval \
 npm run hav:backfill-statistics -- --site=rekry
 ```
 
-The reconstruction covers `confirmed` only and undercounts by design; it is for test and QA databases.
+The reconstruction covers `confirmed` only and undercounts; it is for test and QA databases.
 
 ## Behaviours that are intentional
 
 | What you see | Why |
 |---|---|
-| Confirming both email and SMS increments `confirmed` only once | It counts subscriptions, not channels. One subscriber activating two channels is still one active subscription |
-| `net_change` is `null` rather than `0` | The period has no stored data. A zero would read as "no churn happened", which is a different claim from "nothing was being recorded" |
+| Confirming both email and SMS increments `confirmed` only once | It counts subscriptions, not channels |
+| `net_change` is `null` rather than `0` | The period has no stored data at all. A period with data but no events reports `0` |
 | `current.active` does not match the last `active_end` | `current` is counted at request time; `active_end` is the last measurement the cron stored. They agree only just after a cron run |
 | A counter lands on the following day | Days are Europe/Helsinki, so writes after 21:00–22:00 UTC belong to the next day's document |
 | `POST /subscription` returns no `hash` | It ships in the confirmation email |
-| No CSV export | The endpoint serves JSON only; a spreadsheet export is rendered by the consumer |
 | `cancelled_unconfirmed` stays at 0 | The unsubscribe link ships in notification emails, which only active subscriptions receive |
 
 ## When statistics fail
@@ -207,7 +206,7 @@ A statistics failure must never break the operation that triggered it.
 | A counter write | Nothing, the operation succeeds | One counter lost, reported to Sentry |
 | The expiry language grouping | Nothing, expired subscriptions are still deleted | That day's expiry counters lost |
 | The daily snapshot | Nothing, notifications are still queued | One point missing from the active-count series |
-| The confirmation or unsubscribe itself | An error | Deliberately not swallowed; hiding a failed unsubscribe would be worse |
+| The confirmation or unsubscribe itself | An error | Not swallowed — the operation genuinely failed |
 
 ## Environment notes
 

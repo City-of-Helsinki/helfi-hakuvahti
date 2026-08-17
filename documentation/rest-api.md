@@ -120,7 +120,7 @@ Returns `500` if the `OIDC_*` variables are not configured, the issuer's discove
 
 `GET` `/stats/:site_id`
 
-Per-site subscription figures for product owners. One site per request — a hakuvahti *is* a `site_id`.
+Per-site subscription figures. One site per request.
 
 | Parameter | In | Default | Values |
 |---|---|---|---|
@@ -129,7 +129,7 @@ Per-site subscription figures for product owners. One site per request — a hak
 | `from` | query | 12 months / 30 days back | `YYYY-MM-DD` |
 | `to` | query | today | `YYYY-MM-DD` |
 
-Authorization is the shared API key, same as every other endpoint. Any key holder can read any site — the response is aggregate counts with no personal data in it. Per-admin scoping belongs in Drupal, which already knows who owns which site.
+Requires the shared API key like every other endpoint. Any key holder can read any site; the response holds aggregate counts only.
 
 ```json
 {
@@ -151,26 +151,27 @@ Authorization is the shared API key, same as every other endpoint. Any key holde
 }
 ```
 
-### Reading the numbers
+Every period in the range is present and zero-filled, in ascending order.
 
-- `current` is counted live off `subscription`, so it is right even if the cron has not run today. Everything under `periods` comes from stored counters.
-- **`confirmed` is the "new subscriptions" figure**, not `created`. `created` counts signups that began; `confirmed` counts the ones that became active, and only once per subscription even when the subscriber confirms both email and SMS. The conversion rate is `confirmed / created`.
-- `cancelled` is *keskeytetty* — the user unsubscribed. `expired` is *vanhentunut* — the subscription reached the site's `maxAge` and the cron deleted it. The `_unconfirmed` variants are the same events for subscriptions that never became active, kept separate so churn is not inflated by people who never finished signing up.
-- `net_change` is `confirmed − cancelled − expired`. Its running total should track the `active_end` series; a persistent divergence between them means an event is being missed. It is `null` — not `0` — when the period has no stored data at all, so "nothing was recorded" cannot be read as "no churn happened". A quiet period that *was* being monitored reports a real `0`, because the cron leaves a daily measurement behind even on a day when nothing else happens.
-- `active_end` is the last measured active count in the period, `null` if the cron wrote no measurement for it. Gaps are reported as gaps rather than carried forward.
-- `confirmed_by_lang` always sums to `confirmed` exactly, because a subscription has exactly one language. It is safe to read as a partition and to turn into percentages.
-- `range` echoes the **effective** range. `from` snaps back to the start of its period and `to` out to the end of its, so a period is never half-reported; `to` is clamped to today; and a very long range is capped (366 days / 120 months).
+| Field | Meaning |
+|---|---|
+| `current` | Live count from `subscription` at request time, independent of the cron |
+| `collecting_since` | Earliest recorded day for the site, `null` if there is none. Periods before it hold no data |
+| `range` | The effective range: `from` snapped back to the start of its period, `to` out to the end of its and clamped to today, length capped at 366 days or 120 months |
+| `period` | `2026-10-14` for `interval=day`, `2026-10` for `interval=month` |
+| `created` | Signups that began, confirmed or not |
+| `confirmed` | Subscriptions that became active — *uudet tilaukset*. Counted once per subscription, not once per channel, so confirming both email and SMS increments it once |
+| `cancelled` | User unsubscribed a live subscription — *keskeytetty* |
+| `expired` | The cron deleted a live subscription at the site's `maxAge` — *vanhentunut* |
+| `cancelled_unconfirmed`, `expired_unconfirmed` | The same two events for subscriptions that never became active |
+| `confirmed_by_lang` | `confirmed` per language. Sums to `confirmed` exactly, since a subscription has one language |
+| `net_change` | `confirmed − cancelled − expired`. `null` when the period has no stored data at all, `0` when it has data but no events |
+| `active_end` | Last measured active count in the period, `null` if the cron wrote no measurement for it |
+| `incomplete` | The period has not ended |
 
-### Two things that will otherwise be misread
-
-- `collecting_since` — periods before it read zero because nothing was being recorded, not because nothing happened. Do not render pre-launch zeroes as real.
-- `incomplete` — the period has not ended, so its counters are still growing. Without surfacing this, "this month" next to "last month" reads as a collapse that is only the calendar.
-
-A configured site with no data yet is `200` with `collecting_since: null` and a zero-filled series, not `404`.
+A configured site with no data is `200`, with `collecting_since: null` and a zero-filled series.
 
 Returns `400` with `{ "error": "Invalid site_id provided." }` for a site with no configuration, and `{ "error": "Invalid date.", "field": "from" }` for a date the calendar does not have, such as `2026-02-31`.
-
-The response is JSON only. A spreadsheet export is the consumer's to render — `confirmed_by_lang` and the monthly rollup are already in the shape a table needs.
 
 ## Health checks
 
