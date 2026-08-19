@@ -3,9 +3,12 @@ import { after, before, beforeEach, describe, test } from 'node:test';
 import { type Db, MongoClient } from 'mongodb';
 import { Statistics } from '../../src/lib/statistics.ts';
 import type { StatisticsCollectionType } from '../../src/types/statistics.ts';
+import { SubscriptionStatus } from '../../src/types/subscription.ts';
 import { build } from '../helper.ts';
+import { createSubscription } from './utils.ts';
 
 const SITE = 'test-stats';
+const OTHER_SITE = 'test-stats-other';
 
 describe('Statistics', () => {
   assert.ok(process.env.MONGODB);
@@ -26,6 +29,7 @@ describe('Statistics', () => {
 
   beforeEach(async () => {
     await db.collection('statistics').deleteMany({ site_id: SITE });
+    await db.collection('subscription').deleteMany({ site_id: { $in: [SITE, OTHER_SITE] } });
   });
 
   /** Today's document for the test site, as the write path left it. */
@@ -114,6 +118,49 @@ describe('Statistics', () => {
       assert.strictEqual(await today(), null);
     });
 
+    test('retries once when two writes race to create the day', async () => {
+      // Both find no document, both attempt the insert, one loses with E11000.
+      // Retrying succeeds because by then the document exists.
+      let attempts = 0;
+      const racing = new Statistics({
+        db: {
+          collection: () => ({
+            updateOne: async (...args: unknown[]) => {
+              attempts += 1;
+
+              if (attempts === 1) {
+                throw Object.assign(new Error('E11000 duplicate key'), { code: 11000 });
+              }
+
+              return db.collection('statistics').updateOne(...(args as [never, never, never]));
+            },
+          }),
+        } as never,
+      });
+
+      await racing.record(SITE, 'created', { lang: 'fi' });
+
+      assert.strictEqual(attempts, 2, 'the losing write is retried');
+      assert.strictEqual((await today())?.events?.created, 1, 'and the counter is not lost');
+    });
+
+    test('gives up after one retry rather than looping', async () => {
+      let attempts = 0;
+      const alwaysRacing = new Statistics({
+        db: {
+          collection: () => ({
+            updateOne: async () => {
+              attempts += 1;
+              throw Object.assign(new Error('E11000 duplicate key'), { code: 11000 });
+            },
+          }),
+        } as never,
+      });
+
+      await assert.doesNotReject(() => alwaysRacing.record(SITE, 'created', { lang: 'fi' }));
+      assert.strictEqual(attempts, 2);
+    });
+
     test('never throws when the database is unreachable', async () => {
       const broken = new Statistics({
         db: {
@@ -149,6 +196,48 @@ describe('Statistics', () => {
       assert.strictEqual(document?.snapshot?.active, 12);
       assert.strictEqual(document?.snapshot?.unconfirmed, 0);
       assert.deepStrictEqual(document?.events, { confirmed: 1 });
+    });
+  });
+
+  describe('countLive() and measure()', () => {
+    const seed = (rows: Record<string, unknown>[]) =>
+      db.collection('subscription').insertMany(rows.map((row) => createSubscription({ site_id: SITE, ...row })));
+
+    test('counts active and unconfirmed subscriptions for one site', async () => {
+      await seed([
+        {},
+        { lang: 'sv' },
+        { status: SubscriptionStatus.INACTIVE },
+        // Another site's rows must not be counted.
+        { site_id: OTHER_SITE },
+      ]);
+
+      assert.deepStrictEqual(await statistics.countLive(SITE), { active: 2, unconfirmed: 1 });
+    });
+
+    test('counts zero for a site with no subscriptions', async () => {
+      assert.deepStrictEqual(await statistics.countLive(SITE), { active: 0, unconfirmed: 0 });
+    });
+
+    test('measure() stores the counts and stamps the time', async () => {
+      await seed([{}, { status: SubscriptionStatus.INACTIVE }]);
+
+      await statistics.measure(SITE);
+
+      const snapshot = (await today())?.snapshot;
+      assert.strictEqual(snapshot?.active, 1);
+      assert.strictEqual(snapshot?.unconfirmed, 1);
+      assert.ok(snapshot?.at instanceof Date);
+    });
+
+    test('measure() never throws when the count fails', async () => {
+      // The cron measures every site in a loop; one unreachable database must not
+      // abort the rest, and a lost measurement only costs one point in the series.
+      const broken = new Statistics({
+        db: { collection: () => ({ countDocuments: () => Promise.reject(new Error('unreachable')) }) } as never,
+      });
+
+      await assert.doesNotReject(() => broken.measure(SITE));
     });
   });
 

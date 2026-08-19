@@ -128,8 +128,8 @@ const zeroCounts = (): StatCountsType => Object.fromEntries(STAT_EVENTS.map((eve
  * Sums the stored days into one row per period, zero-filling every period in the
  * range so charting code never has to reason about gaps.
  *
- * `documents` must be ordered by day ascending: `active_end` takes the last
- * snapshot it sees.
+ * Order-independent: `active_end` is the snapshot of the period's latest measured
+ * day, chosen by comparing days rather than by trusting the caller's ordering.
  */
 export function buildPeriods(
   documents: StatisticsCollectionType[],
@@ -156,7 +156,7 @@ export function buildPeriods(
     ) as StatsPeriodType['confirmed_by_lang'];
 
     const days = byPeriod.get(period) ?? [];
-    let active_end: number | null = null;
+    let latestMeasured: StatisticsCollectionType | undefined;
 
     for (const day of days) {
       for (const event of STAT_EVENTS) {
@@ -167,8 +167,8 @@ export function buildPeriods(
         confirmed_by_lang[lang] += day.lang?.[lang]?.confirmed ?? 0;
       }
 
-      if (day.snapshot) {
-        active_end = day.snapshot.active;
+      if (day.snapshot && (!latestMeasured || day.day > latestMeasured.day)) {
+        latestMeasured = day;
       }
     }
 
@@ -181,7 +181,7 @@ export function buildPeriods(
       // documents but no events is a genuine zero, because the cron leaves a
       // measurement behind even on a quiet day.
       net_change: days.length === 0 ? null : counts.confirmed - counts.cancelled - counts.expired,
-      active_end,
+      active_end: latestMeasured?.snapshot?.active ?? null,
       incomplete: endOfPeriod(period, range.interval) >= today,
     };
   });

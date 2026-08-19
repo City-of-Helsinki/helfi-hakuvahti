@@ -49,21 +49,6 @@ Creates the `queue`, `subscription`, and `statistics` collections with their JSO
 
 Nothing breaks if it is never run: collections are created on first write, and no query depends on a validator or an index for correctness — on Cosmos DB the validators do not apply at all. The command reports the parts it could not apply rather than failing. See [architecture.md](./architecture.md).
 
-## Backfill statistics
-
-`npm run hav:backfill-statistics -- [--site=<id>] [--dry-run]`
-
-Reconstructs historical `confirmed` counters for the days before live collection started, from the subscriptions that still exist. Useful for populating a test or QA database so the `/stats` endpoint and its consumers have a realistic series to work against.
-
-- `--site=<id>` — one site only; omit to process all.
-- `--dry-run` — report what would be written, write nothing.
-
-Re-runnable: it writes absolute recomputed values, not increments, and only for days strictly before the earliest day that was collected live. Its output carries a `backfilled` flag, which is how a re-run tells measured days from its own.
-
-**The numbers it produces undercount, by construction.** Anyone who unsubscribed or expired has already been deleted, so they cannot be counted, and only `confirmed` is reconstructed at all — `created` from survivors would show a permanent 100% conversion rate, and cancellations and expiries are unrecoverable. `/stats` does not distinguish reconstructed days from measured ones, so use this on test and QA databases only.
-
-Subscriptions with no `first_created` cannot be dated and are counted as skipped in the summary. Do not be tempted to fall back to `created`: it is reset on renewal, so it would misdate every renewed subscription.
-
 ## Send notifications from queue
 
 `npm run hav:send-queue`
@@ -79,16 +64,6 @@ Recalculates `delete_after` for every subscription on a site using the current `
 - `--site=<id>` (required) — site to migrate.
 - `--batch-size=<n>` — ATV update batch size; defaults to 100.
 - `--dry-run` — preview without writing to ATV.
-
-## Verify statistics support
-
-`npm run hav:test-statistics`
-
-Runs the real statistics code paths against this environment's database and asserts the documents they leave behind, then prints one line per database capability and exits non-zero if any failed.
-
-Worth running once per environment: `Statistics.record()` swallows its own failures, so an unsupported write is otherwise invisible until a counter turns up missing. It covers the upsert with `$inc` on dotted paths, `$setOnInsert`, `$set` of a nested object, `findOneAndUpdate` with `returnDocument: 'before'` including its miss path, `findOneAndDelete`, `$match` + `$group`, the `_id` range scan and its prefix safety, and `countDocuments` with a compound filter.
-
-Safe to run anywhere, production included: it writes only its own documents to `statistics` and `subscription`, under reserved site ids that match no site configuration, and removes them again even when a check fails. It creates no collections, so it allocates no throughput. Should it ever be killed mid-run, the rows it leaves behind are inert — no cron or endpoint resolves those site ids — and the next run clears them.
 
 ## Test SMS sending
 

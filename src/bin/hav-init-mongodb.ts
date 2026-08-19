@@ -150,9 +150,6 @@ command(
           created: {
             bsonType: 'date',
           },
-          backfilled: {
-            bsonType: 'bool',
-          },
           // Open map, so adding a counter needs no collMod. Counter names are
           // governed by STAT_EVENTS in TypeScript instead.
           events: counterMap,

@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/node';
-import type { Collection, Db } from 'mongodb';
-import { type SubscriptionCollectionLanguageType, SubscriptionStatus } from '../types/subscription.ts';
+import type { Db } from 'mongodb';
+import { SUBSCRIPTION_LANGUAGES, SubscriptionStatus } from '../types/subscription.ts';
 import type { Statistics } from './statistics.ts';
 
 export interface ExpireSubscriptionsOptions {
@@ -50,51 +50,42 @@ export async function expireSubscriptions(
       return 0;
     }
 
-    // Taken before the rows are gone, because deleteMany only reports a total.
-    const byLang = await groupByLanguage(collection, filter, siteId);
-    const { deletedCount } = await collection.deleteMany(filter);
-
-    // Nothing deleted, nothing to count. This is also what stops two overlapping
-    // cron runs double counting: the second run's grouping can still see rows the
-    // first is deleting, but its deleteMany removes none of them.
-    if (deletedCount === 0) {
-      return 0;
-    }
-
     const event = status === SubscriptionStatus.ACTIVE ? 'expired' : 'expired_unconfirmed';
-    for (const { _id: lang, count } of byLang) {
-      await statistics.record(siteId, event, { lang: lang as SubscriptionCollectionLanguageType, count });
+    let deleted = 0;
+
+    // Deleted one language at a time so each counter records what that delete
+    // actually removed. Counting first and deleting in bulk would let two
+    // overlapping cron runs both count rows only one of them deleted, inflating
+    // `expired` by up to a full batch. Three small deletes per site instead of
+    // one costs nothing at this volume and keeps `events` and `lang` in step.
+    for (const lang of SUBSCRIPTION_LANGUAGES) {
+      const { deletedCount } = await collection.deleteMany({ ...filter, lang });
+
+      if (deletedCount > 0) {
+        await statistics.record(siteId, event, { lang, count: deletedCount });
+        deleted += deletedCount;
+      }
     }
 
-    return deletedCount;
+    // The loop above only matches the three known languages, so anything with a
+    // missing or unrecognised `lang` would otherwise survive every run and
+    // accumulate. Cleanup is this function's job, so sweep them — but do not
+    // invent a language for a counter; report the anomaly once per run instead.
+    const { deletedCount: unknownLang } = await collection.deleteMany({
+      ...filter,
+      lang: { $nin: [...SUBSCRIPTION_LANGUAGES] },
+    });
+
+    if (unknownLang > 0) {
+      console.error(`Deleted ${unknownLang} subscription(s) with no usable lang for ${siteId}; not counted`);
+      Sentry.captureMessage(`Expired ${unknownLang} subscription(s) with no usable lang for ${siteId}`);
+      deleted += unknownLang;
+    }
+
+    return deleted;
   } catch (error) {
     throw new Error('Could not delete subscriptions. See logs for errors.', {
       cause: error,
     });
-  }
-}
-
-/**
- * Counts the doomed subscriptions per language, one row per language however many
- * are being deleted.
- *
- * Isolated from the deletion because statistics must never stop the cleanup: if
- * the server cannot run this pipeline, the day's expiry counters are lost and
- * reported, and the deletion goes ahead regardless.
- */
-async function groupByLanguage(
-  collection: Collection,
-  filter: ExpiryFilter,
-  siteId: string,
-): Promise<{ _id: string; count: number }[]> {
-  try {
-    return await collection
-      .aggregate<{ _id: string; count: number }>([{ $match: filter }, { $group: { _id: '$lang', count: { $sum: 1 } } }])
-      .toArray();
-  } catch (error) {
-    console.error(`Could not group expiring subscriptions by language for ${siteId}`, error);
-    Sentry.captureException(error);
-
-    return [];
   }
 }

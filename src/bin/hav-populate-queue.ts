@@ -38,7 +38,6 @@ const processSubscriptions = async (
   const processor = new SubscriptionProcessor({
     mongo: server.mongo,
     atv: server.atv,
-    statistics: server.statistics,
     queryElasticProxy: server.queryElasticProxy,
   });
 
@@ -113,8 +112,8 @@ command(
     }
 
     // Clean up expired subscriptions for each site. --site filters only the
-    // processing below, so a single-site run still expires every site — leaving
-    // the others with counters but no snapshot for that day.
+    // notification pass below; expiry and measurement always cover every site, so
+    // a single-site run cannot leave the others with counters but no snapshot.
     for (const [siteId, siteConfig] of Object.entries(siteConfigs)) {
       // Remove expired subscriptions that haven't been confirmed
       await expireSubscriptions(db, server.statistics, {
@@ -131,6 +130,16 @@ command(
         olderThanDays: siteConfig.subscription.maxAge,
         isDryRun,
       });
+    }
+
+    // Measured after the expiry sweep, so the snapshot and the day's `expired`
+    // counters describe the same moment. Deliberately before the notification
+    // pass and not inside it: that work depends on Elasticsearch and ATV, and a
+    // failure there must not cost every site its measurement for the day.
+    if (!isDryRun) {
+      for (const siteId of Object.keys(siteConfigs)) {
+        await server.statistics.measure(siteId);
+      }
     }
 
     // Loop through subscriptions and add new results to email queue

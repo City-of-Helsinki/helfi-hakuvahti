@@ -56,11 +56,6 @@ export const StatisticsCollection = Type.Object({
   /** YYYY-MM-DD, Europe/Helsinki. See Statistics.day(). */
   day: Type.String(),
   created: Type.Date(),
-  /**
-   * Written and read only by hav:backfill-statistics, to tell its own output from
-   * measured days so re-runs stay idempotent. Not part of the API.
-   */
-  backfilled: Type.Optional(Type.Boolean()),
   events: Type.Optional(Type.Partial(StatCounts)),
   lang: Type.Optional(Type.Partial(ByLanguage(Type.Partial(StatCounts)))),
   snapshot: Type.Optional(StatSnapshot),

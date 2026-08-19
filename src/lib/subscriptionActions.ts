@@ -64,7 +64,11 @@ export async function confirmSubscription(
     throw new ActionError(404, 'Subscription not found or already confirmed.');
   }
 
-  if (before.status !== SubscriptionStatus.ACTIVE) {
+  // Only a genuine INACTIVE -> ACTIVE transition is a new confirmation, so a
+  // subscriber confirming a second channel does not count twice. Tested against
+  // INACTIVE rather than "not ACTIVE" so a DISABLED row — a status the validator
+  // permits, even though nothing writes it today — is not counted as one either.
+  if (before.status === SubscriptionStatus.INACTIVE) {
     await statistics.record(before.site_id, 'confirmed', { lang: before.lang });
   }
 }
@@ -85,11 +89,15 @@ export async function deleteSubscription(
     throw new ActionError(404, 'Subscription not found.');
   }
 
-  await statistics.record(
-    deleted.site_id,
-    deleted.status === SubscriptionStatus.ACTIVE ? 'cancelled' : 'cancelled_unconfirmed',
-    { lang: deleted.lang },
-  );
+  // Only the unconfirmed funnel counts as an abandoned signup; anything else that
+  // is not live (today only DISABLED, which nothing writes) is neither.
+  if (deleted.status === SubscriptionStatus.ACTIVE || deleted.status === SubscriptionStatus.INACTIVE) {
+    await statistics.record(
+      deleted.site_id,
+      deleted.status === SubscriptionStatus.ACTIVE ? 'cancelled' : 'cancelled_unconfirmed',
+      { lang: deleted.lang },
+    );
+  }
 }
 
 /**

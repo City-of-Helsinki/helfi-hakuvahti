@@ -43,12 +43,14 @@ describe('expireSubscriptions', () => {
     expireSubscriptions(db, statistics, { siteId: SITE, status, olderThanDays: 90, isDryRun });
 
   test('counts expired active subscriptions per language', async () => {
-    await db.collection('subscription').insertMany([
-      createSubscription({ created: longAgo }),
-      createSubscription({ created: longAgo }),
-      createSubscription({ created: longAgo, lang: 'sv' }),
-      createSubscription({ created: longAgo, lang: 'en' }),
-    ]);
+    await db
+      .collection('subscription')
+      .insertMany([
+        createSubscription({ created: longAgo }),
+        createSubscription({ created: longAgo }),
+        createSubscription({ created: longAgo, lang: 'sv' }),
+        createSubscription({ created: longAgo, lang: 'en' }),
+      ]);
 
     const deleted = await expire(SubscriptionStatus.ACTIVE);
 
@@ -65,11 +67,13 @@ describe('expireSubscriptions', () => {
   });
 
   test('counts abandoned signups separately from expired ones', async () => {
-    await db.collection('subscription').insertMany([
-      createSubscription({ created: longAgo }),
-      createSubscription({ created: longAgo, status: SubscriptionStatus.INACTIVE }),
-      createSubscription({ created: longAgo, status: SubscriptionStatus.INACTIVE }),
-    ]);
+    await db
+      .collection('subscription')
+      .insertMany([
+        createSubscription({ created: longAgo }),
+        createSubscription({ created: longAgo, status: SubscriptionStatus.INACTIVE }),
+        createSubscription({ created: longAgo, status: SubscriptionStatus.INACTIVE }),
+      ]);
 
     await expire(SubscriptionStatus.INACTIVE);
     await expire(SubscriptionStatus.ACTIVE);
@@ -80,10 +84,9 @@ describe('expireSubscriptions', () => {
   });
 
   test('leaves subscriptions younger than the age limit alone', async () => {
-    await db.collection('subscription').insertMany([
-      createSubscription({ created: new Date() }),
-      createSubscription({ created: longAgo }),
-    ]);
+    await db
+      .collection('subscription')
+      .insertMany([createSubscription({ created: new Date() }), createSubscription({ created: longAgo })]);
 
     const deleted = await expire(SubscriptionStatus.ACTIVE);
 
@@ -118,35 +121,76 @@ describe('expireSubscriptions', () => {
     assert.strictEqual(await counters(), null);
   });
 
-  test('still deletes when the language grouping is unavailable', async () => {
-    await db.collection('subscription').insertOne(createSubscription({ created: longAgo }));
+  test('sweeps rows with an unusable lang rather than leaving them behind', async () => {
+    // Deletion is per language, so anything outside the three would survive every
+    // run and accumulate. Cleanup still has to happen; only the counter is lost,
+    // because there is no language to attribute it to.
+    const { lang: _lang, ...noLang } = createSubscription({ created: longAgo });
+    await db
+      .collection('subscription')
+      .insertMany([
+        noLang,
+        createSubscription({ created: longAgo, lang: 'kl' as never }),
+        createSubscription({ created: longAgo, lang: 'fi' }),
+      ]);
 
-    // A server that does not support the aggregation must not stop the cleanup.
-    const withoutAggregate = {
-      collection: () => ({
-        aggregate: () => ({ toArray: () => Promise.reject(new Error('$group unsupported')) }),
-        deleteMany: (filter: object) => db.collection('subscription').deleteMany(filter),
-        countDocuments: (filter: object) => db.collection('subscription').countDocuments(filter),
-      }),
+    const deleted = await expire(SubscriptionStatus.ACTIVE);
+
+    assert.strictEqual(deleted, 3, 'every expired row is gone, whatever its lang');
+    assert.strictEqual(await db.collection('subscription').countDocuments({}), 0);
+
+    const counted = await counters();
+    assert.strictEqual(counted?.events?.expired, 1, 'only the usable language is counted');
+    assert.strictEqual(counted?.lang?.fi?.expired, 1);
+  });
+
+  test('records exactly what each delete removed', async () => {
+    // The counter is taken from deletedCount rather than from a count made before
+    // the delete, so a row that disappears in between cannot be counted twice.
+    await db
+      .collection('subscription')
+      .insertMany([
+        createSubscription({ created: longAgo, lang: 'fi' }),
+        createSubscription({ created: longAgo, lang: 'sv' }),
+      ]);
+
+    const removeSvFirst = {
+      collection: (name: string) => {
+        const real = db.collection(name);
+
+        return {
+          countDocuments: (filter: object) => real.countDocuments(filter),
+          deleteMany: async (filter: Record<string, unknown>) => {
+            // Stand in for an overlapping cron run: the sv row is gone before
+            // this call reaches it.
+            if (filter.lang === 'fi') {
+              await real.deleteMany({ lang: 'sv' });
+            }
+
+            return real.deleteMany(filter);
+          },
+        };
+      },
     } as unknown as Db;
 
-    const deleted = await expireSubscriptions(withoutAggregate, statistics, {
+    const deleted = await expireSubscriptions(removeSvFirst, statistics, {
       siteId: SITE,
       status: SubscriptionStatus.ACTIVE,
       olderThanDays: 90,
       isDryRun: false,
     });
 
-    assert.strictEqual(deleted, 1, 'the expired subscription is gone');
-    assert.strictEqual(await db.collection('subscription').countDocuments({}), 0);
-    assert.strictEqual(await counters(), null, 'the counters are lost, which is the acceptable half');
+    assert.strictEqual(deleted, 1, 'only the fi row was removed by this run');
+
+    const counted = await counters();
+    assert.strictEqual(counted?.events?.expired, 1, 'the row another run deleted is not counted here');
+    assert.strictEqual(counted?.lang?.sv?.expired, undefined);
   });
 
   test('a second run over the same rows does not double count', async () => {
-    await db.collection('subscription').insertMany([
-      createSubscription({ created: longAgo }),
-      createSubscription({ created: longAgo }),
-    ]);
+    await db
+      .collection('subscription')
+      .insertMany([createSubscription({ created: longAgo }), createSubscription({ created: longAgo })]);
 
     await expire(SubscriptionStatus.ACTIVE);
     await expire(SubscriptionStatus.ACTIVE);

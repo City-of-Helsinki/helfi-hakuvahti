@@ -109,14 +109,6 @@ BASE=https://hakuvahti.docker.so
 KEY=123
 ```
 
-### Prove the write path first
-
-```bash
-npm run hav:test-statistics
-```
-
-Runs the real code paths against this environment's database and asserts the documents they leave behind. If this fails, nothing below will work.
-
 ### created, confirmed, cancelled
 
 `POST /subscription` validates the query against the site's Elasticsearch proxy before storing anything, so it needs that proxy reachable — either the sibling project's environment (see [testing.md](./testing.md)) or an environment where the proxies are hosted. On a bare local stack the request fails with `Invalid elastic_query`.
@@ -175,16 +167,26 @@ That run expires the backdated rows and writes the day's snapshot. `--dry-run` w
 
 To look at a realistic chart without waiting months, give surviving subscriptions a spread of `first_created` values and reconstruct the history:
 
+Write the day documents directly — they are counters keyed `${site_id}:${day}`,
+so a series is a handful of upserts and needs no application code:
+
 ```bash
 docker compose exec -T mongodb mongosh hakuvahti --quiet --eval \
- 'const d=n=>new Date(Date.now()-n*864e5);
-  db.subscription.find({site_id:"rekry"}).forEach((s,i)=>
-    db.subscription.updateOne({_id:s._id},{$set:{first_created:d(10+i*7)}}));'
-
-npm run hav:backfill-statistics -- --site=rekry
+ 'const day=n=>new Date(Date.now()-n*864e5).toISOString().slice(0,10);
+  for (let i=0;i<120;i+=1) {
+    const d=day(i);
+    db.statistics.updateOne({_id:`rekry:${d}`},
+      {$setOnInsert:{site_id:"rekry",day:d,created:new Date()},
+       $set:{events:{created:12,confirmed:10,cancelled:1,expired:4},
+             lang:{fi:{created:11,confirmed:9,cancelled:1,expired:4},
+                   sv:{created:1,confirmed:1}},
+             snapshot:{at:new Date(),active:4800-i*3,unconfirmed:30}}},
+      {upsert:true});
+  }'
 ```
 
-The reconstruction covers `confirmed` only and undercounts; it is for test and QA databases.
+Keep each `lang` subtree summing to its `events` counter, or the partition
+invariant the report relies on will not hold (see above).
 
 ## Behaviours that are intentional
 
@@ -211,5 +213,4 @@ A statistics failure must never break the operation that triggered it.
 ## Environment notes
 
 - **Restart the app container after changing code.** `node --watch` does not observe host file edits through the bind mount on macOS, so `docker compose restart app` is needed or the previous code is still serving.
-- **`hav:test-statistics` is safe in any environment.** It writes only its own documents under reserved site ids that match no configuration, and removes them even when a check fails.
 - **Counters exist only from the moment the instrumentation is deployed.** Nothing reconstructs churn for earlier periods, because a deleted subscription leaves no trace.

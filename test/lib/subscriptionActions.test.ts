@@ -152,6 +152,26 @@ describe('subscriptionActions', () => {
     });
   });
 
+  describe('statistics for a status nothing writes yet', () => {
+    test('a DISABLED subscription is neither a confirmation nor an abandoned signup', async () => {
+      const collection = mongo.db().collection<SubscriptionCollectionType>('subscription');
+
+      const confirmed = await insertSubscription({
+        status: new Int32(SubscriptionStatus.DISABLED),
+        email_confirmed: false,
+      });
+      await confirmSubscription(collection, { _id: confirmed }, 'email', statistics);
+
+      const deleted = await insertSubscription({ status: new Int32(SubscriptionStatus.DISABLED) });
+      await deleteSubscription(collection, { _id: deleted }, statistics);
+
+      const counted = await counters();
+      assert.strictEqual(counted?.events?.confirmed, undefined, 'it was never in the unconfirmed funnel');
+      assert.strictEqual(counted?.events?.cancelled, undefined);
+      assert.strictEqual(counted?.events?.cancelled_unconfirmed, undefined);
+    });
+  });
+
   describe('deleteSubscription', () => {
     test('deletes existing subscription', async () => {
       const id = await insertSubscription();

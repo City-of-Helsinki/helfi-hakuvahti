@@ -10,7 +10,6 @@ import {
   StatsResponse,
   type StatsResponseType,
 } from '../types/statistics.ts';
-import { SubscriptionStatus } from '../types/subscription.ts';
 
 /**
  * Per-site key figures. One site per request: a hakuvahti *is* a site_id.
@@ -69,23 +68,24 @@ const stats: FastifyPluginAsync = async (fastify, _opts) => {
       // `${site_id}:${day}` and both halves sort lexicographically, so the
       // always-indexed `_id` answers the range and the ordering at once. Cosmos
       // DB indexes only `_id` by default and needs an index for any sort.
-      const documents = await statistics
-        .find({ _id: { $gte: `${site_id}:${range.from}`, $lte: `${site_id}:${range.to}` } })
-        .sort({ _id: 1 })
-        .toArray();
+      const [documents, earliest, current] = await Promise.all([
+        statistics
+          .find({ _id: { $gte: `${site_id}:${range.from}`, $lte: `${site_id}:${range.to}` } })
+          .sort({ _id: 1 })
+          .toArray(),
 
-      // ':' sorts above every character a site id can hold, so this cannot leak
-      // into a site whose id merely starts with this one.
-      const earliest = await statistics
-        .find({ _id: { $gte: `${site_id}:`, $lt: `${site_id};` } })
-        .sort({ _id: 1 })
-        .limit(1)
-        .next();
+        // ':' sorts above every character a site id can hold, so this cannot leak
+        // into a site whose id merely starts with this one.
+        statistics
+          .find({ _id: { $gte: `${site_id}:`, $lt: `${site_id};` } })
+          .sort({ _id: 1 })
+          .limit(1)
+          .next(),
 
-      const subscription = db.collection('subscription');
-      const [active, unconfirmed] = await Promise.all([
-        subscription.countDocuments({ site_id, status: SubscriptionStatus.ACTIVE }),
-        subscription.countDocuments({ site_id, status: SubscriptionStatus.INACTIVE }),
+        // The same measurement the cron stores as `snapshot`, so `current` and
+        // `active_end` stay comparable — that comparability is the whole point of
+        // keeping a snapshot at all.
+        fastify.statistics.countLive(site_id),
       ]);
 
       const periods = buildPeriods(documents, range, today);
@@ -100,7 +100,7 @@ const stats: FastifyPluginAsync = async (fastify, _opts) => {
           generated_at: new Date().toISOString(),
           collecting_since: earliest?.day ?? null,
           range,
-          current: { active, unconfirmed },
+          current,
           periods,
         });
     },

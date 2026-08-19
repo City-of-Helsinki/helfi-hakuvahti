@@ -22,7 +22,7 @@ const monthsBack = (count: number): string => {
 
 const CURRENT_MONTH = monthsBack(0);
 const FULL_MONTH = monthsBack(2);
-const BACKFILL_MONTH = monthsBack(4);
+const EARLIEST_MONTH = monthsBack(4);
 
 const document = (day: string, overrides: Partial<StatisticsCollectionType> = {}): StatisticsCollectionType => ({
   _id: `${SITE}:${day}`,
@@ -37,8 +37,7 @@ const document = (day: string, overrides: Partial<StatisticsCollectionType> = {}
  * still running.
  */
 const fixtures = (): StatisticsCollectionType[] => [
-  document(`${BACKFILL_MONTH}-03`, {
-    backfilled: true,
+  document(`${EARLIEST_MONTH}-03`, {
     events: { confirmed: 11 },
     lang: { fi: { confirmed: 10 }, en: { confirmed: 1 } },
   }),
@@ -184,7 +183,7 @@ describe('/stats/:site_id', () => {
       const res = await app.inject({ method: 'GET', url: `/stats/${SITE}`, headers: AUTH });
       const body = asJson(res.body);
 
-      const month = body.periods.find((period) => period.period === BACKFILL_MONTH);
+      const month = body.periods.find((period) => period.period === EARLIEST_MONTH);
       assert.strictEqual(month?.confirmed, 11);
       assert.strictEqual(month.net_change, 11);
       assert.deepStrictEqual(month.confirmed_by_lang, { fi: 10, sv: 0, en: 1 });
@@ -194,7 +193,7 @@ describe('/stats/:site_id', () => {
       const app = await seeded(t);
       const res = await app.inject({ method: 'GET', url: `/stats/${SITE}`, headers: AUTH });
 
-      assert.strictEqual(asJson(res.body).collecting_since, `${BACKFILL_MONTH}-03`);
+      assert.strictEqual(asJson(res.body).collecting_since, `${EARLIEST_MONTH}-03`);
     });
 
     test('zero-fills every period in the range', async (t) => {
@@ -301,5 +300,4 @@ describe('/stats/:site_id', () => {
       assert.strictEqual(month?.confirmed, 402, "rekry2's document must not be counted");
     });
   });
-
 });

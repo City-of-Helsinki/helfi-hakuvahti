@@ -223,12 +223,23 @@ describe('statsReport', () => {
       assert.strictEqual(june.active_end, 812);
     });
 
-    test('reads a reconstructed period like any other', () => {
-      // The backfill flag is internal to that command; the report does not
-      // distinguish its output.
+    test('takes active_end from the latest measured day, whatever the input order', () => {
+      // The route sorts, but nothing binds it to: picking by day rather than by
+      // position means dropping that sort cannot silently corrupt the series.
+      const shuffled = [
+        document('2026-06-20', { snapshot: { at: new Date(), active: 700, unconfirmed: 2 } }),
+        document('2026-06-30', { snapshot: { at: new Date(), active: 812, unconfirmed: 4 } }),
+        document('2026-06-10', { snapshot: { at: new Date(), active: 650, unconfirmed: 1 } }),
+      ];
+
+      const [june] = buildPeriods(shuffled, { interval: 'month', from: '2026-06-01', to: '2026-06-30' }, TODAY);
+
+      assert.strictEqual(june.active_end, 812, 'the 30th is the latest measured day');
+    });
+
+    test('reads a period holding only confirmations', () => {
       const reconstructed = [
         document('2026-05-03', {
-          backfilled: true,
           events: { confirmed: 11 },
           lang: { fi: { confirmed: 10 }, en: { confirmed: 1 } },
         }),
@@ -257,5 +268,4 @@ describe('statsReport', () => {
       );
     });
   });
-
 });
