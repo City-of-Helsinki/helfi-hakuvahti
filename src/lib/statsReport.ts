@@ -1,0 +1,188 @@
+import {
+  STAT_EVENTS,
+  type StatCountsType,
+  type StatisticsCollectionType,
+  type StatsIntervalType,
+  type StatsPeriodType,
+} from '../types/statistics.ts';
+import { SUBSCRIPTION_LANGUAGES } from '../types/subscription.ts';
+
+// Turns stored day documents into the report /stats answers with. Pure: the
+// current day is passed in, so day boundaries are testable.
+
+/** Periods the default range covers, when no `from` is given. */
+const DEFAULT_PERIODS: Record<StatsIntervalType, number> = { day: 31, month: 13 };
+
+/** Longest series one response returns. The effective `range` shows what was used. */
+const MAX_PERIODS: Record<StatsIntervalType, number> = { day: 366, month: 120 };
+
+const toDay = (date: Date): string => date.toISOString().slice(0, 10);
+
+/**
+ * Parses YYYY-MM-DD as a calendar date, or null when it is not a real one. The
+ * request schema pins the shape but not the calendar, so `2026-02-31` reaches here.
+ */
+export function parseDay(day: string): Date | null {
+  const date = new Date(`${day}T00:00:00Z`);
+
+  return Number.isNaN(date.getTime()) || toDay(date) !== day ? null : date;
+}
+
+/** The period label a stored day belongs to. */
+export const periodOf = (day: string, interval: StatsIntervalType): string =>
+  interval === 'day' ? day : day.slice(0, 7);
+
+/** First day of the period a day falls in. */
+const startOfPeriod = (day: string, interval: StatsIntervalType): string =>
+  interval === 'day' ? day : `${day.slice(0, 7)}-01`;
+
+/** Last day of a period label. */
+function endOfPeriod(period: string, interval: StatsIntervalType): string {
+  if (interval === 'day') {
+    return period;
+  }
+
+  const [year, month] = period.split('-').map(Number);
+
+  // Day 0 of the following month is the last day of this one.
+  return toDay(new Date(Date.UTC(year, month, 0)));
+}
+
+/** The start of the period `count` periods before the one `day` falls in. */
+function periodsBack(day: string, interval: StatsIntervalType, count: number): string {
+  const date = new Date(`${startOfPeriod(day, interval)}T00:00:00Z`);
+
+  if (interval === 'day') {
+    date.setUTCDate(date.getUTCDate() - count);
+  } else {
+    // The date sits on the 1st, so this cannot overflow into another month.
+    date.setUTCMonth(date.getUTCMonth() - count);
+  }
+
+  return toDay(date);
+}
+
+export interface StatsRange {
+  from: string;
+  to: string;
+  interval: StatsIntervalType;
+}
+
+/** Every period label in a range, ascending. Both labels sort chronologically. */
+export function periodsIn({ from, to, interval }: StatsRange): string[] {
+  // Normalised: stepping a month from the 31st would skip a label.
+  const cursor = parseDay(startOfPeriod(from, interval));
+  if (!cursor) {
+    return [];
+  }
+
+  const periods: string[] = [];
+  while (toDay(cursor) <= to) {
+    periods.push(periodOf(toDay(cursor), interval));
+
+    if (interval === 'day') {
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    } else {
+      cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+    }
+  }
+
+  return periods;
+}
+
+/**
+ * Resolves the range a request actually reads, snapping both ends out to whole
+ * periods so a mid-month `from` cannot report a half month. No-op for `day`.
+ */
+export function resolveRange(
+  interval: StatsIntervalType,
+  requested: { from?: string; to?: string },
+  today: string,
+): StatsRange {
+  // A `to` in the future would zero-fill periods that have not happened yet.
+  const to = requested.to && requested.to < today ? requested.to : today;
+  const from = requested.from ?? periodsBack(to, interval, DEFAULT_PERIODS[interval] - 1);
+  const earliest = periodsBack(to, interval, MAX_PERIODS[interval] - 1);
+  const latest = startOfPeriod(to, interval);
+  const start = startOfPeriod(from, interval);
+
+  return {
+    interval,
+    // Clamped, because a `from` past `to` is reachable when `to` defaults.
+    from: clamp(start, earliest, latest),
+    to: endOfPeriod(periodOf(to, interval), interval),
+  };
+}
+
+const clamp = (value: string, low: string, high: string): string => {
+  if (value < low) {
+    return low;
+  }
+
+  if (value > high) {
+    return high;
+  }
+
+  return value;
+};
+
+const zeroCounts = (): StatCountsType => Object.fromEntries(STAT_EVENTS.map((event) => [event, 0])) as StatCountsType;
+
+/**
+ * Sums the stored days into one row per period, zero-filling the whole range so
+ * charting code never sees gaps. Order-independent: `active_end` comes from the
+ * period's latest measured day, by comparing days rather than input order.
+ */
+export function buildPeriods(
+  documents: StatisticsCollectionType[],
+  range: StatsRange,
+  today: string,
+): StatsPeriodType[] {
+  const byPeriod = new Map<string, StatisticsCollectionType[]>();
+
+  for (const document of documents) {
+    const period = periodOf(document.day, range.interval);
+    const bucket = byPeriod.get(period);
+
+    if (bucket) {
+      bucket.push(document);
+    } else {
+      byPeriod.set(period, [document]);
+    }
+  }
+
+  return periodsIn(range).map((period) => {
+    const counts = zeroCounts();
+    const confirmed_by_lang = Object.fromEntries(
+      SUBSCRIPTION_LANGUAGES.map((lang) => [lang, 0]),
+    ) as StatsPeriodType['confirmed_by_lang'];
+
+    const days = byPeriod.get(period) ?? [];
+    let latestMeasured: StatisticsCollectionType | undefined;
+
+    for (const day of days) {
+      for (const event of STAT_EVENTS) {
+        counts[event] += day.events?.[event] ?? 0;
+      }
+
+      for (const lang of SUBSCRIPTION_LANGUAGES) {
+        confirmed_by_lang[lang] += day.lang?.[lang]?.confirmed ?? 0;
+      }
+
+      if (day.snapshot && (!latestMeasured || day.day > latestMeasured.day)) {
+        latestMeasured = day;
+      }
+    }
+
+    return {
+      ...counts,
+      period,
+      confirmed_by_lang,
+      // Null, not zero, when nothing was recorded: "no data" must not read as
+      // "no churn". A period with documents but no events is a genuine zero.
+      net_change: days.length === 0 ? null : counts.confirmed - counts.cancelled - counts.expired,
+      active_end: latestMeasured?.snapshot?.active ?? null,
+      incomplete: endOfPeriod(period, range.interval) >= today,
+    };
+  });
+}

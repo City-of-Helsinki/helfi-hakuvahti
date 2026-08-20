@@ -24,7 +24,7 @@ const deleteSubscription: FastifyPluginAsync = async (fastify, _opts) => {
 
       try {
         const _id = toSubscriptionId(id);
-        await deleteAction(fastify.mongo.db?.collection('subscription'), { _id, hash });
+        await deleteAction(fastify.mongo.db?.collection('subscription'), { _id, hash }, fastify.statistics);
       } catch (error) {
         if (error instanceof ActionError) {
           return reply.code(error.statusCode).send({
@@ -73,7 +73,7 @@ const deleteSubscription: FastifyPluginAsync = async (fastify, _opts) => {
 
       try {
         const _id = toSubscriptionId(id);
-        await deleteAction(fastify.mongo.db?.collection('subscription'), { _id });
+        await deleteAction(fastify.mongo.db?.collection('subscription'), { _id }, fastify.statistics);
       } catch (error) {
         if (error instanceof ActionError) {
           return reply.code(error.statusCode).send({

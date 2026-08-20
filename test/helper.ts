@@ -161,6 +161,7 @@ export async function createSubscription(
     atv_id: 'test-atv-doc-id',
     elastic_query: 'test-query',
     query: '/search?q=test',
+    lang: 'fi',
     ...subscriptionData, // Override defaults with provided data
   });
 

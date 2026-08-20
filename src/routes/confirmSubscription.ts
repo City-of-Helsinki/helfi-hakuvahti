@@ -50,6 +50,7 @@ const confirmSubscription: FastifyPluginAsync = async (fastify, _opts) => {
           fastify.mongo.db?.collection<SubscriptionCollectionType>('subscription'),
           { _id, hash },
           'email',
+          fastify.statistics,
         );
       } catch (error) {
         if (error instanceof ActionError) {
@@ -136,7 +137,7 @@ const confirmSubscription: FastifyPluginAsync = async (fastify, _opts) => {
       }
 
       try {
-        await confirmAction(fastify.mongo.db?.collection('subscription'), { _id }, 'sms');
+        await confirmAction(fastify.mongo.db?.collection('subscription'), { _id }, 'sms', fastify.statistics);
       } catch (error) {
         if (error instanceof ActionError) {
           const subscription = await fastify.mongo.db?.collection<SubscriptionCollectionType>('subscription')?.findOne({

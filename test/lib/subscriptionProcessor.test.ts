@@ -48,6 +48,7 @@ describe('SubscriptionProcessor', () => {
     const db = mongoClient.db();
     await db.collection('subscription').deleteMany({});
     await db.collection('queue').deleteMany({});
+    await db.collection('statistics').deleteMany({ site_id: 'test-site' });
   });
 
   test('skips subscriptions not matching site_id', async () => {
@@ -269,4 +270,5 @@ describe('SubscriptionProcessor', () => {
     const updated = await db.collection('subscription').findOne({ _id: sub._id });
     assert.ok(updated!.delete_after, 'delete_after should be set in DB');
   });
+
 });
