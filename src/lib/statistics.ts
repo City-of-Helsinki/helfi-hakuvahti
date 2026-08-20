@@ -18,8 +18,8 @@ export interface StatisticsDependencies {
 
 /** Aggregate subscription counters, one document per (site_id, day). */
 export class Statistics {
-  private readonly collection: Collection<StatisticsCollectionType>;
-  private readonly db: Db;
+  private readonly statistics: Collection<StatisticsCollectionType>;
+  private readonly subscriptions: Collection;
 
   private static readonly dayFormatter = new Intl.DateTimeFormat('en', {
     timeZone: 'Europe/Helsinki',
@@ -31,8 +31,8 @@ export class Statistics {
   });
 
   constructor(deps: StatisticsDependencies) {
-    this.db = deps.db;
-    this.collection = deps.db.collection<StatisticsCollectionType>('statistics');
+    this.statistics = deps.db.collection<StatisticsCollectionType>('statistics');
+    this.subscriptions = deps.db.collection('subscription');
   }
 
   /**
@@ -77,41 +77,28 @@ export class Statistics {
 
   /** Counts a site's live subscriptions. Shared with GET /stats `current`. */
   async countLive(siteId: string): Promise<StatSnapshotInput> {
-    const subscriptions = this.db.collection('subscription');
-
     const [active, unconfirmed] = await Promise.all([
-      subscriptions.countDocuments({ site_id: siteId, status: SubscriptionStatus.ACTIVE }),
-      subscriptions.countDocuments({ site_id: siteId, status: SubscriptionStatus.INACTIVE }),
+      this.subscriptions.countDocuments({ site_id: siteId, status: SubscriptionStatus.ACTIVE }),
+      this.subscriptions.countDocuments({ site_id: siteId, status: SubscriptionStatus.INACTIVE }),
     ]);
 
     return { active, unconfirmed };
   }
 
   /**
-   * Measures a site and stores the result on today's document, as an independent
-   * check on the event counters. Never throws.
+   * Measures a site and stores the counts on today's document, as an independent
+   * check on the event counters. Last write of the day wins. Never throws.
    */
   async measure(siteId: string): Promise<void> {
     try {
-      await this.recordSnapshot(siteId, await this.countLive(siteId));
+      const snapshot = await this.countLive(siteId);
+
+      await this.upsert(siteId, { $set: { snapshot: { at: new Date(), ...snapshot } } });
     } catch (error) {
       console.error(`Failed to measure subscription counts for ${siteId}`, error);
       Sentry.captureException(error);
     }
   }
-
-  /** Records the live counts measured for a site today. Last write wins. */
-  async recordSnapshot(siteId: string, snapshot: StatSnapshotInput): Promise<void> {
-    await this.upsert(siteId, {
-      $set: { snapshot: { at: new Date(), ...snapshot } },
-    });
-  }
-
-  /** Retried once: 11000 is two writes racing to create the day's document. */
-  private static readonly RETRYABLE = new Set([
-    11000, // duplicate key
-    16500, // Cosmos DB: request rate too large
-  ]);
 
   /** The single write primitive, so both callers share one failure policy. */
   private async upsert(siteId: string, update: UpdateFilter<StatisticsCollectionType>): Promise<void> {
@@ -124,11 +111,12 @@ export class Statistics {
     };
 
     try {
-      await this.collection.updateOne(filter, document, { upsert: true });
+      await this.statistics.updateOne(filter, document, { upsert: true });
     } catch (error) {
-      if (Statistics.RETRYABLE.has((error as MongoServerError)?.code as number)) {
+      // 11000 is a duplicate key.
+      if ((error as MongoServerError)?.code === 11000) {
         try {
-          await this.collection.updateOne(filter, document, { upsert: true });
+          await this.statistics.updateOne(filter, document, { upsert: true });
 
           return;
         } catch {

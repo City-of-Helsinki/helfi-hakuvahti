@@ -171,33 +171,9 @@ describe('Statistics', () => {
       });
 
       await assert.doesNotReject(() => broken.record(SITE, 'created', { lang: 'fi' }));
-      await assert.doesNotReject(() => broken.recordSnapshot(SITE, { active: 1, unconfirmed: 0 }));
     });
   });
 
-  describe('recordSnapshot()', () => {
-    test('stores the measured counts and stamps the time', async () => {
-      await statistics.recordSnapshot(SITE, { active: 4981, unconfirmed: 37 });
-
-      const document = await today();
-
-      assert.strictEqual(document?.snapshot?.active, 4981);
-      assert.strictEqual(document?.snapshot?.unconfirmed, 37);
-      assert.ok(document?.snapshot?.at instanceof Date);
-    });
-
-    test('last write of the day wins, and leaves counters alone', async () => {
-      await statistics.record(SITE, 'confirmed', { lang: 'fi' });
-      await statistics.recordSnapshot(SITE, { active: 10, unconfirmed: 1 });
-      await statistics.recordSnapshot(SITE, { active: 12, unconfirmed: 0 });
-
-      const document = await today();
-
-      assert.strictEqual(document?.snapshot?.active, 12);
-      assert.strictEqual(document?.snapshot?.unconfirmed, 0);
-      assert.deepStrictEqual(document?.events, { confirmed: 1 });
-    });
-  });
 
   describe('countLive() and measure()', () => {
     const seed = (rows: Record<string, unknown>[]) =>
@@ -228,6 +204,23 @@ describe('Statistics', () => {
       assert.strictEqual(snapshot?.active, 1);
       assert.strictEqual(snapshot?.unconfirmed, 1);
       assert.ok(snapshot?.at instanceof Date);
+    });
+
+    test('measure() re-measures, so the last write of the day wins', async () => {
+      // Snapshots are measurements, so a second run reflects the database as it
+      // then stands — and must not disturb the counters already recorded.
+      const rows = await seed([{}, {}, { status: SubscriptionStatus.INACTIVE }]);
+      await statistics.record(SITE, 'confirmed', { lang: 'fi' });
+      await statistics.measure(SITE);
+
+      await db.collection('subscription').deleteOne({ _id: rows.insertedIds[0] });
+      await statistics.measure(SITE);
+
+      const document = await today();
+      assert.strictEqual(document?.snapshot?.active, 1, 'the later measurement wins');
+      assert.strictEqual(document?.snapshot?.unconfirmed, 1);
+      assert.deepStrictEqual(document?.events, { confirmed: 1 }, 'counters are untouched');
+      assert.deepStrictEqual(document?.lang, { fi: { confirmed: 1 } });
     });
 
     test('measure() never throws when the count fails', async () => {
