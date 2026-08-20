@@ -114,7 +114,17 @@ export function resolveRange(
   };
 }
 
-const clamp = (value: string, low: string, high: string): string => (value < low ? low : value > high ? high : value);
+const clamp = (value: string, low: string, high: string): string => {
+  if (value < low) {
+    return low;
+  }
+
+  if (value > high) {
+    return high;
+  }
+
+  return value;
+};
 
 const zeroCounts = (): StatCountsType => Object.fromEntries(STAT_EVENTS.map((event) => [event, 0])) as StatCountsType;
 
