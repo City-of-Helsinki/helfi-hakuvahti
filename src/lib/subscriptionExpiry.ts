@@ -22,11 +22,8 @@ interface ExpiryFilter {
  * Deletes a site's subscriptions past their age limit and records them as
  * `expired` / `expired_unconfirmed`.
  *
- * Recording happens here because this is the only moment an expiry is
- * distinguishable from a user-initiated cancellation; afterwards both are an
- * absent document. Note that age is measured from `created`, which is reset on
- * renewal, against the site's *current* maxAge — so lowering maxAge retroactively
- * expires live subscriptions on the next run.
+ * Age is measured from `created`, which is reset on renewal, against the site's
+ * *current* maxAge — so lowering maxAge expires live subscriptions.
  *
  * @returns the number of subscriptions deleted.
  */
@@ -53,11 +50,8 @@ export async function expireSubscriptions(
     const event = status === SubscriptionStatus.ACTIVE ? 'expired' : 'expired_unconfirmed';
     let deleted = 0;
 
-    // Deleted one language at a time so each counter records what that delete
-    // actually removed. Counting first and deleting in bulk would let two
-    // overlapping cron runs both count rows only one of them deleted, inflating
-    // `expired` by up to a full batch. Three small deletes per site instead of
-    // one costs nothing at this volume and keeps `events` and `lang` in step.
+    // One language at a time, so each counter records what its own delete
+    // removed: counting up front would let overlapping runs double count.
     for (const lang of SUBSCRIPTION_LANGUAGES) {
       const { deletedCount } = await collection.deleteMany({ ...filter, lang });
 
@@ -67,10 +61,8 @@ export async function expireSubscriptions(
       }
     }
 
-    // The loop above only matches the three known languages, so anything with a
-    // missing or unrecognised `lang` would otherwise survive every run and
-    // accumulate. Cleanup is this function's job, so sweep them — but do not
-    // invent a language for a counter; report the anomaly once per run instead.
+    // The loop matches only known languages, so anything else would survive
+    // every run. Swept, but not counted under a language we do not have.
     const { deletedCount: unknownLang } = await collection.deleteMany({
       ...filter,
       lang: { $nin: [...SUBSCRIPTION_LANGUAGES] },

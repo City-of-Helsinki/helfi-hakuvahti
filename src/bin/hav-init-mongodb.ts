@@ -125,8 +125,7 @@ command(
       console.info('Subscription collection created:', subscriptionResult?.collectionName);
     }
 
-    // Statistics collection: aggregate per-site, per-day counters. Sparse — an
-    // absent counter means zero — so almost nothing is required.
+    // Statistics collection: aggregate per-site, per-day counters.
     const counterMap = { bsonType: 'object', additionalProperties: { bsonType: 'number' } };
     const statisticsValidator = {
       $jsonSchema: {
@@ -135,7 +134,7 @@ command(
         required: ['_id', 'site_id', 'day', 'created'],
         properties: {
           // A string, not an objectId: `${site_id}:${day}` is deterministic, so
-          // every write is an upsert on a key the caller already knows.
+          // every write is an upsert on a known key.
           _id: {
             bsonType: 'string',
             pattern: '^[a-z0-9_-]+:[0-9]{4}-[0-9]{2}-[0-9]{2}$',
@@ -150,12 +149,7 @@ command(
           created: {
             bsonType: 'date',
           },
-          // Open map, so adding a counter needs no collMod. Counter names are
-          // governed by STAT_EVENTS in TypeScript instead.
           events: counterMap,
-          // Closed map, because the one structural bug that can actually happen
-          // is a `lang.undefined` subtree silently breaking the language
-          // partition. Adding a language means re-running this command.
           lang: {
             bsonType: 'object',
             additionalProperties: false,
@@ -174,11 +168,6 @@ command(
       },
     };
 
-    // Serves the cron's main query, the expiry sweep, and the daily snapshot
-    // counts, all of which filter on exactly these two fields. Non-fatal,
-    // because it is a performance nicety and no query depends on it: the
-    // `statistics` collection deliberately has no index at all, since every read
-    // range-scans the always-indexed `_id` — see src/routes/stats.ts.
     try {
       await db.collection('subscription').createIndex({ site_id: 1, status: 1 });
       console.info('Subscription index ensured');
@@ -195,9 +184,8 @@ command(
       await db.command({ collMod: 'statistics', validator: statisticsValidator });
       console.info('Statistics collection validator applied');
     } catch (error) {
-      // Cosmos DB does not support $jsonSchema. The validator is a dev and CI
-      // safety net only; every guarantee it makes is also enforced in code, in
-      // Statistics.record().
+      // Cosmos DB does not support $jsonSchema; Statistics.record() enforces the
+      // same guarantees in code.
       console.warn('Could not apply statistics validator (expected on Cosmos DB):', error);
     }
   },

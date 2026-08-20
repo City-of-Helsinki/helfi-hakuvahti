@@ -3,7 +3,7 @@ import { SUBSCRIPTION_LANGUAGES, type SubscriptionCollectionLanguageType } from 
 
 /**
  * One entry per subscription language. Built from the array because `Type.Record`
- * loses the literal keys when its union was mapped from one, degrading to `{}`.
+ * degrades to `{}` when given a union mapped from one.
  */
 const ByLanguage = <T extends TSchema>(value: T) =>
   Type.Object(

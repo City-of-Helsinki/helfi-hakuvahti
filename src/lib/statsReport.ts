@@ -7,8 +7,8 @@ import {
 } from '../types/statistics.ts';
 import { SUBSCRIPTION_LANGUAGES } from '../types/subscription.ts';
 
-// Turning stored day documents into the report /stats answers with. Pure: the
-// current day is passed in, so day-boundary behaviour is testable.
+// Turns stored day documents into the report /stats answers with. Pure: the
+// current day is passed in, so day boundaries are testable.
 
 /** Periods the default range covers, when no `from` is given. */
 const DEFAULT_PERIODS: Record<StatsIntervalType, number> = { day: 31, month: 13 };
@@ -20,8 +20,7 @@ const toDay = (date: Date): string => date.toISOString().slice(0, 10);
 
 /**
  * Parses YYYY-MM-DD as a calendar date, or null when it is not a real one. The
- * request schema pins the shape but not the calendar, so `2026-02-31` gets this
- * far looking valid.
+ * request schema pins the shape but not the calendar, so `2026-02-31` reaches here.
  */
 export function parseDay(day: string): Date | null {
   const date = new Date(`${day}T00:00:00Z`);
@@ -71,8 +70,7 @@ export interface StatsRange {
 
 /** Every period label in a range, ascending. Both labels sort chronologically. */
 export function periodsIn({ from, to, interval }: StatsRange): string[] {
-  // Normalised, because stepping a month from the 31st lands in the one after
-  // next and drops a label.
+  // Normalised: stepping a month from the 31st would skip a label.
   const cursor = parseDay(startOfPeriod(from, interval));
   if (!cursor) {
     return [];
@@ -93,11 +91,8 @@ export function periodsIn({ from, to, interval }: StatsRange): string[] {
 }
 
 /**
- * Resolves the range a request actually reads.
- *
- * Snapping both ends out to whole periods is what stops
- * `from=2026-07-15&interval=month` reporting half a July that reads as a 50%
- * collapse. For `interval=day` it is a no-op.
+ * Resolves the range a request actually reads, snapping both ends out to whole
+ * periods so a mid-month `from` cannot report a half month. No-op for `day`.
  */
 export function resolveRange(
   interval: StatsIntervalType,
@@ -113,8 +108,7 @@ export function resolveRange(
 
   return {
     interval,
-    // Held between the cap and the last period, so the range is always a valid
-    // one: a `from` past `to` is reachable whenever `to` was left to default.
+    // Clamped, because a `from` past `to` is reachable when `to` defaults.
     from: clamp(start, earliest, latest),
     to: endOfPeriod(periodOf(to, interval), interval),
   };
@@ -125,11 +119,9 @@ const clamp = (value: string, low: string, high: string): string => (value < low
 const zeroCounts = (): StatCountsType => Object.fromEntries(STAT_EVENTS.map((event) => [event, 0])) as StatCountsType;
 
 /**
- * Sums the stored days into one row per period, zero-filling every period in the
- * range so charting code never has to reason about gaps.
- *
- * Order-independent: `active_end` is the snapshot of the period's latest measured
- * day, chosen by comparing days rather than by trusting the caller's ordering.
+ * Sums the stored days into one row per period, zero-filling the whole range so
+ * charting code never sees gaps. Order-independent: `active_end` comes from the
+ * period's latest measured day, by comparing days rather than input order.
  */
 export function buildPeriods(
   documents: StatisticsCollectionType[],
@@ -176,10 +168,8 @@ export function buildPeriods(
       ...counts,
       period,
       confirmed_by_lang,
-      // Null rather than zero when there is nothing to derive it from, so
-      // "nothing was recorded" cannot read as "no churn happened". A period with
-      // documents but no events is a genuine zero, because the cron leaves a
-      // measurement behind even on a quiet day.
+      // Null, not zero, when nothing was recorded: "no data" must not read as
+      // "no churn". A period with documents but no events is a genuine zero.
       net_change: days.length === 0 ? null : counts.confirmed - counts.cancelled - counts.expired,
       active_end: latestMeasured?.snapshot?.active ?? null,
       incomplete: endOfPeriod(period, range.interval) >= today,

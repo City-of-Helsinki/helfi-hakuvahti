@@ -46,16 +46,15 @@ export async function confirmSubscription(
     modified: new Date(),
   };
 
-  // findOneAndUpdate so the previous status is known, which is what allows one
-  // count per subscription rather than one per channel. The filter still requires
-  // the channel to be unconfirmed, so a repeat confirmation matches nothing.
+  // findOneAndUpdate so the previous status is known: that is what allows one
+  // count per subscription rather than one per channel.
   const before = await collection?.findOneAndUpdate(
     { [confirmedField]: false, ...filter },
     { $set },
     {
       returnDocument: 'before',
-      // Pinned: with metadata included this resolves to an always-truthy wrapper,
-      // turning the 404 below into a silent success.
+      // Pinned: with metadata this is an always-truthy wrapper, turning the
+      // 404 below into a silent success.
       includeResultMetadata: false,
     },
   );
@@ -64,10 +63,8 @@ export async function confirmSubscription(
     throw new ActionError(404, 'Subscription not found or already confirmed.');
   }
 
-  // Only a genuine INACTIVE -> ACTIVE transition is a new confirmation, so a
-  // subscriber confirming a second channel does not count twice. Tested against
-  // INACTIVE rather than "not ACTIVE" so a DISABLED row — a status the validator
-  // permits, even though nothing writes it today — is not counted as one either.
+  // Only INACTIVE -> ACTIVE is a new confirmation, so a second channel does not
+  // count twice. Tested against INACTIVE so DISABLED is not counted either.
   if (before.status === SubscriptionStatus.INACTIVE) {
     await statistics.record(before.site_id, 'confirmed', { lang: before.lang });
   }
@@ -81,16 +78,15 @@ export async function deleteSubscription(
   filter: SubscriptionFilter,
   statistics: Statistics,
 ): Promise<void> {
-  // findOneAndDelete because this is the only moment "the user cancelled" is
-  // distinguishable from "it expired": afterwards both are an absent row.
+  // The only moment "cancelled" is distinguishable from "expired": afterwards
+  // both are an absent row.
   const deleted = await collection?.findOneAndDelete(filter, { includeResultMetadata: false });
 
   if (!deleted) {
     throw new ActionError(404, 'Subscription not found.');
   }
 
-  // Only the unconfirmed funnel counts as an abandoned signup; anything else that
-  // is not live (today only DISABLED, which nothing writes) is neither.
+  // Only the unconfirmed funnel is an abandoned signup; DISABLED is neither.
   if (deleted.status === SubscriptionStatus.ACTIVE || deleted.status === SubscriptionStatus.INACTIVE) {
     await statistics.record(
       deleted.site_id,

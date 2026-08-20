@@ -11,8 +11,7 @@ export default fp(
 
     fastify.decorate('statistics', new Statistics({ db: fastify.mongo.db }));
   },
-  // Declared rather than relying on autoload's alphabetical ordering, which would
-  // break silently on a rename.
+  // Declared rather than relying on autoload's alphabetical ordering.
   { name: 'statistics', dependencies: ['mongodb'] },
 );
 

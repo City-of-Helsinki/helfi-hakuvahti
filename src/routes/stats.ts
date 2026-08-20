@@ -11,12 +11,7 @@ import {
   type StatsResponseType,
 } from '../types/statistics.ts';
 
-/**
- * Per-site key figures. One site per request: a hakuvahti *is* a site_id.
- *
- * Authorization is the globally applied API key and nothing more, since this
- * reads aggregate counts holding no personal data.
- */
+/** Per-site key figures. One site per request: a hakuvahti *is* a site_id. */
 const stats: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.get<{
     Params: { site_id: string };
@@ -64,34 +59,30 @@ const stats: FastifyPluginAsync = async (fastify, _opts) => {
       const range = resolveRange(interval, { from, to }, today);
       const statistics = db.collection<StatisticsCollectionType>('statistics');
 
-      // Range-scan `_id` rather than filtering site_id and sorting day: `_id` is
-      // `${site_id}:${day}` and both halves sort lexicographically, so the
-      // always-indexed `_id` answers the range and the ordering at once. Cosmos
-      // DB indexes only `_id` by default and needs an index for any sort.
+      // `_id` is `${site_id}:${day}` and both halves sort lexicographically, so
+      // the always-indexed `_id` answers the range and the ordering at once.
       const [documents, earliest, current] = await Promise.all([
         statistics
           .find({ _id: { $gte: `${site_id}:${range.from}`, $lte: `${site_id}:${range.to}` } })
           .sort({ _id: 1 })
           .toArray(),
 
-        // ':' sorts above every character a site id can hold, so this cannot leak
-        // into a site whose id merely starts with this one.
+        // ':' sorts above every character a site id can hold, so a site whose
+        // id merely starts with this one cannot leak in.
         statistics
           .find({ _id: { $gte: `${site_id}:`, $lt: `${site_id};` } })
           .sort({ _id: 1 })
           .limit(1)
           .next(),
 
-        // The same measurement the cron stores as `snapshot`, so `current` and
-        // `active_end` stay comparable — that comparability is the whole point of
-        // keeping a snapshot at all.
+        // The same measurement the cron stores, so `current` and `active_end`
+        // stay comparable.
         fastify.statistics.countLive(site_id),
       ]);
 
       const periods = buildPeriods(documents, range, today);
 
-      // A configured site with no data answers 200 with a zero-filled series: a
-      // 404 would be indistinguishable from a typo in the path.
+      // 200 with a zero-filled series: a 404 would look like a bad path.
       return reply
         .code(200)
         .header('Content-Type', 'application/json; charset=utf-8')

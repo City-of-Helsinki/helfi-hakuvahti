@@ -16,21 +16,15 @@ export interface StatisticsDependencies {
   db: Db;
 }
 
-/**
- * Aggregate subscription counters, one document per (site_id, day).
- *
- * Exists because `subscription` is a current-state store — rows are hard-deleted
- * on unsubscribe and on expiry — so it can never answer how many of something
- * happened during a past period. Counters are written inline by whatever causes
- * the event; nothing aggregates on a schedule.
- */
+/** Aggregate subscription counters, one document per (site_id, day). */
 export class Statistics {
   private readonly collection: Collection<StatisticsCollectionType>;
   private readonly db: Db;
 
-  // en-CA renders as YYYY-MM-DD; the timeZone is the part that matters.
-  private static readonly dayFormatter = new Intl.DateTimeFormat('en-CA', {
+  private static readonly dayFormatter = new Intl.DateTimeFormat('en', {
     timeZone: 'Europe/Helsinki',
+    calendar: 'gregory',
+    numberingSystem: 'latn',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -42,18 +36,21 @@ export class Statistics {
   }
 
   /**
-   * The reporting day a timestamp belongs to. Helsinki rather than UTC, so month
-   * boundaries match the ones a product owner reads.
+   * The Europe/Helsinki day a timestamp belongs to, as YYYY-MM-DD.
+   *
+   * Assembled from the parts because no API returns an ISO date in a given
+   * timezone: toISOString() is UTC, and format() follows the locale's order.
    */
   static day(date: Date = new Date()): string {
-    return Statistics.dayFormatter.format(date);
+    const parts = Statistics.dayFormatter.formatToParts(date);
+    const value = (type: string): string => parts.find((part) => part.type === type)?.value ?? '';
+
+    return `${value('year')}-${value('month')}-${value('day')}`;
   }
 
   /**
-   * Records one lifecycle event, counting subscriptions rather than channels: a
-   * subscriber who confirms both email and SMS increments `confirmed` once.
-   *
-   * Never throws. Statistics must not fail the operation that triggered them.
+   * Records one lifecycle event. Counts subscriptions, not channels: confirming
+   * both email and SMS increments `confirmed` once. Never throws.
    */
   async record(
     siteId: string,
@@ -64,8 +61,7 @@ export class Statistics {
       return;
     }
 
-    // Both values end up in `$inc` key paths, and production enforces no schema,
-    // so a bad one would create a junk subtree instead of failing.
+    // Both end up in `$inc` key paths and production enforces no schema.
     if (!STAT_EVENTS.includes(event) || !SUBSCRIPTION_LANGUAGES.includes(lang)) {
       Sentry.captureMessage(`Refusing statistics write: event='${event}' lang='${lang}'`);
       return;
@@ -79,13 +75,7 @@ export class Statistics {
     });
   }
 
-  /**
-   * Counts a site's live subscriptions.
-   *
-   * Lives here so the stored snapshot and the `current` block of GET /stats are
-   * the same measurement: their whole purpose is to be comparable, and two
-   * copies of the query would let them drift apart on any future change.
-   */
+  /** Counts a site's live subscriptions. Shared with GET /stats `current`. */
   async countLive(siteId: string): Promise<StatSnapshotInput> {
     const subscriptions = this.db.collection('subscription');
 
@@ -99,11 +89,7 @@ export class Statistics {
 
   /**
    * Measures a site and stores the result on today's document, as an independent
-   * check on the event counters: the day-to-day delta should track net_change,
-   * and a persistent divergence means an event is being missed.
-   *
-   * Never throws, for the same reason record() does not — a lost measurement
-   * costs one point in a series, and must not abort the caller's work.
+   * check on the event counters. Never throws.
    */
   async measure(siteId: string): Promise<void> {
     try {
@@ -121,14 +107,7 @@ export class Statistics {
     });
   }
 
-  /**
-   * Conditions worth one immediate retry rather than a lost counter.
-   *
-   * 11000 happens when two writes race to create a day's document: both find no
-   * match, both attempt the insert, one loses. It can only occur on the first
-   * write of a site's day, and by the time we retry the document exists, so the
-   * retry is a plain $inc.
-   */
+  /** Retried once: 11000 is two writes racing to create the day's document. */
   private static readonly RETRYABLE = new Set([
     11000, // duplicate key
     16500, // Cosmos DB: request rate too large
@@ -140,7 +119,7 @@ export class Statistics {
     const filter = { _id: `${siteId}:${day}` };
     const document = {
       ...update,
-      // Must not overlap the paths above, or the whole update is rejected.
+      // Must not overlap the paths above, or the update is rejected.
       $setOnInsert: { site_id: siteId, day, created: new Date() } satisfies Partial<StatisticsCollectionType>,
     };
 

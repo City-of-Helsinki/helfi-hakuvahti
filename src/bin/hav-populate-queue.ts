@@ -111,9 +111,8 @@ command(
       throw new Error('MongoDB connection not available');
     }
 
-    // Clean up expired subscriptions for each site. --site filters only the
-    // notification pass below; expiry and measurement always cover every site, so
-    // a single-site run cannot leave the others with counters but no snapshot.
+    // --site filters only the notification pass below; expiry and measurement
+    // always cover every site.
     for (const [siteId, siteConfig] of Object.entries(siteConfigs)) {
       // Remove expired subscriptions that haven't been confirmed
       await expireSubscriptions(db, server.statistics, {
@@ -132,10 +131,9 @@ command(
       });
     }
 
-    // Measured after the expiry sweep, so the snapshot and the day's `expired`
-    // counters describe the same moment. Deliberately before the notification
-    // pass and not inside it: that work depends on Elasticsearch and ATV, and a
-    // failure there must not cost every site its measurement for the day.
+    // After the expiry sweep, so the snapshot and that day's `expired` counters
+    // describe the same moment. Outside the notification pass, so an
+    // Elasticsearch or ATV failure cannot cost every site its measurement.
     if (!isDryRun) {
       for (const siteId of Object.keys(siteConfigs)) {
         await server.statistics.measure(siteId);
