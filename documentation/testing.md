@@ -123,6 +123,36 @@ npm run hav:send-queue
 - **Environment:** Ensure all commands are executed in the correct project directories (Rekry or Hakuvahti)
 - **Testing Tip:** Use unique keywords in your job listings and subscriptions to avoid confusion during testing or check the number of results for the search.
 
-## Conclusion
+## Testing statistics
 
-By following these steps, you will have successfully installed Rekry and Hakuvahti, created a job subscription, added a matching job listing, and verified email notifications. If you encounter issues, refer to the respective GitHub repositories for additional documentation or support.
+Counters live in the `statistics` collection, one document per site per day, keyed `<site_id>:<day>`.
+Which action writes which counter: [statistics.md](./statistics.md).
+
+Read one day straight from the database:
+
+```bash
+docker compose exec -T mongodb mongosh hakuvahti --quiet --eval \
+ 'printjson(db.statistics.findOne({_id:"rekry:2026-08-17"}))'
+```
+
+Or through the endpoint, which returns one row per day:
+
+```bash
+curl -sk "https://hakuvahti.docker.so/stats/rekry?interval=day" -H "Authorization: api-key 123"
+```
+
+Counters are written by the actions themselves, so drive them through the API. Every endpoint takes the
+`Authorization: api-key <HAKUVAHTI_API_KEY>` header. The signup response carries `insertedId` but not
+`hash`, which arrives in the confirmation email; signup also needs the Elasticsearch proxy and ATV
+reachable.
+
+```bash
+BASE=https://hakuvahti.docker.so; KEY=123
+
+curl -sk -X POST $BASE/subscription -H 'Content-Type: application/json' -H "Authorization: api-key $KEY" \
+  -d '{"elastic_query":"eyJxdWVyeSI6eyJtYXRjaF9hbGwiOnt9fX0=","query":"/fi/avoimet-tyopaikat?q=test",
+       "email":"qa@example.com","site_id":"rekry","lang":"fi"}'
+
+curl -sk -X POST   "$BASE/subscription/confirm/<id>/<hash>" -H "Authorization: api-key $KEY"
+curl -sk -X DELETE "$BASE/subscription/delete/<id>/<hash>"  -H "Authorization: api-key $KEY"
+```
