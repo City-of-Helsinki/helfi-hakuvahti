@@ -195,6 +195,9 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
         throw new Error('Adding new subscription failed. See logs.');
       }
 
+      // A signup has begun, confirmed or not. Never throws.
+      await fastify.statistics.record(request.body.site_id, 'created', { lang: request.body.lang });
+
       const subscribeLinkBase =
         request.body.lang in siteConfig.urls ? siteConfig.urls[request.body.lang] : siteConfig.urls.base;
 

@@ -41,11 +41,16 @@ export class SiteConfigurationLoader {
    * @throws If no configuration exists for the given site ID
    */
   static getConfiguration(siteId: string): SiteConfigurationType {
-    const siteConfig = SiteConfigurationLoader.getInstance().configurations[siteId];
-    if (!siteConfig) {
+    const { configurations } = SiteConfigurationLoader.getInstance();
+
+    // Own properties only: site ids come from request bodies and paths, and a
+    // plain lookup resolves every Object.prototype key — 'constructor',
+    // 'toString' and friends — to something truthy that is not a configuration.
+    if (!Object.hasOwn(configurations, siteId)) {
       throw new Error(`Invalid site_id: ${siteId}`);
     }
-    return siteConfig;
+
+    return configurations[siteId];
   }
 
   static getSiteIds(): string[] {

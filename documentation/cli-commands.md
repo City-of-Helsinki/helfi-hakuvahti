@@ -45,7 +45,9 @@ npm run hav:populate-queue -- --site=rekry --dry-run
 
 `npm run hav:init-mongodb`
 
-Creates the `queue` and `subscription` collections with their JSON-schema validators, and drops the legacy `smsqueue` collection if present. Run once before the first `populate` / `send` command.
+Creates the `queue`, `subscription`, and `statistics` collections with their JSON-schema validators, creates the `subscription` index, and drops the legacy `smsqueue` collection if present. Idempotent and safe on existing data. Run once before the first `populate` / `send` command, and again after a change to a validator or index.
+
+Nothing breaks if it is never run: collections are created on first write, and no query depends on a validator or an index for correctness — on Cosmos DB the validators do not apply at all. The command reports the parts it could not apply rather than failing. See [architecture.md](./architecture.md).
 
 ## Send notifications from queue
 

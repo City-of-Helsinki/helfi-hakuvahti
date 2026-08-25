@@ -116,6 +116,63 @@ Returns `403` with `Not authorized to broadcast for this site.` if the token is 
 
 Returns `500` if the `OIDC_*` variables are not configured, the issuer's discovery document cannot be read, or the site has no `broadcast.adGroups` configured for the current environment, so broadcasting fails closed.
 
+## Key figures
+
+`GET` `/stats/:site_id`
+
+Per-site subscription figures. One site per request.
+
+| Parameter | In | Default | Values |
+|---|---|---|---|
+| `site_id` | path | — | must match a filename under `conf/` |
+| `interval` | query | `month` | `day`, `month` |
+| `from` | query | 12 months / 30 days back | `YYYY-MM-DD` |
+| `to` | query | today | `YYYY-MM-DD` |
+
+Requires the shared API key like every other endpoint. Any key holder can read any site; the response holds aggregate counts only.
+
+```json
+{
+    "site_id": "rekry",
+    "generated_at": "2027-02-05T09:12:33.000Z",
+    "collecting_since": "2026-09-15",
+    "range": { "from": "2026-02-01", "to": "2027-02-28", "interval": "month" },
+    "current": { "active": 5388, "unconfirmed": 41 },
+    "periods": [
+        {
+            "period": "2026-10",
+            "created": 455, "confirmed": 402,
+            "cancelled": 38, "cancelled_unconfirmed": 0,
+            "expired": 131, "expired_unconfirmed": 53,
+            "confirmed_by_lang": { "fi": 373, "sv": 17, "en": 12 },
+            "net_change": 233, "active_end": 5010, "incomplete": false
+        }
+    ]
+}
+```
+
+Every period in the range is present and zero-filled, in ascending order.
+
+| Field | Meaning |
+|---|---|
+| `current` | Live count from `subscription` at request time, independent of the cron |
+| `collecting_since` | Earliest recorded day for the site, `null` if there is none. Periods before it hold no data |
+| `range` | The effective range: `from` snapped back to the start of its period, `to` out to the end of its and clamped to today, length capped at 366 days or 120 months |
+| `period` | `2026-10-14` for `interval=day`, `2026-10` for `interval=month` |
+| `created` | Signups that began, confirmed or not |
+| `confirmed` | Subscriptions that became active — *uudet tilaukset*. Counted once per subscription, not once per channel, so confirming both email and SMS increments it once |
+| `cancelled` | User unsubscribed a live subscription — *keskeytetty* |
+| `expired` | The cron deleted a live subscription at the site's `maxAge` — *vanhentunut* |
+| `cancelled_unconfirmed`, `expired_unconfirmed` | The same two events for subscriptions that never became active |
+| `confirmed_by_lang` | `confirmed` per language. Sums to `confirmed` exactly, since a subscription has one language |
+| `net_change` | `confirmed − cancelled − expired`. `null` when the period has no stored data at all, `0` when it has data but no events |
+| `active_end` | Last measured active count in the period, `null` if the cron wrote no measurement for it |
+| `incomplete` | The period has not ended |
+
+A configured site with no data is `200`, with `collecting_since: null` and a zero-filled series.
+
+Returns `400` with `{ "error": "Invalid site_id provided." }` for a site with no configuration, and `{ "error": "Invalid date.", "field": "from" }` for a date the calendar does not have, such as `2026-02-31`.
+
 ## Health checks
 
 `/healthz` — 200 if the server is up.
