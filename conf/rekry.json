@@ -259,7 +259,7 @@
       "templatePath": "rekry",
       "maxHitsInEmail": 10
     },
-    "elasticProxyUrl": "https://rekry-elastic-proxy-staging.api.hel.ninja/job_listings",
+    "elasticProxyUrl": "https://helfi-rekry-elastic-proxy.stage.hel.ninja/job_listings",
     "broadcast": {
       "adGroups": [
         "Drupal_Helfi_kaupunkitaso_paakayttajat",
