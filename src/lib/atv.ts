@@ -3,7 +3,6 @@ import type { AtvDocumentBatchType, AtvDocumentContentType, AtvDocumentType } fr
 export interface AtvConfig {
   apiUrl: string;
   apiKey: string;
-  defaultMaxAge?: number;
 }
 
 /**
@@ -12,7 +11,6 @@ export interface AtvConfig {
 export class ATV {
   private readonly apiUrl: string;
   private readonly apiKey: string;
-  private readonly defaultMaxAge: number;
 
   static getAtvId(subscription: { atv_id?: string; email?: string; [key: string]: unknown }): string {
     return subscription.atv_id || subscription.email || '';
@@ -21,7 +19,6 @@ export class ATV {
   constructor(config: AtvConfig) {
     this.apiUrl = config.apiUrl;
     this.apiKey = config.apiKey;
-    this.defaultMaxAge = config.defaultMaxAge ?? 90;
   }
 
   /**
@@ -52,13 +49,15 @@ export class ATV {
    *
    * @param content - the content object to be included in the document
    * @param tosFunctionId - the TOS function ID for the document
+   * @param deleteAfter - the date after which ATV deletes the document
    * @return the created document
    */
-  async createDocument(content: AtvDocumentContentType, tosFunctionId: string): Promise<Partial<AtvDocumentType>> {
+  async createDocument(
+    content: AtvDocumentContentType,
+    tosFunctionId: string,
+    deleteAfter: Date,
+  ): Promise<Partial<AtvDocumentType>> {
     const timestamp = Math.floor(Date.now() / 1000).toString();
-
-    const deleteAfter = new Date();
-    deleteAfter.setDate(deleteAfter.getDate() + this.defaultMaxAge);
 
     const documentObject: Partial<AtvDocumentType> = {
       draft: 'false',

@@ -7,7 +7,6 @@ export default fp(async (fastify, _opts) => {
     new ATV({
       apiUrl: process.env.ATV_API_URL ?? '',
       apiKey: process.env.ATV_API_KEY ?? '',
-      defaultMaxAge: process.env.SUBSCRIPTION_MAX_AGE ? Number(process.env.SUBSCRIPTION_MAX_AGE) : undefined,
     }),
   );
 });
