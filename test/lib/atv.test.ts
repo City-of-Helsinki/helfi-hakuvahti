@@ -1,12 +1,15 @@
 import * as assert from 'node:assert';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { afterEach, describe, mock, test } from 'node:test';
 import { ATV } from '../../src/lib/atv.ts';
 
 const defaultConfig = {
   apiUrl: 'https://atv.example.com',
   apiKey: 'test-api-key',
-  defaultMaxAge: 90,
 };
+
+const deleteAfter = new Date('2024-09-13T12:00:00Z');
 
 // biome-ignore lint/suspicious/noExplicitAny: test helper returns loosely-typed fetch args
 function getCall(mockFetch: ReturnType<typeof mock.method>, index = 0): { url: string; opts: any } {
@@ -45,11 +48,11 @@ describe('ATV', () => {
 
       const atv = new ATV(defaultConfig);
       const content = { email: 'test@example.com' };
-      const result = await atv.createDocument(content, 'func-123');
+      const result = await atv.createDocument(content, 'func-123', deleteAfter);
 
       assert.strictEqual(mockFetch.mock.callCount(), 1);
       const { url, opts } = getCall(mockFetch);
-      assert.strictEqual(opts.method, 'post');
+      assert.strictEqual(opts.method, 'POST');
       assert.strictEqual(url, `${defaultConfig.apiUrl}/v1/documents/`);
       assert.strictEqual(opts.headers['X-Api-Key'], defaultConfig.apiKey);
       // multipart bodies must not set Content-Type explicitly (fetch adds the boundary)
@@ -61,23 +64,20 @@ describe('ATV', () => {
       assert.deepStrictEqual(result, { id: 'new-doc-id', draft: 'false' });
     });
 
-    test('sets tos_record_id and delete_after from current time', async () => {
+    test('sets tos_record_id from current time and delete_after from the given date', async () => {
       const fixedTime = new Date('2024-06-15T12:00:00Z').getTime();
       mock.timers.enable({ apis: ['Date'], now: fixedTime });
 
       const mockFetch = mock.method(globalThis, 'fetch', async () => jsonResponse({}));
 
-      const atv = new ATV({ ...defaultConfig, defaultMaxAge: 30 });
-      await atv.createDocument({ email: 'test@example.com' }, 'func-123');
+      const atv = new ATV(defaultConfig);
+      await atv.createDocument({ email: 'test@example.com' }, 'func-123', deleteAfter);
 
       mock.timers.reset();
 
       const { opts } = getCall(mockFetch);
       assert.strictEqual(opts.body.get('tos_record_id'), Math.floor(fixedTime / 1000).toString());
-
-      const expected = new Date(fixedTime);
-      expected.setDate(expected.getDate() + 30);
-      assert.strictEqual(opts.body.get('delete_after'), expected.toISOString().substring(0, 10));
+      assert.strictEqual(opts.body.get('delete_after'), '2024-09-13');
     });
 
     test('wraps network errors with cause', async () => {
@@ -88,7 +88,7 @@ describe('ATV', () => {
 
       const atv = new ATV(defaultConfig);
       await assert.rejects(
-        () => atv.createDocument({ email: 'test@example.com' }, 'func-123'),
+        () => atv.createDocument({ email: 'test@example.com' }, 'func-123', deleteAfter),
         (err: Error) => {
           assert.strictEqual(err.message, 'ATV request failed');
           assert.strictEqual(err.cause, originalError);
@@ -109,7 +109,7 @@ describe('ATV', () => {
       assert.deepStrictEqual(result, content);
       assert.strictEqual(mockFetch.mock.callCount(), 1);
       const { url, opts } = getCall(mockFetch);
-      assert.strictEqual(opts.method, 'get');
+      assert.strictEqual(opts.method, 'GET');
       assert.strictEqual(url, `${defaultConfig.apiUrl}/v1/documents/doc-123`);
       assert.strictEqual(opts.headers['X-Api-Key'], defaultConfig.apiKey);
       assert.strictEqual(opts.headers['Content-Type'], undefined);
@@ -171,11 +171,11 @@ describe('ATV', () => {
       assert.strictEqual(mockFetch.mock.callCount(), 2);
 
       const getCallArgs = getCall(mockFetch, 0);
-      assert.strictEqual(getCallArgs.opts.method, 'get');
+      assert.strictEqual(getCallArgs.opts.method, 'GET');
       assert.strictEqual(getCallArgs.url, `${defaultConfig.apiUrl}/v1/documents/doc-123`);
 
       const patchCallArgs = getCall(mockFetch, 1);
-      assert.strictEqual(patchCallArgs.opts.method, 'patch');
+      assert.strictEqual(patchCallArgs.opts.method, 'PATCH');
       assert.strictEqual(patchCallArgs.url, `${defaultConfig.apiUrl}/v1/documents/doc-123`);
       assert.strictEqual(patchCallArgs.opts.headers['Content-Type'], 'application/json');
       assert.strictEqual(JSON.parse(patchCallArgs.opts.body).delete_after, '2024-03-31');
@@ -196,6 +196,28 @@ describe('ATV', () => {
 
       const patchCallArgs = getCall(mockFetch, 1);
       assert.strictEqual(JSON.parse(patchCallArgs.opts.body).delete_after, '2024-03-01');
+    });
+
+    test('sends a PATCH that a real HTTP server accepts', async () => {
+      // The fetch mocks above cannot see what fetch() puts on the wire. A real
+      // server rejects a lowercase `patch` with 400, as the ATV gateway does.
+      const methods: string[] = [];
+      const server = createServer((req, res) => {
+        methods.push(req.method ?? '');
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(existingDoc));
+      });
+      await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+      const { port } = server.address() as AddressInfo;
+
+      try {
+        const atv = new ATV({ ...defaultConfig, apiUrl: `http://127.0.0.1:${port}` });
+        await atv.updateDocumentDeleteAfter('doc-123', new Date(2024, 2, 1));
+      } finally {
+        server.close();
+        server.closeAllConnections();
+      }
+
+      assert.deepStrictEqual(methods, ['GET', 'PATCH']);
     });
 
     test('wraps errors with cause', async () => {
@@ -227,7 +249,7 @@ describe('ATV', () => {
       assert.deepStrictEqual(result, docs);
       assert.strictEqual(mockFetch.mock.callCount(), 1);
       const { url, opts } = getCall(mockFetch);
-      assert.strictEqual(opts.method, 'post');
+      assert.strictEqual(opts.method, 'POST');
       assert.strictEqual(url, `${defaultConfig.apiUrl}/v1/documents/batch-list/`);
       assert.strictEqual(opts.headers['Content-Type'], 'application/json');
       assert.deepStrictEqual(JSON.parse(opts.body), { document_ids: ['doc-1', 'doc-2'] });
