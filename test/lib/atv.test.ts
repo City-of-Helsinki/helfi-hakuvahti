@@ -5,8 +5,9 @@ import { ATV } from '../../src/lib/atv.ts';
 const defaultConfig = {
   apiUrl: 'https://atv.example.com',
   apiKey: 'test-api-key',
-  defaultMaxAge: 90,
 };
+
+const deleteAfter = new Date('2024-09-13T12:00:00Z');
 
 // biome-ignore lint/suspicious/noExplicitAny: test helper returns loosely-typed fetch args
 function getCall(mockFetch: ReturnType<typeof mock.method>, index = 0): { url: string; opts: any } {
@@ -45,7 +46,7 @@ describe('ATV', () => {
 
       const atv = new ATV(defaultConfig);
       const content = { email: 'test@example.com' };
-      const result = await atv.createDocument(content, 'func-123');
+      const result = await atv.createDocument(content, 'func-123', deleteAfter);
 
       assert.strictEqual(mockFetch.mock.callCount(), 1);
       const { url, opts } = getCall(mockFetch);
@@ -61,23 +62,20 @@ describe('ATV', () => {
       assert.deepStrictEqual(result, { id: 'new-doc-id', draft: 'false' });
     });
 
-    test('sets tos_record_id and delete_after from current time', async () => {
+    test('sets tos_record_id from current time and delete_after from the given date', async () => {
       const fixedTime = new Date('2024-06-15T12:00:00Z').getTime();
       mock.timers.enable({ apis: ['Date'], now: fixedTime });
 
       const mockFetch = mock.method(globalThis, 'fetch', async () => jsonResponse({}));
 
-      const atv = new ATV({ ...defaultConfig, defaultMaxAge: 30 });
-      await atv.createDocument({ email: 'test@example.com' }, 'func-123');
+      const atv = new ATV(defaultConfig);
+      await atv.createDocument({ email: 'test@example.com' }, 'func-123', deleteAfter);
 
       mock.timers.reset();
 
       const { opts } = getCall(mockFetch);
       assert.strictEqual(opts.body.get('tos_record_id'), Math.floor(fixedTime / 1000).toString());
-
-      const expected = new Date(fixedTime);
-      expected.setDate(expected.getDate() + 30);
-      assert.strictEqual(opts.body.get('delete_after'), expected.toISOString().substring(0, 10));
+      assert.strictEqual(opts.body.get('delete_after'), '2024-09-13');
     });
 
     test('wraps network errors with cause', async () => {
@@ -88,7 +86,7 @@ describe('ATV', () => {
 
       const atv = new ATV(defaultConfig);
       await assert.rejects(
-        () => atv.createDocument({ email: 'test@example.com' }, 'func-123'),
+        () => atv.createDocument({ email: 'test@example.com' }, 'func-123', deleteAfter),
         (err: Error) => {
           assert.strictEqual(err.message, 'ATV request failed');
           assert.strictEqual(err.cause, originalError);
