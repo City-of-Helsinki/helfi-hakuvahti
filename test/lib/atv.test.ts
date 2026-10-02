@@ -1,4 +1,6 @@
 import * as assert from 'node:assert';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { afterEach, describe, mock, test } from 'node:test';
 import { ATV } from '../../src/lib/atv.ts';
 
@@ -50,7 +52,7 @@ describe('ATV', () => {
 
       assert.strictEqual(mockFetch.mock.callCount(), 1);
       const { url, opts } = getCall(mockFetch);
-      assert.strictEqual(opts.method, 'post');
+      assert.strictEqual(opts.method, 'POST');
       assert.strictEqual(url, `${defaultConfig.apiUrl}/v1/documents/`);
       assert.strictEqual(opts.headers['X-Api-Key'], defaultConfig.apiKey);
       // multipart bodies must not set Content-Type explicitly (fetch adds the boundary)
@@ -107,7 +109,7 @@ describe('ATV', () => {
       assert.deepStrictEqual(result, content);
       assert.strictEqual(mockFetch.mock.callCount(), 1);
       const { url, opts } = getCall(mockFetch);
-      assert.strictEqual(opts.method, 'get');
+      assert.strictEqual(opts.method, 'GET');
       assert.strictEqual(url, `${defaultConfig.apiUrl}/v1/documents/doc-123`);
       assert.strictEqual(opts.headers['X-Api-Key'], defaultConfig.apiKey);
       assert.strictEqual(opts.headers['Content-Type'], undefined);
@@ -169,11 +171,11 @@ describe('ATV', () => {
       assert.strictEqual(mockFetch.mock.callCount(), 2);
 
       const getCallArgs = getCall(mockFetch, 0);
-      assert.strictEqual(getCallArgs.opts.method, 'get');
+      assert.strictEqual(getCallArgs.opts.method, 'GET');
       assert.strictEqual(getCallArgs.url, `${defaultConfig.apiUrl}/v1/documents/doc-123`);
 
       const patchCallArgs = getCall(mockFetch, 1);
-      assert.strictEqual(patchCallArgs.opts.method, 'patch');
+      assert.strictEqual(patchCallArgs.opts.method, 'PATCH');
       assert.strictEqual(patchCallArgs.url, `${defaultConfig.apiUrl}/v1/documents/doc-123`);
       assert.strictEqual(patchCallArgs.opts.headers['Content-Type'], 'application/json');
       assert.strictEqual(JSON.parse(patchCallArgs.opts.body).delete_after, '2024-03-31');
@@ -194,6 +196,28 @@ describe('ATV', () => {
 
       const patchCallArgs = getCall(mockFetch, 1);
       assert.strictEqual(JSON.parse(patchCallArgs.opts.body).delete_after, '2024-03-01');
+    });
+
+    test('sends a PATCH that a real HTTP server accepts', async () => {
+      // The fetch mocks above cannot see what fetch() puts on the wire. A real
+      // server rejects a lowercase `patch` with 400, as the ATV gateway does.
+      const methods: string[] = [];
+      const server = createServer((req, res) => {
+        methods.push(req.method ?? '');
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(existingDoc));
+      });
+      await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+      const { port } = server.address() as AddressInfo;
+
+      try {
+        const atv = new ATV({ ...defaultConfig, apiUrl: `http://127.0.0.1:${port}` });
+        await atv.updateDocumentDeleteAfter('doc-123', new Date(2024, 2, 1));
+      } finally {
+        server.close();
+        server.closeAllConnections();
+      }
+
+      assert.deepStrictEqual(methods, ['GET', 'PATCH']);
     });
 
     test('wraps errors with cause', async () => {
@@ -225,7 +249,7 @@ describe('ATV', () => {
       assert.deepStrictEqual(result, docs);
       assert.strictEqual(mockFetch.mock.callCount(), 1);
       const { url, opts } = getCall(mockFetch);
-      assert.strictEqual(opts.method, 'post');
+      assert.strictEqual(opts.method, 'POST');
       assert.strictEqual(url, `${defaultConfig.apiUrl}/v1/documents/batch-list/`);
       assert.strictEqual(opts.headers['Content-Type'], 'application/json');
       assert.deepStrictEqual(JSON.parse(opts.body), { document_ids: ['doc-1', 'doc-2'] });
