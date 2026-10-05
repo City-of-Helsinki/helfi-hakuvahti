@@ -5,6 +5,9 @@ export interface AtvConfig {
   apiKey: string;
 }
 
+/** ATV document ids are UUIDs. */
+const DOCUMENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * ATV service.
  */
@@ -14,6 +17,13 @@ export class ATV {
 
   static getAtvId(subscription: { atv_id?: string; email?: string; [key: string]: unknown }): string {
     return subscription.atv_id || subscription.email || '';
+  }
+
+  /**
+   * ATV rejects a whole batch-list request with 500 if a single id in it is not one.
+   */
+  static isDocumentId(value: unknown): value is string {
+    return typeof value === 'string' && DOCUMENT_ID.test(value);
   }
 
   constructor(config: AtvConfig) {

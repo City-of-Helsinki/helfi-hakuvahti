@@ -40,6 +40,27 @@ describe('ATV', () => {
     });
   });
 
+  describe('isDocumentId', () => {
+    test('accepts a UUID in either case', () => {
+      assert.strictEqual(ATV.isDocumentId('2aff1ec8-ca48-4356-acb1-805d9f180a06'), true);
+      assert.strictEqual(ATV.isDocumentId('2AFF1EC8-CA48-4356-ACB1-805D9F180A06'), true);
+    });
+
+    test('rejects anything ATV would reject in a batch lookup', () => {
+      for (const value of [
+        '',
+        'atv-a',
+        'someone@example.com',
+        '2aff1ec8ca484356acb1805d9f180a06',
+        undefined,
+        null,
+        123,
+      ]) {
+        assert.strictEqual(ATV.isDocumentId(value), false, `${String(value)} is not a document id`);
+      }
+    });
+  });
+
   describe('createDocument', () => {
     test('sends POST with multipart form data and correct structure', async () => {
       const mockFetch = mock.method(globalThis, 'fetch', async () =>

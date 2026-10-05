@@ -1,9 +1,19 @@
 import { Buffer } from 'node:buffer';
+import { createHash } from 'node:crypto';
 import { ObjectId } from '@fastify/mongodb';
 import type { SiteConfigurationType } from '../../src/types/siteConfig.ts';
 import { SubscriptionStatus } from '../../src/types/subscription.ts';
 
 export const base64 = (str: string) => Buffer.from(str).toString('base64');
+
+/**
+ * ATV ids are UUIDs, and queue drops anything else, so tests cannot use plain strings.
+ */
+export const atvId = (name: string): string => {
+  const hex = createHash('sha256').update(name).digest('hex');
+
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+};
 
 /** Minimal translations required by the kymp templates. */
 const translations: SiteConfigurationType['translations'] = {

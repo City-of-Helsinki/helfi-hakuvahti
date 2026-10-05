@@ -6,7 +6,7 @@ import type { Transporter } from 'nodemailer';
 import type { DialogiClient } from '../plugins/dialogi.ts';
 import type { AtvDocumentType } from '../types/atv.ts';
 import { QUEUE_ITEM_TYPES, type QueueItem, type QueueItemType } from '../types/queue.ts';
-import type { ATV } from './atv.ts';
+import { ATV } from './atv.ts';
 
 export const BATCH_SIZE = 100;
 
@@ -60,8 +60,30 @@ export class QueueService {
   }
 
   private async processBatch(batch: QueueItem[]): Promise<void> {
+    const deliverable: QueueItem[] = [];
+
+    for (const item of batch) {
+      if (ATV.isDocumentId(item.atv_id)) {
+        deliverable.push(item);
+        continue;
+      }
+
+      // ATV rejects the whole lookup below for a single invalid id
+      console.error(`Dropping queue item ${item._id}: atv_id is not an ATV document id`);
+      Sentry.captureMessage(`Dropped ${item.type} queue item with an invalid atv_id`, {
+        level: 'error',
+        extra: { queueItemId: item._id.toString() },
+      });
+      await this.removeFromQueue(item._id);
+    }
+
+    // ATV answers 400 to an empty list.
+    if (deliverable.length === 0) {
+      return;
+    }
+
     // Fetch all subscriber data from ATV in one call
-    const atvIds = [...new Set(batch.map((item) => item.atv_id))];
+    const atvIds = [...new Set(deliverable.map((item) => item.atv_id))];
     const atvDocuments = await this.atvClient.getDocumentBatch(atvIds);
     const atvMap = new Map<string, AtvDocumentType>();
 
@@ -70,7 +92,7 @@ export class QueueService {
     });
 
     // Process items sequentially
-    for (const item of batch) {
+    for (const item of deliverable) {
       const atvDoc = atvMap.get(item.atv_id);
 
       if (!this.handlers[item.type]) {
