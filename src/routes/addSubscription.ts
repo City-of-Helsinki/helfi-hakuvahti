@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import * as Sentry from '@sentry/node';
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import libphonenumber from 'google-libphonenumber';
 import type { ATV } from '../lib/atv.ts';
@@ -155,7 +156,10 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
       let atvId: string;
       try {
         atvId = await storeUserData(fastify.atv, request.body, deleteAfter);
-      } catch {
+      } catch (error) {
+        // The response does not include the cause.
+        fastify.log.error({ err: error }, 'Storing user data in ATV failed');
+        Sentry.captureException(error);
         return reply
           .code(500)
           .header('Content-Type', 'application/json; charset=utf-8')

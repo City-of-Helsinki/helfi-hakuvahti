@@ -5,6 +5,9 @@ import { SiteConfigurationLoader } from '../../src/lib/siteConfigurationLoader.t
 import { Statistics } from '../../src/lib/statistics.ts';
 import { SubscriptionStatus } from '../../src/types/subscription.ts';
 import { build } from '../helper.ts';
+import { captureSentryEvents } from '../lib/utils.ts';
+
+const sentry = captureSentryEvents();
 
 function jsonResponse(body: unknown): Response {
   return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -258,6 +261,7 @@ describe('/subscription plugin failures', () => {
     });
 
     const app = await build(t);
+    await sentry.take();
 
     const res = await app.inject({
       method: 'POST',
@@ -269,6 +273,8 @@ describe('/subscription plugin failures', () => {
     assert.strictEqual(res.statusCode, 500);
     const body = JSON.parse(res.body);
     assert.ok(body.error);
+    // The response cannot tell why, so Sentry must.
+    assert.deepStrictEqual(await sentry.take(), ['Error: ATV request failed <- Error: ATV service unavailable']);
   });
 
   test('handles Elasticsearch validation failure', async (t) => {

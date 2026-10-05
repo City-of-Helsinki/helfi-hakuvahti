@@ -1,6 +1,9 @@
 import * as assert from 'node:assert';
 import { afterEach, beforeEach, describe, type Mock, mock, test } from 'node:test';
 import command, { type Command } from '../../src/lib/command.ts';
+import { captureSentryEvents } from './utils.ts';
+
+const sentry = captureSentryEvents();
 
 /**
  * Helper for running command methods.
@@ -58,8 +61,12 @@ describe('command helper', () => {
     const mockCommand = mock.fn<Command>(async (_server, _argv) => {
       throw new Error('Test failure');
     });
+    await sentry.take();
 
     await runCommand(mockCommand);
+
+    // No request is involved, so nothing else would report it.
+    assert.deepStrictEqual(await sentry.take(), ['Error: Test failure']);
 
     // Verify command was called
     assert.strictEqual(mockCommand.mock.calls.length, 1);
@@ -67,5 +74,24 @@ describe('command helper', () => {
     // Verify process.exit was called with 1
     assert.strictEqual(processExitMock.mock.calls.length, 1);
     assert.strictEqual(processExitMock.mock.calls[0].arguments[0], 1);
+  });
+
+  test('when the server fails to start reports it and exits with 1', async () => {
+    const mockCommand = mock.fn<Command>(async () => {});
+    await sentry.take();
+
+    command(mockCommand, [
+      async () => {
+        throw new Error('Plugin failed');
+      },
+    ]);
+
+    // process.exit is mocked and returns, so wait for its call instead of the close hook.
+    while (processExitMock.mock.callCount() === 0) {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+
+    assert.strictEqual(processExitMock.mock.calls[0].arguments[0], 1);
+    assert.deepStrictEqual(await sentry.take(), ['Error: Plugin failed']);
   });
 });

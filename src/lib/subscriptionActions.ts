@@ -137,8 +137,8 @@ export async function renewSubscription(
   newDeleteAfter.setDate(newDeleteAfter.getDate() + maxAge);
   try {
     await atv.updateDocumentDeleteAfter(ATV.getAtvId(subscription), newDeleteAfter);
-  } catch (_error) {
-    throw new ActionError(500, 'Failed to update subscription expiry in storage.');
+  } catch (error) {
+    throw new ActionError(500, 'Failed to update subscription expiry in storage.', error);
   }
 
   const $set: Partial<SubscriptionCollectionType> = {

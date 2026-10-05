@@ -1,4 +1,5 @@
 import { randomInt } from 'node:crypto';
+import * as Sentry from '@sentry/node';
 import type { FastifyPluginAsync } from 'fastify';
 import { ActionError, renewSubscription as renewAction, toSubscriptionId } from '../lib/subscriptionActions.ts';
 import { Generic500Error, type Generic500ErrorType } from '../types/error.ts';
@@ -7,6 +8,13 @@ import {
   SubscriptionGenericPostResponse,
   type SubscriptionGenericPostResponseType,
 } from '../types/subscription.ts';
+
+/** Reports server-side failures (5xx); the response does not include the cause. */
+const reportServerError = (error: ActionError): void => {
+  if (error.statusCode >= 500) {
+    Sentry.captureException(error);
+  }
+};
 
 // Renews subscription by resetting the created timestamp
 
@@ -32,6 +40,7 @@ const renewSubscription: FastifyPluginAsync = async (fastify, _opts) => {
         await renewAction(fastify.mongo.db?.collection('subscription'), { _id, hash }, fastify.atv);
       } catch (error) {
         if (error instanceof ActionError) {
+          reportServerError(error);
           return reply.code(error.statusCode).send({
             statusCode: error.statusCode,
             statusMessage: error.message,
@@ -76,6 +85,7 @@ const renewSubscription: FastifyPluginAsync = async (fastify, _opts) => {
         await renewAction(collection, { _id }, fastify.atv);
       } catch (error) {
         if (error instanceof ActionError) {
+          reportServerError(error);
           return reply.code(error.statusCode).send({
             // @fixme statusCode is totally useless.
             statusCode: randomInt(0, 1000),

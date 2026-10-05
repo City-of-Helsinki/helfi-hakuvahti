@@ -1,10 +1,50 @@
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import { ObjectId } from '@fastify/mongodb';
+import * as Sentry from '@sentry/node';
 import type { SiteConfigurationType } from '../../src/types/siteConfig.ts';
 import { SubscriptionStatus } from '../../src/types/subscription.ts';
 
 export const base64 = (str: string) => Buffer.from(str).toString('base64');
+
+/**
+ * Records what the code reports to Sentry, without sending anything. It
+ * initializes the SDK, so call it once per test file.
+ */
+export const captureSentryEvents = () => {
+  const events: Sentry.ErrorEvent[] = [];
+
+  Sentry.init({
+    dsn: 'https://public@sentry.invalid/1',
+    defaultIntegrations: false,
+    // As in production, so that the cause of an error is reported with it.
+    integrations: [Sentry.linkedErrorsIntegration()],
+    skipOpenTelemetrySetup: true,
+    beforeSend: (event) => {
+      events.push(event);
+      return null;
+    },
+  });
+
+  return {
+    /**
+     * What was reported since the previous call, one line per event: the
+     * error first, then its causes, e.g. "Error: A <- TypeError: B".
+     */
+    async take(): Promise<string[]> {
+      await Sentry.flush(1000);
+
+      return events.splice(0).map((event) =>
+        event.exception?.values
+          ? [...event.exception.values]
+              .reverse()
+              .map((value) => `${value.type}: ${value.value}`)
+              .join(' <- ')
+          : `${event.level}: ${event.message}`,
+      );
+    },
+  };
+};
 
 /**
  * ATV ids are UUIDs, and queue drops anything else, so tests cannot use plain strings.

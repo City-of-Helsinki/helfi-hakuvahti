@@ -3,6 +3,9 @@ import { describe, mock, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';
 import { SubscriptionStatus } from '../../src/types/subscription.ts';
 import { build, createSubscription } from '../helper.ts';
+import { captureSentryEvents } from '../lib/utils.ts';
+
+const sentry = captureSentryEvents();
 
 describe('/subscription/renew', () => {
   test('malformed subscription id returns 404, not 500', async (t) => {
@@ -25,6 +28,7 @@ describe('/subscription/renew', () => {
 
   test('renewSubscription - invalid subscription ID', async (t) => {
     const app = await build(t);
+    await sentry.take();
 
     const res = await app.inject({
       method: 'POST',
@@ -36,6 +40,33 @@ describe('/subscription/renew', () => {
     const body = JSON.parse(res.payload);
     assert.strictEqual(body.statusCode, 404);
     assert.strictEqual(body.statusMessage, 'Subscription not found.');
+    assert.deepStrictEqual(await sentry.take(), [], "A 404 is the caller's problem, not reported");
+  });
+
+  test('ATV failure returns 500 and is reported with its cause', async (t) => {
+    const app = await build(t);
+    (app as any).atv.updateDocumentDeleteAfter = mock.fn(async () => {
+      throw new Error('ATV request failed', { cause: new Error('ATV PATCH /v1/documents/doc-1 failed: 400') });
+    });
+
+    const hash = `test-renewal-hash-${Date.now()}`;
+    const subscriptionId = await createSubscription(app.mongo.db?.collection('subscription'), {
+      hash,
+      site_id: 'rekry',
+      status: SubscriptionStatus.ACTIVE,
+    });
+    await sentry.take();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/subscription/renew/${subscriptionId}/${hash}`,
+      headers: { Authorization: 'api-key test' },
+    });
+
+    assert.strictEqual(res.statusCode, 500);
+    assert.deepStrictEqual(await sentry.take(), [
+      'Error: Failed to update subscription expiry in storage. <- Error: ATV request failed <- Error: ATV PATCH /v1/documents/doc-1 failed: 400',
+    ]);
   });
 
   test('Only active subscriptions can be renewed', async (t) => {

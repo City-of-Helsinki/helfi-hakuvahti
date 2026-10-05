@@ -61,6 +61,7 @@ export class QueueService {
 
   private async processBatch(batch: QueueItem[]): Promise<void> {
     const deliverable: QueueItem[] = [];
+    const invalidIds: ObjectId[] = [];
 
     for (const item of batch) {
       if (ATV.isDocumentId(item.atv_id)) {
@@ -74,7 +75,11 @@ export class QueueService {
         level: 'error',
         extra: { queueItemId: item._id.toString() },
       });
-      await this.removeFromQueue(item._id);
+      invalidIds.push(item._id);
+    }
+
+    if (invalidIds.length > 0) {
+      await this.queueCollection.deleteMany({ _id: { $in: invalidIds } });
     }
 
     // ATV answers 400 to an empty list.

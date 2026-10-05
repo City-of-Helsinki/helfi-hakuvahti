@@ -39,7 +39,7 @@
     "google-libphonenumber": "^3.2.44",
     "jose": "^6.2.4",
     "jsdom": "^24.0.0",
-    "nodemailer": "^9.0.1",
+    "nodemailer": "^10.0.8",
     "sprightly": "^2.0.1"
   },
   "devDependencies": {
