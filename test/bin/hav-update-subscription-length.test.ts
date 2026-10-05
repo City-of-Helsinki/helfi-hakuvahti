@@ -74,6 +74,18 @@ describe('hav-update-subscription-length', () => {
       assert.strictEqual(result, '1. Failed: abc123 | Error: Connection timeout');
     });
 
+    it('should include the causes, where the ATV client puts the HTTP status', () => {
+      const error = new Error('ATV request failed', {
+        cause: new Error('ATV GET /v1/documents/doc-1 failed: 404'),
+      });
+      const result = formatErrorMessage(3, 'abc123', error);
+
+      assert.strictEqual(
+        result,
+        '3. Failed: abc123 | Error: ATV request failed: ATV GET /v1/documents/doc-1 failed: 404',
+      );
+    });
+
     it('should handle unknown error type', () => {
       const error = 'String error';
       const result = formatErrorMessage(2, 'xyz789', error);
