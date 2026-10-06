@@ -22,6 +22,8 @@ broadcast.
 ## MongoDB
 `MONGODB` MongoDB connection URL.
 
+`MONGODB_TEST` Database for the automated tests, default `mongodb://mongodb:27017/hakuvahti_test`. The tests empty whole collections, so they never use `MONGODB` and refuse to run unless this is a local database (`mongodb`, `localhost` or `127.0.0.1`) whose name ends in `_test`.
+
 ## Sentry
 `SENTRY_DSN` Sentry DSN for logging and errors.
 

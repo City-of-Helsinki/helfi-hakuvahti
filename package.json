@@ -8,8 +8,8 @@
     "test": "test"
   },
   "scripts": {
-    "test": "node --test --test-concurrency=1 --experimental-test-coverage --test-force-exit test/**/*.test.ts",
-    "test:coverage": "mkdir -p coverage && node --test --test-concurrency=1 --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test-reporter=spec --test-reporter-destination=stdout --test-force-exit test/**/*.test.ts",
+    "test": "node --test --import ./test/setup.ts --test-concurrency=1 --experimental-test-coverage --test-force-exit test/**/*.test.ts",
+    "test:coverage": "mkdir -p coverage && node --test --import ./test/setup.ts --test-concurrency=1 --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test-reporter=spec --test-reporter-destination=stdout --test-force-exit test/**/*.test.ts",
     "start": "node --import ./src/instrument.ts src/server.ts",
     "typecheck": "tsc",
     "dev": "node --watch --import ./src/instrument.ts src/server.ts",
