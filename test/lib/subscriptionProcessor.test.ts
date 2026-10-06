@@ -56,9 +56,7 @@ const throttled = (db: Db, collectionName: string, method: 'insertOne' | 'update
   });
 };
 
-const oneNewHit = () => {
-  const now = Math.floor(Date.now() / 1000);
-
+const oneNewHit = (now = Math.floor(Date.now() / 1000)) => {
   return {
     took: 1,
     hits: {
@@ -68,6 +66,13 @@ const oneNewHit = () => {
     responses: [],
   };
 };
+
+/** Rekry has the email templates but not the new results and renewal SMS ones. */
+const siteWithoutSmsTemplates = () =>
+  createSiteConfig({
+    mail: { templatePath: 'rekry', maxHitsInEmail: 10 },
+    subscription: { maxAge: 90, unconfirmedMaxAge: 7, expiryNotificationDays: 14, enableSms: true },
+  });
 
 describe('SubscriptionProcessor', () => {
   assert.ok(process.env.MONGODB, 'MONGODB env var must be set');
@@ -422,5 +427,60 @@ describe('SubscriptionProcessor', () => {
     const reported = await sentry.take();
     assert.strictEqual(reported.length, 1);
     assert.match(reported[0], /^TypeError: /);
+  });
+
+  test('a new results message that cannot be built is reported, not retried', async () => {
+    const db = mongoClient.db();
+    const lastChecked = Math.floor(Date.now() / 1000) - 3600;
+    const sub = createSubscription({ last_checked: lastChecked, sms_confirmed: true });
+    await db.collection('subscription').insertOne(sub);
+    const hit = oneNewHit(Math.floor(Date.now() / 1000) - 60);
+    queryElasticProxy.mock.mockImplementation(async () => hit);
+
+    for (const _run of [1, 2]) {
+      await buildProcessor().processSiteSubscriptions(siteWithoutSmsTemplates(), createStats(), false);
+    }
+
+    const queueItems = await db.collection('queue').find().toArray();
+    assert.deepStrictEqual(
+      queueItems.map((item) => item.type),
+      ['email'],
+      'The email is queued once, not again on every run',
+    );
+    const updated = await db.collection('subscription').findOne({ _id: sub._id });
+    assert.ok(updated!.last_checked > lastChecked, 'last_checked moves forward');
+    const reported = await sentry.take();
+    assert.strictEqual(reported.length, 1);
+    assert.match(reported[0], /sms\/newhits\.txt/);
+  });
+
+  test('an expiry message that cannot be built is reported, not retried', async () => {
+    const db = mongoClient.db();
+    const createdDate = new Date();
+    createdDate.setDate(createdDate.getDate() - 80);
+    const sub = createSubscription({
+      created: createdDate,
+      expiry_notification_sent: 0,
+      sms_confirmed: true,
+      delete_after: new Date(createdDate.getTime() + 90 * 24 * 60 * 60 * 1000),
+    });
+    await db.collection('subscription').insertOne(sub);
+    queryElasticProxy.mock.mockImplementation(async () => emptyElasticResponse());
+
+    for (const _run of [1, 2]) {
+      await buildProcessor().processSiteSubscriptions(siteWithoutSmsTemplates(), createStats(), false);
+    }
+
+    const queueItems = await db.collection('queue').find().toArray();
+    assert.deepStrictEqual(
+      queueItems.map((item) => item.type),
+      ['email'],
+      'The expiry email is queued once, not again on every run',
+    );
+    const updated = await db.collection('subscription').findOne({ _id: sub._id });
+    assert.strictEqual(updated?.expiry_notification_sent, 1);
+    const reported = await sentry.take();
+    assert.strictEqual(reported.length, 1);
+    assert.match(reported[0], /sms\/renew\.txt/);
   });
 });

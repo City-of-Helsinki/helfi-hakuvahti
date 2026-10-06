@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 import type { FastifyMongoNestedObject, FastifyMongoObject, ObjectId } from '@fastify/mongodb';
 import * as Sentry from '@sentry/node';
-import type { WithId } from 'mongodb';
+import { MongoError, type WithId } from 'mongodb';
 import type { ElasticProxyJsonResponseType } from '../types/elasticproxy.ts';
 import type { QueueInsertDocument } from '../types/queue.ts';
 import type { SiteConfigurationType } from '../types/siteConfig.ts';
@@ -190,7 +190,8 @@ export class SubscriptionProcessor {
         if (checkShouldSendExpiryNotification(subscription as Partial<SubscriptionCollectionType>, siteConfig)) {
           console.info(`Sending expiry email to ${ATV.getAtvId(subscription)} (site: ${siteConfig.id})`);
 
-          // Marked sent only after queueing succeeds, so a failed insert is retried on the next run.
+          // Marked sent only after the queue writes succeed, so a failed write is retried on the next run.
+          // A message that cannot be built is not retried: it would fail the same way every run.
           let expiryQueued = true;
 
           // Queue expiry email if email is active
@@ -220,7 +221,9 @@ export class SubscriptionProcessor {
               }
               stats.expiryEmailsQueued++;
             } catch (error) {
-              expiryQueued = false;
+              if (error instanceof MongoError) {
+                expiryQueued = false;
+              }
               console.error(`Error queueing expiry email for subscription ${subscription._id}:`, error);
               Sentry.captureException(error);
             }
@@ -252,7 +255,9 @@ export class SubscriptionProcessor {
               }
               stats.smsQueued++;
             } catch (error) {
-              expiryQueued = false;
+              if (error instanceof MongoError) {
+                expiryQueued = false;
+              }
               console.error(`Error queueing renewal SMS for subscription ${subscription._id}:`, error);
               Sentry.captureException(error);
             }
@@ -292,9 +297,9 @@ export class SubscriptionProcessor {
         const pad = (n: number) => n.toString().padStart(2, '0');
         const formattedCreatedDate = `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}`;
 
-        // last_checked moves forward only after queueing succeeds: hits older than
-        // it are never checked again. If one channel fails, both are queued again
-        // on the next run.
+        // last_checked moves forward only after the queue writes succeed: hits older than it are
+        // never checked again. If one channel's write fails, both are queued again on the next run.
+        // A message that cannot be built is not retried: it would fail the same way every run.
         let newResultsQueued = true;
 
         // Queue new hits email if email is active
@@ -328,7 +333,9 @@ export class SubscriptionProcessor {
             }
             stats.newResultsEmailsQueued++;
           } catch (error) {
-            newResultsQueued = false;
+            if (error instanceof MongoError) {
+              newResultsQueued = false;
+            }
             console.error(`Error queueing new results email for subscription ${subscription._id}:`, error);
             Sentry.captureException(error);
           }
@@ -360,7 +367,9 @@ export class SubscriptionProcessor {
             }
             stats.smsQueued++;
           } catch (error) {
-            newResultsQueued = false;
+            if (error instanceof MongoError) {
+              newResultsQueued = false;
+            }
             console.error(`Error queueing new results SMS for subscription ${subscription._id}:`, error);
             Sentry.captureException(error);
           }
