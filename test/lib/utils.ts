@@ -1,3 +1,4 @@
+import '../setup.ts';
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import { ObjectId } from '@fastify/mongodb';

@@ -1,3 +1,4 @@
+import '../setup.ts';
 import * as assert from 'node:assert';
 import { after, before, describe, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';

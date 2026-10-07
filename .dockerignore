@@ -3,3 +3,5 @@ node_modules
 # .dockerignore
 .git
 # .gitignore
+# Tests empty whole collections: never ship them to deployed environments.
+test
