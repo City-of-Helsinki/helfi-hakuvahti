@@ -11,12 +11,13 @@ import {
   oidcProviderResponse,
   signAccessToken,
 } from '../helper.ts';
+import { atvId } from '../lib/utils.ts';
 
 // Contact details returned by the mocked ATV batch-list endpoint, by ATV id.
 const atvDocs: Record<string, { email?: string; sms?: string }> = {
-  'atv-a': { email: 'a@example.com' },
-  'atv-b': { email: 'b@example.com' },
-  'atv-b2': { email: 'b@example.com' },
+  [atvId('atv-a')]: { email: 'a@example.com' },
+  [atvId('atv-b')]: { email: 'b@example.com' },
+  [atvId('atv-b2')]: { email: 'b@example.com' },
 };
 
 const messages = {
@@ -234,7 +235,7 @@ describe('/broadcast', () => {
       status: SubscriptionStatus.ACTIVE,
       email_confirmed: true,
       lang: 'fi',
-      atv_id: 'atv-a',
+      atv_id: atvId('atv-a'),
       email: '',
     });
 
@@ -322,12 +323,12 @@ describe('/broadcast', () => {
     const subscriptions = app.mongo.db?.collection('subscription');
 
     const active = { site_id: 'rekry', status: SubscriptionStatus.ACTIVE, email_confirmed: true, lang: 'fi' };
-    await createSubscription(subscriptions, { ...active, atv_id: 'atv-a', email: '' });
-    await createSubscription(subscriptions, { ...active, atv_id: 'atv-b', email: '', lang: 'en' });
+    await createSubscription(subscriptions, { ...active, atv_id: atvId('atv-a'), email: '' });
+    await createSubscription(subscriptions, { ...active, atv_id: atvId('atv-b'), email: '', lang: 'en' });
     // Same email address as atv-b: must be deduplicated.
-    await createSubscription(subscriptions, { ...active, atv_id: 'atv-b2', email: '', lang: 'en' });
+    await createSubscription(subscriptions, { ...active, atv_id: atvId('atv-b2'), email: '', lang: 'en' });
     // Different site: must not receive the broadcast.
-    await createSubscription(subscriptions, { ...active, atv_id: 'atv-a', email: '', site_id: 'etusivu' });
+    await createSubscription(subscriptions, { ...active, atv_id: atvId('atv-a'), email: '', site_id: 'etusivu' });
 
     const res = await broadcast(app, validPayload());
 
@@ -340,7 +341,7 @@ describe('/broadcast', () => {
 
     const queueItems = await app.mongo.db?.collection('queue').find({}).toArray();
     assert.strictEqual(queueItems?.length, 2);
-    const fiItem = queueItems?.find((item) => item.atv_id === 'atv-a');
+    const fiItem = queueItems?.find((item) => item.atv_id === atvId('atv-a'));
     assert.ok(fiItem?.content.includes('<title>Huoltokatko</title>'));
     assert.ok(fiItem?.content.includes('FI body'));
   });
@@ -351,8 +352,8 @@ describe('/broadcast', () => {
     const subscriptions = app.mongo.db?.collection('subscription');
 
     const active = { site_id: 'rekry', status: SubscriptionStatus.ACTIVE, email_confirmed: true, lang: 'fi' };
-    const targetId = await createSubscription(subscriptions, { ...active, atv_id: 'atv-a', email: '' });
-    await createSubscription(subscriptions, { ...active, atv_id: 'atv-b', email: '' });
+    const targetId = await createSubscription(subscriptions, { ...active, atv_id: atvId('atv-a'), email: '' });
+    await createSubscription(subscriptions, { ...active, atv_id: atvId('atv-b'), email: '' });
 
     const res = await broadcast(app, validPayload({ subscription_ids: [targetId.toString()] }));
 
@@ -363,6 +364,6 @@ describe('/broadcast', () => {
 
     const queueItems = await app.mongo.db?.collection('queue').find({}).toArray();
     assert.strictEqual(queueItems?.length, 1);
-    assert.strictEqual(queueItems?.[0].atv_id, 'atv-a');
+    assert.strictEqual(queueItems?.[0].atv_id, atvId('atv-a'));
   });
 });

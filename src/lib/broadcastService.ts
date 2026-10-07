@@ -127,7 +127,8 @@ export class BroadcastService {
     seenPhones: Set<string>,
     stats: BroadcastStatsType,
   ): Promise<void> {
-    const atvIds = [...new Set(chunk.map((subscription) => ATV.getAtvId(subscription)).filter(Boolean))];
+    // ATV rejects the whole lookup if a single id in it is not a document id.
+    const atvIds = [...new Set(chunk.map((subscription) => ATV.getAtvId(subscription)).filter(ATV.isDocumentId))];
     const atvDocuments = await this.atv.getDocumentBatch(atvIds);
     const atvMap = new Map<string, AtvDocumentType>();
 

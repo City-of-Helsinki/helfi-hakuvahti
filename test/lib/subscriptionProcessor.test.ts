@@ -1,9 +1,9 @@
 import * as assert from 'node:assert';
 import { after, before, beforeEach, describe, mock, test } from 'node:test';
-import { MongoClient } from 'mongodb';
+import { type Db, MongoClient, MongoServerError } from 'mongodb';
 import type { ATV } from '../../src/lib/atv.ts';
 import { type ProcessingStats, SubscriptionProcessor } from '../../src/lib/subscriptionProcessor.ts';
-import { base64, createSiteConfig, createSubscription, emptyElasticResponse } from './utils.ts';
+import { base64, captureSentryEvents, createSiteConfig, createSubscription, emptyElasticResponse } from './utils.ts';
 
 const createStats = (): ProcessingStats => ({
   sitesProcessed: 0,
@@ -13,6 +13,67 @@ const createStats = (): ProcessingStats => ({
   smsQueued: 0,
 });
 
+/** What Cosmos DB answers when the request unit budget is used up. */
+const TOO_MANY_REQUESTS = 'Error=16500, RetryAfterMs=292, TooManyRequests (429)';
+
+/**
+ * A Db whose `method` on one collection fails the way Cosmos DB throttles,
+ * on the given call numbers.
+ */
+const throttled = (db: Db, collectionName: string, method: 'insertOne' | 'updateOne', failOnCalls: number[]): Db => {
+  let calls = 0;
+
+  return new Proxy(db, {
+    get(target, prop) {
+      if (prop !== 'collection') {
+        return Reflect.get(target, prop);
+      }
+
+      return (name: string) => {
+        const collection = target.collection(name);
+        if (name !== collectionName) {
+          return collection;
+        }
+
+        return new Proxy(collection, {
+          get(innerTarget, innerProp) {
+            if (innerProp !== method) {
+              return Reflect.get(innerTarget, innerProp);
+            }
+
+            return async (...args: unknown[]) => {
+              calls++;
+              if (failOnCalls.includes(calls)) {
+                throw new MongoServerError({ code: 16500, errmsg: TOO_MANY_REQUESTS });
+              }
+
+              return (innerTarget as any)[method](...args);
+            };
+          },
+        });
+      };
+    },
+  });
+};
+
+const oneNewHit = (now = Math.floor(Date.now() / 1000)) => {
+  return {
+    took: 1,
+    hits: {
+      total: { value: 1 },
+      hits: [{ _source: { publication_starts: [now], address: ['Test St'], valid_from: [now], valid_to: [now] } }],
+    },
+    responses: [],
+  };
+};
+
+/** Rekry has the email templates but not the new results and renewal SMS ones. */
+const siteWithoutSmsTemplates = () =>
+  createSiteConfig({
+    mail: { templatePath: 'rekry', maxHitsInEmail: 10 },
+    subscription: { maxAge: 90, unconfirmedMaxAge: 7, expiryNotificationDays: 14, enableSms: true },
+  });
+
 describe('SubscriptionProcessor', () => {
   assert.ok(process.env.MONGODB, 'MONGODB env var must be set');
   const mongoClient = new MongoClient(process.env.MONGODB);
@@ -20,9 +81,10 @@ describe('SubscriptionProcessor', () => {
   const queryElasticProxy = mock.fn<(url: string, json: string) => Promise<any>>();
   const atvGetDocument = mock.fn<ATV['getDocument']>();
   const atvUpdateDocumentDeleteAfter = mock.fn<ATV['updateDocumentDeleteAfter']>();
-  const buildProcessor = () =>
+  const sentry = captureSentryEvents();
+  const buildProcessor = (db: Db = mongoClient.db()) =>
     new SubscriptionProcessor({
-      mongo: { db: mongoClient.db() } as any,
+      mongo: { db } as any,
       atv: {
         getDocument: atvGetDocument,
         updateDocumentDeleteAfter: atvUpdateDocumentDeleteAfter,
@@ -49,6 +111,7 @@ describe('SubscriptionProcessor', () => {
     await db.collection('subscription').deleteMany({});
     await db.collection('queue').deleteMany({});
     await db.collection('statistics').deleteMany({ site_id: 'test-site' });
+    await sentry.take();
   });
 
   test('skips subscriptions not matching site_id', async () => {
@@ -271,4 +334,153 @@ describe('SubscriptionProcessor', () => {
     assert.ok(updated!.delete_after, 'delete_after should be set in DB');
   });
 
+  test('keeps last_checked when queueing the new results email fails, and reports it', async () => {
+    const db = mongoClient.db();
+    const lastChecked = Math.floor(Date.now() / 1000) - 3600;
+    const sub = createSubscription({ last_checked: lastChecked });
+    await db.collection('subscription').insertOne(sub);
+    queryElasticProxy.mock.mockImplementation(async () => oneNewHit());
+
+    await buildProcessor(throttled(db, 'queue', 'insertOne', [1])).processSiteSubscriptions(
+      createSiteConfig(),
+      createStats(),
+      false,
+    );
+
+    assert.strictEqual(await db.collection('queue').countDocuments(), 0);
+    const afterFailure = await db.collection('subscription').findOne({ _id: sub._id });
+    assert.strictEqual(afterFailure?.last_checked, lastChecked, 'Hits that were not queued are not skipped');
+    assert.deepStrictEqual(await sentry.take(), [`MongoServerError: ${TOO_MANY_REQUESTS}`]);
+
+    // The next run queues the same hits.
+    await buildProcessor().processSiteSubscriptions(createSiteConfig(), createStats(), false);
+
+    assert.strictEqual(await db.collection('queue').countDocuments(), 1);
+  });
+
+  test('leaves the expiry notification unsent when queueing it fails, and reports it', async () => {
+    const db = mongoClient.db();
+    const createdDate = new Date();
+    createdDate.setDate(createdDate.getDate() - 80);
+    const sub = createSubscription({
+      created: createdDate,
+      expiry_notification_sent: 0,
+      delete_after: new Date(createdDate.getTime() + 90 * 24 * 60 * 60 * 1000),
+    });
+    await db.collection('subscription').insertOne(sub);
+    queryElasticProxy.mock.mockImplementation(async () => emptyElasticResponse());
+
+    await buildProcessor(throttled(db, 'queue', 'insertOne', [1])).processSiteSubscriptions(
+      createSiteConfig(),
+      createStats(),
+      false,
+    );
+
+    assert.strictEqual(await db.collection('queue').countDocuments(), 0);
+    const afterFailure = await db.collection('subscription').findOne({ _id: sub._id });
+    assert.strictEqual(
+      afterFailure?.expiry_notification_sent,
+      0,
+      'A notification that was not queued is not marked sent',
+    );
+    assert.deepStrictEqual(await sentry.take(), [`MongoServerError: ${TOO_MANY_REQUESTS}`]);
+
+    // The next run queues it.
+    await buildProcessor().processSiteSubscriptions(createSiteConfig(), createStats(), false);
+
+    assert.strictEqual(await db.collection('queue').countDocuments(), 1);
+    const afterRetry = await db.collection('subscription').findOne({ _id: sub._id });
+    assert.strictEqual(afterRetry?.expiry_notification_sent, 1);
+  });
+
+  test('goes on with the next subscription when updating last_checked fails', async () => {
+    const db = mongoClient.db();
+    const lastChecked = Math.floor(Date.now() / 1000) - 3600;
+    const subs = [1, 2, 3].map(() => createSubscription({ last_checked: lastChecked }));
+    await db.collection('subscription').insertMany(subs);
+    queryElasticProxy.mock.mockImplementation(async () => oneNewHit());
+
+    await buildProcessor(throttled(db, 'subscription', 'updateOne', [2])).processSiteSubscriptions(
+      createSiteConfig(),
+      createStats(),
+      false,
+    );
+
+    assert.strictEqual(await db.collection('queue').countDocuments(), 3, 'Every subscription is processed');
+    const second = await db.collection('subscription').findOne({ _id: subs[1]._id });
+    assert.strictEqual(second?.last_checked, lastChecked);
+    assert.deepStrictEqual(await sentry.take(), [`MongoServerError: ${TOO_MANY_REQUESTS}`]);
+  });
+
+  test('goes on with the next subscription when one fails unexpectedly', async () => {
+    const db = mongoClient.db();
+    // No lang, like the legacy rows the expiry sweep has to handle.
+    const { lang: _lang, ...broken } = createSubscription();
+    const sub = createSubscription();
+    await db.collection('subscription').insertMany([broken, sub]);
+    queryElasticProxy.mock.mockImplementation(async () => oneNewHit());
+
+    await buildProcessor().processSiteSubscriptions(createSiteConfig(), createStats(), false);
+
+    const queueItems = await db.collection('queue').find().toArray();
+    assert.strictEqual(queueItems.length, 1, 'The subscription after the broken one is processed');
+    const reported = await sentry.take();
+    assert.strictEqual(reported.length, 1);
+    assert.match(reported[0], /^TypeError: /);
+  });
+
+  test('a new results message that cannot be built is reported, not retried', async () => {
+    const db = mongoClient.db();
+    const lastChecked = Math.floor(Date.now() / 1000) - 3600;
+    const sub = createSubscription({ last_checked: lastChecked, sms_confirmed: true });
+    await db.collection('subscription').insertOne(sub);
+    const hit = oneNewHit(Math.floor(Date.now() / 1000) - 60);
+    queryElasticProxy.mock.mockImplementation(async () => hit);
+
+    for (const _run of [1, 2]) {
+      await buildProcessor().processSiteSubscriptions(siteWithoutSmsTemplates(), createStats(), false);
+    }
+
+    const queueItems = await db.collection('queue').find().toArray();
+    assert.deepStrictEqual(
+      queueItems.map((item) => item.type),
+      ['email'],
+      'The email is queued once, not again on every run',
+    );
+    const updated = await db.collection('subscription').findOne({ _id: sub._id });
+    assert.ok(updated!.last_checked > lastChecked, 'last_checked moves forward');
+    const reported = await sentry.take();
+    assert.strictEqual(reported.length, 1);
+    assert.match(reported[0], /sms\/newhits\.txt/);
+  });
+
+  test('an expiry message that cannot be built is reported, not retried', async () => {
+    const db = mongoClient.db();
+    const createdDate = new Date();
+    createdDate.setDate(createdDate.getDate() - 80);
+    const sub = createSubscription({
+      created: createdDate,
+      expiry_notification_sent: 0,
+      sms_confirmed: true,
+      delete_after: new Date(createdDate.getTime() + 90 * 24 * 60 * 60 * 1000),
+    });
+    await db.collection('subscription').insertOne(sub);
+    queryElasticProxy.mock.mockImplementation(async () => emptyElasticResponse());
+
+    for (const _run of [1, 2]) {
+      await buildProcessor().processSiteSubscriptions(siteWithoutSmsTemplates(), createStats(), false);
+    }
+
+    const queueItems = await db.collection('queue').find().toArray();
+    assert.deepStrictEqual(
+      queueItems.map((item) => item.type),
+      ['email'],
+      'The expiry email is queued once, not again on every run',
+    );
+    const updated = await db.collection('subscription').findOne({ _id: sub._id });
+    assert.strictEqual(updated?.expiry_notification_sent, 1);
+    const reported = await sentry.take();
+    assert.strictEqual(reported.length, 1);
+    assert.match(reported[0], /sms\/renew\.txt/);
+  });
 });

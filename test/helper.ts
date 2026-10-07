@@ -1,3 +1,4 @@
+import './setup.ts';
 // This file contains code that we reuse between our tests.
 
 import assert from 'node:assert';

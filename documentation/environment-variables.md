@@ -22,6 +22,8 @@ broadcast.
 ## MongoDB
 `MONGODB` MongoDB connection URL.
 
+`MONGODB_TEST` Database for the automated tests, set in `compose.yaml`. The tests empty whole collections, so they never use `MONGODB` and refuse to run without `MONGODB_TEST`.
+
 ## Sentry
 `SENTRY_DSN` Sentry DSN for logging and errors.
 

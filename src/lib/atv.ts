@@ -3,8 +3,10 @@ import type { AtvDocumentBatchType, AtvDocumentContentType, AtvDocumentType } fr
 export interface AtvConfig {
   apiUrl: string;
   apiKey: string;
-  defaultMaxAge?: number;
 }
+
+/** ATV document ids are UUIDs. */
+const DOCUMENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * ATV service.
@@ -12,16 +14,21 @@ export interface AtvConfig {
 export class ATV {
   private readonly apiUrl: string;
   private readonly apiKey: string;
-  private readonly defaultMaxAge: number;
 
   static getAtvId(subscription: { atv_id?: string; email?: string; [key: string]: unknown }): string {
     return subscription.atv_id || subscription.email || '';
   }
 
+  /**
+   * ATV rejects a whole batch-list request with 500 if a single id in it is not one.
+   */
+  static isDocumentId(value: unknown): value is string {
+    return typeof value === 'string' && DOCUMENT_ID.test(value);
+  }
+
   constructor(config: AtvConfig) {
     this.apiUrl = config.apiUrl;
     this.apiKey = config.apiKey;
-    this.defaultMaxAge = config.defaultMaxAge ?? 90;
   }
 
   /**
@@ -34,7 +41,7 @@ export class ATV {
    */
   async updateDocumentDeleteAfter(atvDocumentId: string, deleteAfter: Date): Promise<Partial<AtvDocumentType>> {
     // First, fetch the existing document to preserve all content
-    const existingDoc: Partial<AtvDocumentType> = await this.makeRequest('get', `/v1/documents/${atvDocumentId}`);
+    const existingDoc: Partial<AtvDocumentType> = await this.makeRequest('GET', `/v1/documents/${atvDocumentId}`);
 
     const updateObject: Partial<AtvDocumentType> = {
       tos_function_id: existingDoc.tos_function_id,
@@ -44,7 +51,7 @@ export class ATV {
       delete_after: deleteAfter.toISOString().substring(0, 10),
     };
 
-    return await this.makeRequest('patch', `/v1/documents/${atvDocumentId}`, updateObject);
+    return await this.makeRequest('PATCH', `/v1/documents/${atvDocumentId}`, updateObject);
   }
 
   /**
@@ -52,13 +59,15 @@ export class ATV {
    *
    * @param content - the content object to be included in the document
    * @param tosFunctionId - the TOS function ID for the document
+   * @param deleteAfter - the date after which ATV deletes the document
    * @return the created document
    */
-  async createDocument(content: AtvDocumentContentType, tosFunctionId: string): Promise<Partial<AtvDocumentType>> {
+  async createDocument(
+    content: AtvDocumentContentType,
+    tosFunctionId: string,
+    deleteAfter: Date,
+  ): Promise<Partial<AtvDocumentType>> {
     const timestamp = Math.floor(Date.now() / 1000).toString();
-
-    const deleteAfter = new Date();
-    deleteAfter.setDate(deleteAfter.getDate() + this.defaultMaxAge);
 
     const documentObject: Partial<AtvDocumentType> = {
       draft: 'false',
@@ -68,7 +77,7 @@ export class ATV {
       content: JSON.stringify(content) as AtvDocumentContentType,
     };
 
-    return await this.makeRequest('post', '/v1/documents/', documentObject, 'multipart/form-data');
+    return await this.makeRequest('POST', '/v1/documents/', documentObject, 'multipart/form-data');
   }
 
   /**
@@ -78,7 +87,7 @@ export class ATV {
    * @return The content of the document
    */
   async getDocument(atvDocumentId: string): Promise<Partial<AtvDocumentContentType>> {
-    const doc: Partial<AtvDocumentType> = await this.makeRequest('get', `/v1/documents/${atvDocumentId}`);
+    const doc: Partial<AtvDocumentType> = await this.makeRequest('GET', `/v1/documents/${atvDocumentId}`);
 
     if (doc?.content) {
       return doc.content;
@@ -95,19 +104,21 @@ export class ATV {
    */
   async getDocumentBatch(documentIds: string[]): Promise<Partial<AtvDocumentType[]>> {
     const body: AtvDocumentBatchType = { document_ids: documentIds };
-    return await this.makeRequest('post', '/v1/documents/batch-list/', body);
+    return await this.makeRequest('POST', '/v1/documents/batch-list/', body);
   }
 
   /**
    * Make ATV request.
    *
-   * @param method
+   * @param method - Uppercase: fetch() normalises only DELETE, GET, HEAD,
+   *   OPTIONS, POST and PUT, so a lowercase `patch` goes out as-is and the
+   *   gateway in front of ATV rejects it with 400.
    * @param endpoint
    * @param body
    * @param contentType
    */
   private async makeRequest<Response, Body = unknown>(
-    method: string,
+    method: 'GET' | 'POST' | 'PATCH',
     endpoint: string,
     body?: Body,
     contentType?: string,

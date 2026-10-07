@@ -27,8 +27,11 @@ export default function command(app: Command, plugins: Array<(...args: any[]) =>
   });
 
   server.ready(async (err) => {
+    // Commands run outside requests, so the Fastify error handler never sees their failures.
     if (err) {
       console.error('Server failed to start:', err);
+      Sentry.captureException(err);
+      await Sentry.flush(2000);
       process.exit(1);
     }
 
@@ -40,6 +43,7 @@ export default function command(app: Command, plugins: Array<(...args: any[]) =>
       result = false;
 
       console.error('Command failed', err);
+      Sentry.captureException(err);
     }
 
     await Sentry.flush(2000);

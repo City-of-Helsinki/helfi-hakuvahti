@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 import type { FastifyMongoNestedObject, FastifyMongoObject, ObjectId } from '@fastify/mongodb';
 import * as Sentry from '@sentry/node';
-import type { WithId } from 'mongodb';
+import { MongoError, type WithId } from 'mongodb';
 import type { ElasticProxyJsonResponseType } from '../types/elasticproxy.ts';
 import type { QueueInsertDocument } from '../types/queue.ts';
 import type { SiteConfigurationType } from '../types/siteConfig.ts';
@@ -126,117 +126,230 @@ export class SubscriptionProcessor {
       //   reduce() here is quite hard to reason.
       await previousPromise;
 
-      console.info(`Processing subscription ${subscription._id} for site ${siteConfig.id}`);
+      // One failing subscription must not stop the rest of the run.
+      try {
+        console.info(`Processing subscription ${subscription._id} for site ${siteConfig.id}`);
 
-      // Resolve user data from ATV if stored there
-      let resolvedQuery: string = subscription.query;
-      let resolvedSearchDescription: string = subscription.search_description ?? '';
-      let resolvedElasticQuery: string | undefined = subscription.elastic_query;
+        // Resolve user data from ATV if stored there
+        let resolvedQuery: string = subscription.query;
+        let resolvedSearchDescription: string = subscription.search_description ?? '';
+        let resolvedElasticQuery: string | undefined = subscription.elastic_query;
 
-      if (subscription.user_data_in_atv) {
-        try {
-          const atvData = await this.atv.getDocument(ATV.getAtvId(subscription));
-          resolvedQuery = atvData.query ?? '';
-          resolvedSearchDescription = atvData.search_description ?? '';
-          resolvedElasticQuery = atvData.elastic_query;
-
-          console.info(`Subscription details loaded from ATV for ${subscription._id} (site: ${siteConfig.id})`);
-        } catch (e) {
-          console.error(`Failed to load user data from ATV for ${subscription._id}`, e);
-          Sentry.captureException(e);
-          return Promise.resolve();
-        }
-      }
-
-      const localizedBaseUrl = SiteConfigurationLoader.getLocalizedUrl(siteConfig, subscription.lang);
-
-      // Calculate subscription expiry date
-      const subscriptionValidForDays = siteConfig.subscription.maxAge;
-
-      // Sync ATV delete_after if needed (handles config changes and legacy subscriptions)
-      // @todo: why do we need this?
-      const expectedDeleteAfter = calculateExpectedDeleteAfter(
-        new Date(subscription.created),
-        subscriptionValidForDays,
-      );
-      if (needsDeleteAfterSync(subscription.delete_after, expectedDeleteAfter)) {
-        console.info(
-          `Sync ATV delete_after for ${subscription._id} ` +
-            `(stored: ${subscription.delete_after?.toISOString().substring(0, 10) ?? 'none'}, ` +
-            `expected: ${expectedDeleteAfter.toISOString().substring(0, 10)})`,
-        );
-
-        if (!isDryRun) {
+        if (subscription.user_data_in_atv) {
           try {
-            await this.atv.updateDocumentDeleteAfter(ATV.getAtvId(subscription), expectedDeleteAfter);
-            await collection.updateOne({ _id: subscription._id }, { $set: { delete_after: expectedDeleteAfter } });
-          } catch (error) {
-            console.error(`Failed to sync ATV delete_after for subscription ${subscription._id}:`, error);
-            Sentry.captureException(error);
+            const atvData = await this.atv.getDocument(ATV.getAtvId(subscription));
+            resolvedQuery = atvData.query ?? '';
+            resolvedSearchDescription = atvData.search_description ?? '';
+            resolvedElasticQuery = atvData.elastic_query;
+
+            console.info(`Subscription details loaded from ATV for ${subscription._id} (site: ${siteConfig.id})`);
+          } catch (e) {
+            console.error(`Failed to load user data from ATV for ${subscription._id}`, e);
+            Sentry.captureException(e);
+            return Promise.resolve();
           }
         }
-      }
-      const subscriptionExpiresAt =
-        new Date(subscription.created).getTime() + subscriptionValidForDays * 24 * 60 * 60 * 1000;
-      const subscriptionExpiresAtDate = new Date(subscriptionExpiresAt);
-      const day = String(subscriptionExpiresAtDate.getDate()).padStart(2, '0');
-      const month = String(subscriptionExpiresAtDate.getMonth() + 1).padStart(2, '0'); // Months are 0-based
-      const year = subscriptionExpiresAtDate.getFullYear();
-      const formattedExpiryDate = `${day}.${month}.${year}`;
 
-      // If subscription should expire soon, send an expiration email
-      if (checkShouldSendExpiryNotification(subscription as Partial<SubscriptionCollectionType>, siteConfig)) {
-        console.info(`Sending expiry email to ${ATV.getAtvId(subscription)} (site: ${siteConfig.id})`);
+        const localizedBaseUrl = SiteConfigurationLoader.getLocalizedUrl(siteConfig, subscription.lang);
 
-        // @fixme: dry run keeps spamming the messages and should
-        //   newer be used in production. Why do we need dry-run feature?
-        if (!isDryRun) {
-          await collection.updateOne({ _id: subscription._id }, { $set: { expiry_notification_sent: 1 } });
+        // Calculate subscription expiry date
+        const subscriptionValidForDays = siteConfig.subscription.maxAge;
+
+        // Self-healing: after a site's maxAge changes, or for a legacy subscription
+        // without delete_after, brings ATV and Mongo back to created + maxAge.
+        const expectedDeleteAfter = calculateExpectedDeleteAfter(
+          new Date(subscription.created),
+          subscriptionValidForDays,
+        );
+        if (needsDeleteAfterSync(subscription.delete_after, expectedDeleteAfter)) {
+          console.info(
+            `Sync ATV delete_after for ${subscription._id} ` +
+              `(stored: ${subscription.delete_after?.toISOString().substring(0, 10) ?? 'none'}, ` +
+              `expected: ${expectedDeleteAfter.toISOString().substring(0, 10)})`,
+          );
+
+          if (!isDryRun) {
+            try {
+              await this.atv.updateDocumentDeleteAfter(ATV.getAtvId(subscription), expectedDeleteAfter);
+              await collection.updateOne({ _id: subscription._id }, { $set: { delete_after: expectedDeleteAfter } });
+            } catch (error) {
+              console.error(`Failed to sync ATV delete_after for subscription ${subscription._id}:`, error);
+              Sentry.captureException(error);
+            }
+          }
+        }
+        const subscriptionExpiresAt =
+          new Date(subscription.created).getTime() + subscriptionValidForDays * 24 * 60 * 60 * 1000;
+        const subscriptionExpiresAtDate = new Date(subscriptionExpiresAt);
+        const day = String(subscriptionExpiresAtDate.getDate()).padStart(2, '0');
+        const month = String(subscriptionExpiresAtDate.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+        const year = subscriptionExpiresAtDate.getFullYear();
+        const formattedExpiryDate = `${day}.${month}.${year}`;
+
+        // If subscription should expire soon, send an expiration email
+        if (checkShouldSendExpiryNotification(subscription as Partial<SubscriptionCollectionType>, siteConfig)) {
+          console.info(`Sending expiry email to ${ATV.getAtvId(subscription)} (site: ${siteConfig.id})`);
+
+          // Marked sent only after the queue writes succeed, so a failed write is retried on the next run.
+          // A message that cannot be built is not retried: it would fail the same way every run.
+          let expiryQueued = true;
+
+          // Queue expiry email if email is active
+          if (isEmailActive(subscription as Partial<SubscriptionCollectionType>)) {
+            try {
+              const expiryEmailContent = await expiryEmail(
+                subscription.lang,
+                {
+                  search_description: resolvedSearchDescription,
+                  link: siteConfig.urls.base + resolvedQuery,
+                  removal_date: formattedExpiryDate,
+                  remove_link: `${localizedBaseUrl}/hakuvahti/unsubscribe?subscription=${subscription._id}&hash=${subscription.hash}&site_id=${subscription.site_id}`,
+                  renewal_link: `${localizedBaseUrl}/hakuvahti/renew?subscription=${subscription._id}&hash=${subscription.hash}&site_id=${subscription.site_id}`,
+                  search_link: resolvedQuery,
+                },
+                siteConfig,
+              );
+
+              const expiryEmailToQueue: QueueInsertDocument = {
+                type: 'email',
+                atv_id: ATV.getAtvId(subscription),
+                content: expiryEmailContent,
+              };
+
+              if (!isDryRun) {
+                await queueCollection.insertOne(expiryEmailToQueue);
+              }
+              stats.expiryEmailsQueued++;
+            } catch (error) {
+              if (error instanceof MongoError) {
+                expiryQueued = false;
+              }
+              console.error(`Error queueing expiry email for subscription ${subscription._id}:`, error);
+              Sentry.captureException(error);
+            }
+          }
+
+          // Queue renewal SMS if subscription has SMS and site supports it
+          if (isSmsActive(subscription as Partial<SubscriptionCollectionType>) && siteConfig.subscription.enableSms) {
+            console.info(`Sending expiry SMS for ${subscription._id} (site: ${siteConfig.id})`);
+
+            try {
+              const smsContent = await renewalSms(
+                subscription.lang,
+                {
+                  expiry_date: formattedExpiryDate,
+                  search_description: resolvedSearchDescription,
+                  id: subscription._id.toString(),
+                },
+                siteConfig,
+              );
+
+              const smsToQueue: QueueInsertDocument = {
+                type: 'sms',
+                atv_id: ATV.getAtvId(subscription),
+                content: smsContent,
+              };
+
+              if (!isDryRun) {
+                await queueCollection.insertOne(smsToQueue);
+              }
+              stats.smsQueued++;
+            } catch (error) {
+              if (error instanceof MongoError) {
+                expiryQueued = false;
+              }
+              console.error(`Error queueing renewal SMS for subscription ${subscription._id}:`, error);
+              Sentry.captureException(error);
+            }
+          }
+
+          // Dry runs never set the flag, so every dry run lists the same expiry notifications.
+          if (!isDryRun && expiryQueued) {
+            try {
+              await collection.updateOne({ _id: subscription._id }, { $set: { expiry_notification_sent: 1 } });
+            } catch (error) {
+              // The expiry notification is queued again on the next run.
+              console.error(`Failed to mark expiry notification sent for subscription ${subscription._id}:`, error);
+              Sentry.captureException(error);
+            }
+          }
         }
 
-        // Queue expiry email if email is active
+        const newHits = await this.getNewHitsFromElasticsearch(
+          subscription as SubscriptionCollectionType & { _id: ObjectId },
+          siteConfig,
+          resolvedElasticQuery,
+        );
+
+        // No new hits
+        if (newHits.length === 0) {
+          console.info(`No hits for ${subscription._id} from ${siteConfig.name}`);
+          return Promise.resolve();
+        }
+
+        // Limit hits in email (user can see all via search_link)
+        const maxHitsInEmail = siteConfig.mail.maxHitsInEmail ?? 10;
+        const hitsForEmail = newHits.slice(0, maxHitsInEmail);
+
+        // Format Mongo DateTime to EU format for email.
+        const createdDate: string = new Date(subscription.created).toISOString().substring(0, 10);
+        const date = new Date(createdDate);
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        const formattedCreatedDate = `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}`;
+
+        // last_checked moves forward only after the queue writes succeed: hits older than it are
+        // never checked again. If one channel's write fails, both are queued again on the next run.
+        // A message that cannot be built is not retried: it would fail the same way every run.
+        let newResultsQueued = true;
+
+        // Queue new hits email if email is active
         if (isEmailActive(subscription as Partial<SubscriptionCollectionType>)) {
           try {
-            const expiryEmailContent = await expiryEmail(
+            const emailContent = await newHitsEmail(
               subscription.lang,
               {
+                created_date: formattedCreatedDate,
+                expiry_date: formattedExpiryDate,
                 search_description: resolvedSearchDescription,
-                link: siteConfig.urls.base + resolvedQuery,
-                removal_date: formattedExpiryDate,
-                remove_link: `${localizedBaseUrl}/hakuvahti/unsubscribe?subscription=${subscription._id}&hash=${subscription.hash}&site_id=${subscription.site_id}`,
-                renewal_link: `${localizedBaseUrl}/hakuvahti/renew?subscription=${subscription._id}&hash=${subscription.hash}&site_id=${subscription.site_id}`,
                 search_link: resolvedQuery,
+                remove_link: `${localizedBaseUrl}/hakuvahti/unsubscribe?subscription=${subscription._id}&hash=${subscription.hash}&site_id=${subscription.site_id}`,
+                hits: hitsForEmail,
               },
               siteConfig,
             );
 
-            const expiryEmailToQueue: QueueInsertDocument = {
+            const email: QueueInsertDocument = {
               type: 'email',
               atv_id: ATV.getAtvId(subscription),
-              content: expiryEmailContent,
+              content: emailContent,
             };
 
+            console.info(
+              `New email for ${ATV.getAtvId(subscription)}: ${newHits.length} new result(s) (site: ${siteConfig.id})`,
+            );
+
             if (!isDryRun) {
-              await queueCollection.insertOne(expiryEmailToQueue);
+              await queueCollection.insertOne(email);
             }
-            stats.expiryEmailsQueued++;
+            stats.newResultsEmailsQueued++;
           } catch (error) {
-            console.error(`Error queueing expiry email for subscription ${subscription._id}:`, error);
+            if (error instanceof MongoError) {
+              newResultsQueued = false;
+            }
+            console.error(`Error queueing new results email for subscription ${subscription._id}:`, error);
             Sentry.captureException(error);
           }
         }
 
-        // Queue renewal SMS if subscription has SMS and site supports it
+        // Queue SMS if subscription has SMS confirmed and SMS is enabled for site
         if (isSmsActive(subscription as Partial<SubscriptionCollectionType>) && siteConfig.subscription.enableSms) {
-          console.info(`Sending expiry SMS for ${subscription._id} (site: ${siteConfig.id})`);
-
           try {
-            const smsContent = await renewalSms(
+            const smsContent = await newHitsSms(
               subscription.lang,
               {
-                expiry_date: formattedExpiryDate,
                 search_description: resolvedSearchDescription,
                 id: subscription._id.toString(),
+                hits: hitsForEmail,
               },
               siteConfig,
             );
@@ -247,110 +360,35 @@ export class SubscriptionProcessor {
               content: smsContent,
             };
 
+            console.log(`New SMS for ${subscription._id}: ${newHits.length} new result(s) (site: ${siteConfig.id})`);
+
             if (!isDryRun) {
               await queueCollection.insertOne(smsToQueue);
             }
             stats.smsQueued++;
           } catch (error) {
-            console.error(`Error queueing renewal SMS for subscription ${subscription._id}:`, error);
+            if (error instanceof MongoError) {
+              newResultsQueued = false;
+            }
+            console.error(`Error queueing new results SMS for subscription ${subscription._id}:`, error);
             Sentry.captureException(error);
           }
         }
-      }
 
-      const newHits = await this.getNewHitsFromElasticsearch(
-        subscription as SubscriptionCollectionType & { _id: ObjectId },
-        siteConfig,
-        resolvedElasticQuery,
-      );
-
-      // No new hits
-      if (newHits.length === 0) {
-        console.info(`No hits for ${subscription._id} from ${siteConfig.name}`);
-        return Promise.resolve();
-      }
-
-      // Limit hits in email (user can see all via search_link)
-      const maxHitsInEmail = siteConfig.mail.maxHitsInEmail ?? 10;
-      const hitsForEmail = newHits.slice(0, maxHitsInEmail);
-
-      // Format Mongo DateTime to EU format for email.
-      const createdDate: string = new Date(subscription.created).toISOString().substring(0, 10);
-      const date = new Date(createdDate);
-      const pad = (n: number) => n.toString().padStart(2, '0');
-      const formattedCreatedDate = `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}`;
-
-      // Update last_checked regardless of channel
-      if (!isDryRun) {
-        const dateUnixtime: number = Math.floor(Date.now() / 1000);
-        await collection.updateOne({ _id: subscription._id }, { $set: { last_checked: dateUnixtime } });
-      }
-
-      // Queue new hits email if email is active
-      if (isEmailActive(subscription as Partial<SubscriptionCollectionType>)) {
-        try {
-          const emailContent = await newHitsEmail(
-            subscription.lang,
-            {
-              created_date: formattedCreatedDate,
-              expiry_date: formattedExpiryDate,
-              search_description: resolvedSearchDescription,
-              search_link: resolvedQuery,
-              remove_link: `${localizedBaseUrl}/hakuvahti/unsubscribe?subscription=${subscription._id}&hash=${subscription.hash}&site_id=${subscription.site_id}`,
-              hits: hitsForEmail,
-            },
-            siteConfig,
-          );
-
-          const email: QueueInsertDocument = {
-            type: 'email',
-            atv_id: ATV.getAtvId(subscription),
-            content: emailContent,
-          };
-
-          console.info(
-            `New email for ${ATV.getAtvId(subscription)}: ${newHits.length} new result(s) (site: ${siteConfig.id})`,
-          );
-
-          if (!isDryRun) {
-            await queueCollection.insertOne(email);
+        // Update last_checked
+        if (!isDryRun && newResultsQueued) {
+          try {
+            const dateUnixtime: number = Math.floor(Date.now() / 1000);
+            await collection.updateOne({ _id: subscription._id }, { $set: { last_checked: dateUnixtime } });
+          } catch (error) {
+            // The same hits are queued again on the next run.
+            console.error(`Failed to update last_checked for subscription ${subscription._id}:`, error);
+            Sentry.captureException(error);
           }
-          stats.newResultsEmailsQueued++;
-        } catch (error) {
-          // Log error but don't break email sending
-          console.error(`Error queueing SMS for subscription ${subscription._id}:`, error);
         }
-      }
-
-      // Queue SMS if subscription has SMS confirmed and SMS is enabled for site
-      if (isSmsActive(subscription as Partial<SubscriptionCollectionType>) && siteConfig.subscription.enableSms) {
-        try {
-          const smsContent = await newHitsSms(
-            subscription.lang,
-            {
-              search_description: resolvedSearchDescription,
-              id: subscription._id.toString(),
-              hits: hitsForEmail,
-            },
-            siteConfig,
-          );
-
-          const smsToQueue: QueueInsertDocument = {
-            type: 'sms',
-            atv_id: ATV.getAtvId(subscription),
-            content: smsContent,
-          };
-
-          console.log(`New SMS for ${subscription._id}: ${newHits.length} new result(s) (site: ${siteConfig.id})`);
-
-          if (!isDryRun) {
-            await queueCollection.insertOne(smsToQueue);
-          }
-          stats.smsQueued++;
-        } catch (error) {
-          // Log error but don't break email sending
-          console.error(`Error queueing SMS for subscription ${subscription._id}:`, error);
-        }
+      } catch (error) {
+        console.error(`Processing subscription ${subscription._id} failed:`, error);
+        Sentry.captureException(error);
       }
 
       return Promise.resolve();

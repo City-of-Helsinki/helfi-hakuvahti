@@ -1,9 +1,13 @@
 import * as assert from 'node:assert';
 import { before, describe, mock, test } from 'node:test';
 import { ObjectId } from '@fastify/mongodb';
+import { SiteConfigurationLoader } from '../../src/lib/siteConfigurationLoader.ts';
 import { Statistics } from '../../src/lib/statistics.ts';
 import { SubscriptionStatus } from '../../src/types/subscription.ts';
 import { build } from '../helper.ts';
+import { captureSentryEvents } from '../lib/utils.ts';
+
+const sentry = captureSentryEvents();
 
 function jsonResponse(body: unknown): Response {
   return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -203,6 +207,44 @@ describe('/subscription', () => {
     assert.strictEqual(counters?.events?.created, 1);
     assert.strictEqual(counters?.lang?.sv?.created, 1);
   });
+
+  test('gives the ATV document the same delete_after as the subscription', async (t) => {
+    const atvDeleteAfter: string[] = [];
+    t.mock.method(globalThis, 'fetch', async (url: string, opts?: RequestInit) => {
+      if (url.includes('/v1/documents/')) {
+        atvDeleteAfter.push(String((opts?.body as FormData).get('delete_after')));
+        return jsonResponse({ id: 'mock-atv-document-id' });
+      }
+      if (url.includes('_search')) {
+        return jsonResponse({ hits: { hits: [] } });
+      }
+      throw new Error(`Unexpected fetch URL: ${url}`);
+    });
+
+    const app = await build(t);
+    // etusivu keeps subscriptions longer than the 90 days ATV documents used to get.
+    const { maxAge } = SiteConfigurationLoader.getConfiguration('etusivu').subscription;
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/subscription',
+      headers: { Authorization: 'api-key test' },
+      payload: { ...validPayload, site_id: 'etusivu' },
+    });
+
+    assert.strictEqual(res.statusCode, 200);
+
+    const subscription = await app.mongo.db
+      ?.collection('subscription')
+      .findOne({ _id: new ObjectId(JSON.parse(res.body).insertedId) });
+    assert.ok(subscription);
+
+    const expected = new Date(subscription.created);
+    expected.setDate(expected.getDate() + maxAge);
+
+    assert.strictEqual(subscription.delete_after.toISOString(), expected.toISOString());
+    assert.deepStrictEqual(atvDeleteAfter, [expected.toISOString().substring(0, 10)]);
+  });
 });
 
 describe('/subscription plugin failures', () => {
@@ -219,6 +261,7 @@ describe('/subscription plugin failures', () => {
     });
 
     const app = await build(t);
+    await sentry.take();
 
     const res = await app.inject({
       method: 'POST',
@@ -230,6 +273,8 @@ describe('/subscription plugin failures', () => {
     assert.strictEqual(res.statusCode, 500);
     const body = JSON.parse(res.body);
     assert.ok(body.error);
+    // The response cannot tell why, so Sentry must.
+    assert.deepStrictEqual(await sentry.take(), ['Error: ATV request failed <- Error: ATV service unavailable']);
   });
 
   test('handles Elasticsearch validation failure', async (t) => {

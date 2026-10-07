@@ -103,9 +103,9 @@ const sendTemplate = (emailSender: Transporter, to: string, html: string): Promi
         subject: extractTitle(html),
         html,
       },
-      (errors, info) => {
+      (errors) => {
         if (errors) return reject(errors);
-        return resolve(info);
+        return resolve();
       },
     );
   });

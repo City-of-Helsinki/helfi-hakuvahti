@@ -70,7 +70,7 @@ Per-environment (`local` / `dev` / `staging` / `production`):
   - `en`, `fi`, `sv`: Per-language URLs used in notification links.
 - **`elasticProxyUrl`**: Full URL to this site's ElasticProxy index endpoint.
 - **`subscription`**:
-  - `maxAge`: Max subscription age in days.
+  - `maxAge`: Max subscription age in days. Also sets the `delete_after` of the subscriber's ATV document, on signup and on renewal.
   - `unconfirmedMaxAge`: Days before unconfirmed subscriptions are removed.
   - `expiryNotificationDays`: Days before expiry to send the expiry notification.
   - `enableSms`: Master SMS switch. When `false`, all SMS output for the site (confirmation, new-hits, renewal) is suppressed.

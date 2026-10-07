@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import * as Sentry from '@sentry/node';
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import libphonenumber from 'google-libphonenumber';
 import type { ATV } from '../lib/atv.ts';
@@ -43,7 +44,7 @@ const parsePhoneNumber = (sms: string): string => {
 /**
  * Stores user data in ATV and returns the document ID.
  */
-async function storeUserData(atv: ATV, body: SubscriptionRequestType): Promise<string> {
+async function storeUserData(atv: ATV, body: SubscriptionRequestType, deleteAfter: Date): Promise<string> {
   const email = body.email?.trim();
   const phone = body.sms?.trim();
 
@@ -57,7 +58,7 @@ async function storeUserData(atv: ATV, body: SubscriptionRequestType): Promise<s
     }),
   };
 
-  const atvDocument = await atv.createDocument(content, 'atvCreateDocumentWithEmail');
+  const atvDocument = await atv.createDocument(content, 'atvCreateDocumentWithEmail', deleteAfter);
 
   if (!atvDocument?.id) {
     throw new Error('Could not create document to ATV.');
@@ -145,11 +146,20 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
       const hasSms = !!siteConfig.subscription?.enableSms && !!request.body.sms;
       const hasEmail = !!request.body.email;
 
+      // Shared by ATV and the subscription: ATV deletes the user data on this
+      // date, so both must expire together.
+      const now = new Date();
+      const deleteAfter = new Date(now);
+      deleteAfter.setDate(deleteAfter.getDate() + siteConfig.subscription.maxAge);
+
       // Store user data (and optionally the elastic query) in a single ATV document.
       let atvId: string;
       try {
-        atvId = await storeUserData(fastify.atv, request.body);
-      } catch {
+        atvId = await storeUserData(fastify.atv, request.body, deleteAfter);
+      } catch (error) {
+        // The response does not include the cause.
+        fastify.log.error({ err: error }, 'Storing user data in ATV failed');
+        Sentry.captureException(error);
         return reply
           .code(500)
           .header('Content-Type', 'application/json; charset=utf-8')
@@ -157,10 +167,6 @@ const subscription: FastifyPluginAsync = async (fastify: FastifyInstance, _opts:
       }
 
       // Subscription data that goes to collection.
-      const now = new Date();
-      const deleteAfter = new Date(now);
-      deleteAfter.setDate(deleteAfter.getDate() + siteConfig.subscription.maxAge);
-
       const subscriptionData: SubscriptionCollectionType = {
         email: hasEmail ? atvId : '',
         elastic_query: request.body.user_data_in_atv ? '' : request.body.elastic_query,

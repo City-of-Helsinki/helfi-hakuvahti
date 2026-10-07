@@ -66,7 +66,12 @@ export const formatSubscriptionUpdateMessage = (
  * @return Formatted error message
  */
 export const formatErrorMessage = (index: number, subscriptionId: string, error: unknown): string => {
-  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+  const messages: string[] = [];
+  for (let current = error; current instanceof Error && messages.length < 5; current = current.cause) {
+    messages.push(current.message);
+  }
+
+  const errorMessage = messages.length > 0 ? messages.join(': ') : 'Unknown error';
   return `${index}. Failed: ${subscriptionId} | Error: ${errorMessage}`;
 };
 
@@ -130,6 +135,12 @@ export const updateSubscriptionLength = async (server: Server, options: Migratio
         const createdDate = new Date(subscription.created);
         const deleteAfter = calculateDeleteAfterDate(createdDate, maxAge);
 
+        if (!dryRun) {
+          // Update ATV document with calculated delete_after
+          await server.atv.updateDocumentDeleteAfter(ATV.getAtvId(subscription), deleteAfter);
+        }
+
+        // Only after the update, so a failed one is not also reported as updated.
         const message = formatSubscriptionUpdateMessage(
           i + index + 1,
           subscription._id.toString(),
@@ -139,11 +150,6 @@ export const updateSubscriptionLength = async (server: Server, options: Migratio
         );
 
         console.log(message);
-
-        if (!dryRun) {
-          // Update ATV document with calculated delete_after
-          await server.atv.updateDocumentDeleteAfter(ATV.getAtvId(subscription), deleteAfter);
-        }
 
         stats.updated += 1;
       } catch (error) {

@@ -85,7 +85,7 @@ const processSubscriptions = async (
       console.log('\n[DRY RUN] No changes were made to the database');
     }
   } catch (error) {
-    console.error('Configuration loading error:', error);
+    console.error('Processing subscriptions failed:', error);
     if (!isDryRun) {
       Sentry.captureCheckIn({ checkInId, monitorSlug: 'hav-populate-queue', status: 'error' });
       Sentry.captureException(error);
