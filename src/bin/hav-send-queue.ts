@@ -5,6 +5,7 @@ import atv from '../plugins/atv.ts';
 import dialogi from '../plugins/dialogi.ts';
 import mailer from '../plugins/mailer.ts';
 import mongodb from '../plugins/mongodb.ts';
+import { isEmailDebugEnvironment } from '../types/environment.ts';
 
 // Command line/cron application to send all notifications from queue collection
 command(
@@ -23,6 +24,7 @@ command(
       atvClient: server.atv,
       emailSender: server.mailer,
       smsSender: server.dialogi,
+      debugEmail: isEmailDebugEnvironment(process.env.ENVIRONMENT),
     });
 
     await queueService.processQueue();
