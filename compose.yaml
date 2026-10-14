@@ -66,6 +66,15 @@ services:
       - "traefik.http.services.hakuvahti-app.loadbalancer.server.port=3000"
       - "traefik.docker.network=stonehenge-network"
 
+  send-queue:
+    extends:
+      service: app
+    hostname: hakuvahti-send-queue
+    command: ["sh", "-c", "while true; do npm run hav:send-queue; sleep 60; done"]
+    restart: unless-stopped
+    ports: !reset []
+    labels: !reset []
+
 volumes:
   node_modules:
 
