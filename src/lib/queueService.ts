@@ -2,7 +2,7 @@ import { ObjectId } from '@fastify/mongodb';
 import * as Sentry from '@sentry/node';
 import { JSDOM } from 'jsdom';
 import type { Db } from 'mongodb';
-import type { Transporter } from 'nodemailer';
+import type { SentMessageInfo, Transporter } from 'nodemailer';
 import type { DialogiClient } from '../plugins/dialogi.ts';
 import type { AtvDocumentType } from '../types/atv.ts';
 import { QUEUE_ITEM_TYPES, type QueueItem, type QueueItemType } from '../types/queue.ts';
@@ -16,6 +16,8 @@ export interface QueueServiceDependencies {
   emailSender: Transporter;
   smsSender: DialogiClient;
   batchSize?: number;
+  /** Log the SMTP server's reply for each sent email. */
+  debugEmail?: boolean;
 }
 
 type NotificationHandlers = { [key in QueueItemType]: (item: QueueItem, atvDoc?: AtvDocumentType) => Promise<void> };
@@ -26,6 +28,7 @@ export class QueueService {
   private readonly emailSender: Transporter;
   private readonly smsSender: DialogiClient;
   private readonly batchSize: number;
+  private readonly debugEmail: boolean;
 
   private handlers: NotificationHandlers;
 
@@ -35,6 +38,7 @@ export class QueueService {
     this.emailSender = deps.emailSender;
     this.smsSender = deps.smsSender;
     this.batchSize = deps.batchSize ?? BATCH_SIZE;
+    this.debugEmail = deps.debugEmail ?? false;
     this.handlers = {
       sms: this.sendSms.bind(this),
       email: this.sendEmail.bind(this),
@@ -125,7 +129,7 @@ export class QueueService {
     }
 
     try {
-      await new Promise((resolve, reject) => {
+      const info = await new Promise<SentMessageInfo>((resolve, reject) => {
         this.emailSender.sendMail(
           {
             to: plaintextEmail,
@@ -140,6 +144,20 @@ export class QueueService {
           },
         );
       });
+
+      // The reply carries the relay's own queue id for tracing the message
+      // past the relay. Recipient addresses are left out of the log.
+      if (this.debugEmail) {
+        console.info(
+          `Email to ${item.atv_id} accepted by SMTP server:`,
+          JSON.stringify({
+            messageId: info?.messageId,
+            response: info?.response,
+            accepted: info?.accepted?.length ?? 0,
+            rejected: info?.rejected?.length ?? 0,
+          }),
+        );
+      }
     } catch (error) {
       // Continue even if sending email failed.
       Sentry.captureException(error);

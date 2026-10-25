@@ -207,4 +207,52 @@ describe('QueueService', () => {
     assert.strictEqual(atv.getDocumentBatch.mock.callCount(), 0);
     assert.strictEqual(await db.collection('queue').countDocuments(), 0);
   });
+
+  for (const debugEmail of [true, false]) {
+    test(`${debugEmail ? 'Logs' : 'Does not log'} the SMTP reply when debugEmail is ${debugEmail}`, async () => {
+      const db = mongo.db();
+      await db
+        .collection('queue')
+        .insertOne({ type: 'email', atv_id: atvId('debug'), content: '<title>Debug</title>' });
+
+      atv.getDocumentBatch.mock.mockImplementation((ids: string[]) =>
+        Promise.resolve(ids.map((id) => ({ id, content: { email: 'debug@example.com' } })) as any),
+      );
+      emailSender.sendMail.mock.mockImplementation(((
+        _options: any,
+        callback?: (err: Error | null, info: any) => void,
+      ): void =>
+        callback?.(null, {
+          messageId: '<abc@hel.fi>',
+          response: '250 2.0.0 Ok: queued as RELAY123',
+          accepted: ['debug@example.com'],
+          rejected: [],
+        })) as any);
+      const consoleInfo = mock.method(console, 'info', () => {});
+
+      try {
+        await new QueueService({
+          db,
+          atvClient: atv as any,
+          emailSender: emailSender as any,
+          smsSender: smsSender as any,
+          debugEmail,
+        }).processQueue();
+      } finally {
+        consoleInfo.mock.restore();
+      }
+
+      const logged = consoleInfo.mock.calls.map((call) => call.arguments.join(' '));
+      const replyLogs = logged.filter((line) => line.includes('accepted by SMTP server'));
+
+      if (debugEmail) {
+        assert.deepStrictEqual(replyLogs, [
+          `Email to ${atvId('debug')} accepted by SMTP server: {"messageId":"<abc@hel.fi>","response":"250 2.0.0 Ok: queued as RELAY123","accepted":1,"rejected":0}`,
+        ]);
+      } else {
+        assert.deepStrictEqual(replyLogs, []);
+      }
+      assert.ok(!logged.some((line) => line.includes('debug@example.com')), 'Recipient address is not logged');
+    });
+  }
 });
