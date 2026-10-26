@@ -237,9 +237,9 @@
       "sv": "hel.fi/forlang-flyttningsvakten"
     },
     "removal_sign_location": {
-      "fi": "Ilmoituksessa kerrotaan siirtokehotusmerkin sijainti hakemallasi kadulla tai sen lähikadulla.",
-      "en": "The alerts will tell the location of vehicle removal request signs on the street that you searched for or a street near it.",
-      "sv": "I meddelandet anges var förflyttningsuppmaningsmärket är placerat på den gata du sökte efter eller på en närliggande gata."
+      "fi": "Ilmoituksessa kerrotaan siirtokehotusmerkin sijainti sekä siirtokehotuksen voimassaoloaika.",
+      "en": "The alert will provide the location of the vehicle removal request sign and the validity period of the vehicle removal request.",
+      "sv": "I meddelandet anges var förflyttningsuppmaningsmärket är placerat och giltighetstiden för flyttningsuppmaningen."
     }
   },
   "matchField": "created_at",
