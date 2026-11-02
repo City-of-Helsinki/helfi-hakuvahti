@@ -235,11 +235,6 @@
       "fi": "hel.fi/jatka-siirtovahti",
       "en": "hel.fi/extend-vehicle-removal-alert",
       "sv": "hel.fi/forlang-flyttningsvakten"
-    },
-    "removal_sign_location": {
-      "fi": "Ilmoituksessa kerrotaan siirtokehotusmerkin sijainti sekä siirtokehotuksen voimassaoloaika.",
-      "en": "The alert will provide the location of the vehicle removal request sign and the validity period of the vehicle removal request.",
-      "sv": "I meddelandet anges var förflyttningsuppmaningsmärket är placerat och giltighetstiden för flyttningsuppmaningen."
     }
   },
   "matchField": "created_at",

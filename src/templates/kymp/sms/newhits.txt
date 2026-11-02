@@ -1,7 +1,5 @@
 {{ sms_newhits_intro }}
 
-{{ removal_sign_location }}
-
 {{ hits }}
 
 {{ sms_sign_reminder }}
