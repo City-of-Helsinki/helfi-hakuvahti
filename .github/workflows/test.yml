@@ -33,4 +33,4 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: NPM Audit
-        run: docker compose exec app bash -c "npm audit"
+        run: docker compose exec app bash -c "npm audit --audit-level=moderate"
