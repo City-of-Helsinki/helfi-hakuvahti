@@ -311,6 +311,19 @@ test('SiteConfigurationLoader', async (t) => {
     assert.throws(() => SiteConfigurationLoader.getInstance(), /Invalid environment configuration/);
   });
 
+  await t.test('throws error when urls.base is not a valid URL', () => {
+    const confDir = path.join(tempDir, 'conf');
+    for (const file of fs.readdirSync(confDir)) {
+      fs.unlinkSync(path.join(confDir, file));
+    }
+
+    const config = structuredClone(mockRekryConfig);
+    config.local.urls.base = 'www.hel.fi';
+    fs.writeFileSync(path.join(confDir, 'rekry.json'), JSON.stringify(config));
+
+    assert.throws(() => SiteConfigurationLoader.getInstance(), /Invalid environment configuration/);
+  });
+
   await t.test('getInstance is idempotent (does not reload)', () => {
     process.env.ENVIRONMENT = 'local';
 
