@@ -59,13 +59,6 @@ export const nl2br = (value: string): string => value.replaceAll('\n', '<br />')
 
 /**
  * Resolves a root-relative path or a query string against the site's base URL.
- *
- * Anything that would leave the site's origin (for example '@attacker.example/'
- * or '//attacker.example') falls back to the base URL. The origin check is what
- * rejects values such as '/\t/attacker.example', because the URL parser strips
- * tabs and newlines. '//' and '/\' are rejected before parsing because
- * '//attacker.example@<site host>/' keeps the site's origin but shows another
- * host in the link.
  */
 const resolveSameOriginUrl = (base: string, value: unknown): string => {
   const baseUrl = new URL(base);
