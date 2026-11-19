@@ -61,6 +61,26 @@ describe('/subscription', () => {
         expectedError: 'Invalid email format',
       },
       {
+        name: 'query that is not a path or query string',
+        payload: { ...validPayload, query: '@attacker.example/' },
+      },
+      {
+        name: 'query with protocol-relative path',
+        payload: { ...validPayload, query: '//attacker.example/' },
+      },
+      {
+        name: 'query with backslash path',
+        payload: { ...validPayload, query: '/\\attacker.example/' },
+      },
+      {
+        name: 'query over 2048 characters',
+        payload: { ...validPayload, query: `/search?q=${'a'.repeat(2048)}` },
+      },
+      {
+        name: 'search_description over 999 characters',
+        payload: { ...validPayload, search_description: 'a'.repeat(1000) },
+      },
+      {
         name: 'invalid SMS format',
         payload: { ...validPayload, sms: 'not-a-number' },
         expectedError: 'Invalid phone number format',
@@ -121,6 +141,22 @@ describe('/subscription', () => {
       {
         name: 'swedish language',
         payload: { ...validPayload, lang: 'sv' },
+      },
+      {
+        name: 'empty query',
+        payload: { ...validPayload, query: '' },
+      },
+      {
+        name: 'query string only',
+        payload: { ...validPayload, query: '?q=test' },
+      },
+      {
+        name: 'query of exactly 2048 characters',
+        payload: { ...validPayload, query: `/${'a'.repeat(2047)}` },
+      },
+      {
+        name: 'search_description of exactly 999 characters',
+        payload: { ...validPayload, search_description: 'a'.repeat(999) },
       },
       {
         name: 'email and SMS',

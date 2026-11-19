@@ -78,8 +78,10 @@ export type SubscriptionResponseType = Static<typeof SubscriptionResponse>;
 const SubscriptionRequestBase = Type.Object({
   elastic_query: Type.String(),
   user_data_in_atv: Type.Optional(Type.Number()),
-  query: Type.String(),
-  search_description: Type.Optional(Type.String()),
+  /** Search page path and query string, e.g. '/fi/search?q=x'. Empty is allowed. */
+  query: Type.String({ maxLength: 2048, pattern: '^(?:$|/(?![/\\\\])|\\?)' }),
+  /** Drupal limits the description to 999 characters. */
+  search_description: Type.Optional(Type.String({ maxLength: 999 })),
   site_id: Type.String(),
   lang: SubscriptionCollectionLanguage,
 });
