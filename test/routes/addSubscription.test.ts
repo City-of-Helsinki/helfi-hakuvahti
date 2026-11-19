@@ -353,4 +353,30 @@ describe('/subscription plugin failures', () => {
     const body = JSON.parse(res.body);
     assert.ok(body.error.includes('elastic_query'));
   });
+
+  test('validates the Elasticsearch query when the URL has a query string or encoding', async (t) => {
+    t.mock.method(globalThis, 'fetch', async (url: string) => {
+      if (url.includes('/v1/documents/')) {
+        return jsonResponse({ id: 'mock-atv-document-id' });
+      }
+      if (url.includes('_search')) {
+        throw new Error('Elasticsearch query failed');
+      }
+      throw new Error(`Unexpected fetch URL: ${url}`);
+    });
+
+    const app = await build(t);
+
+    for (const url of ['/subscription?x=1', '/%73ubscription']) {
+      const res = await app.inject({
+        method: 'POST',
+        url,
+        headers: { Authorization: 'api-key test' },
+        payload: validPayload,
+      });
+
+      assert.strictEqual(res.statusCode, 400, url);
+      assert.ok(JSON.parse(res.body).error.includes('elastic_query'), url);
+    }
+  });
 });

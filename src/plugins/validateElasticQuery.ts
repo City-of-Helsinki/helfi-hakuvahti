@@ -14,8 +14,9 @@ export type ValidateElasticQueryPluginOptions = Record<string, never>;
  */
 const validateElasticQueryHook = async (request: FastifyRequest, fastify: FastifyInstance) => {
   try {
-    // Only run on POST requests to /subscription endpoint
-    if (request.method !== 'POST' || request.url !== '/subscription') {
+    // Only run on POST requests to /subscription endpoint. The route pattern is
+    // used because request.url keeps the query string and percent-encoding.
+    if (request.method !== 'POST' || request.routeOptions.url !== '/subscription') {
       return;
     }
 
