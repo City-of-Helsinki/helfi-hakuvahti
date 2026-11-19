@@ -21,7 +21,6 @@ const DUMMY_DATA = {
   },
   expiry: {
     id: '123',
-    link: 'https://dummysearch',
     search_description: 'IT-asiantuntija',
     removal_date: '31.12.2025',
     remove_link: 'https://dummyremove',

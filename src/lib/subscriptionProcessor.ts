@@ -201,7 +201,6 @@ export class SubscriptionProcessor {
                 subscription.lang,
                 {
                   search_description: resolvedSearchDescription,
-                  link: siteConfig.urls.base + resolvedQuery,
                   removal_date: formattedExpiryDate,
                   remove_link: `${localizedBaseUrl}/hakuvahti/unsubscribe?subscription=${subscription._id}&hash=${subscription.hash}&site_id=${subscription.site_id}`,
                   renewal_link: `${localizedBaseUrl}/hakuvahti/renew?subscription=${subscription._id}&hash=${subscription.hash}&site_id=${subscription.site_id}`,

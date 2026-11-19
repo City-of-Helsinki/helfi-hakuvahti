@@ -1,9 +1,18 @@
 import { strict as assert } from 'node:assert';
-import { after, before, test } from 'node:test';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { after, before, test } from 'node:test';
 
-import { buildTranslationContext, newHitsSms, translate, wrapWithLayout } from '../../src/lib/email.ts';
+import {
+  buildSearchLink,
+  buildTranslationContext,
+  confirmationEmail,
+  expiryEmail,
+  newHitsEmail,
+  newHitsSms,
+  translate,
+  wrapWithLayout,
+} from '../../src/lib/email.ts';
 import type { SiteConfigurationType } from '../../src/types/siteConfig.ts';
 import type { SubscriptionCollectionLanguageType } from '../../src/types/subscription.ts';
 
@@ -60,6 +69,26 @@ const createTestTemplates = async () => {
   );
   await fs.writeFile(SMS_NEWHITS_TEMPLATE, 'New results for {{ search_description }}: {{ hits }}', 'utf-8');
   await fs.writeFile(SMS_HIT_ITEM_TEMPLATE, '{{ address }} ({{ valid_from }} - {{ valid_to }})\n', 'utf-8');
+  await fs.writeFile(
+    path.join(TEMPLATE_ROOT, 'confirmation.html'),
+    '<p>{{ search_description }}</p><a href="{{ link }}">confirm</a>',
+    'utf-8',
+  );
+  await fs.writeFile(
+    path.join(TEMPLATE_ROOT, 'newhits.html'),
+    '<p>{{ search_description }}</p>{{ hits }}<a href="{{ search_link }}">results</a>',
+    'utf-8',
+  );
+  await fs.writeFile(
+    path.join(TEMPLATE_ROOT, 'hit_item.html'),
+    '<li><a href="{{ url }}">{{ title }}</a></li>',
+    'utf-8',
+  );
+  await fs.writeFile(
+    path.join(TEMPLATE_ROOT, 'expiry_notification.html'),
+    '<p>{{ search_description }}</p><a href="{{ search_link }}">search</a>',
+    'utf-8',
+  );
 };
 
 before(async () => {
@@ -159,4 +188,148 @@ test('newHitsSms renders hits through hit_item template with field formatters', 
   assert.ok(result.includes('Mannerheimintie 1'), 'Should include first hit address');
   assert.ok(result.includes('Aleksanterinkatu 52'), 'Should include second hit address');
   assert.match(result, /\d{2}\.\d{2}\.\d{4}/, 'Should include formatted dates');
+});
+
+const INJECTED_DESCRIPTION = '</p><h1>Account locked</h1><a href="https://attacker.example">Restore</a><p>';
+const ESCAPED_DESCRIPTION =
+  '&lt;/p&gt;&lt;h1&gt;Account locked&lt;/h1&gt;&lt;a href=&quot;https://attacker.example&quot;&gt;Restore&lt;/a&gt;&lt;p&gt;';
+
+test('confirmationEmail escapes search_description', async () => {
+  const html = await confirmationEmail(
+    'fi',
+    { link: 'https://test.test/confirm', search_description: INJECTED_DESCRIPTION },
+    baseConfig,
+  );
+
+  assert.ok(!html.includes('<h1>Account locked</h1>'), 'Raw HTML must not be rendered');
+  assert.ok(!html.includes('href="https://attacker.example"'), 'Injected link must not be rendered');
+  assert.ok(html.includes(`<p>${ESCAPED_DESCRIPTION.toLowerCase()}</p>`), 'Description must be escaped');
+});
+
+test('newHitsEmail escapes search_description and rejects off-site search_link', async () => {
+  const html = await newHitsEmail(
+    'fi',
+    {
+      hits: [{ title: ['Job'] }],
+      search_description: INJECTED_DESCRIPTION,
+      search_link: '@attacker.example/',
+      remove_link: 'https://test.test/remove',
+      created_date: '1.1.2026',
+      expiry_date: '1.4.2026',
+    },
+    baseConfig,
+  );
+
+  assert.ok(html.includes(`<p>${ESCAPED_DESCRIPTION}</p>`), 'Description must be escaped');
+  assert.ok(html.includes('<a href="https://test.test/">results</a>'), 'Off-site link must fall back to base url');
+  assert.ok(!html.includes('attacker.example/'), 'Attacker host must not appear in the link');
+});
+
+test('expiryEmail escapes search_description and keeps a valid search_link', async () => {
+  const html = await expiryEmail(
+    'fi',
+    {
+      search_description: INJECTED_DESCRIPTION,
+      removal_date: '1.4.2026',
+      remove_link: 'https://test.test/remove',
+      renewal_link: 'https://test.test/renew',
+      search_link: '/fi/search?a=1&b=2',
+    },
+    baseConfig,
+  );
+
+  assert.ok(html.includes(`<p>${ESCAPED_DESCRIPTION}</p>`), 'Description must be escaped');
+  assert.ok(html.includes('<a href="https://test.test/fi/search?a=1&amp;b=2">search</a>'));
+});
+
+test('buildSearchLink keeps same-origin paths and query strings', () => {
+  const cases: [string, string, string][] = [
+    [
+      'https://www.hel.fi',
+      '/fi/avoimet-tyopaikat?task_areas=1&page=2',
+      'https://www.hel.fi/fi/avoimet-tyopaikat?task_areas=1&amp;page=2',
+    ],
+    ['https://www.test.hel.ninja/', '/fi/haku', 'https://www.test.hel.ninja/fi/haku'],
+    ['https://www.hel.fi', '?q=test', 'https://www.hel.fi/?q=test'],
+    ['https://www.hel.fi', '', 'https://www.hel.fi/'],
+  ];
+
+  for (const [base, query, expected] of cases) {
+    assert.equal(buildSearchLink(base, query), expected, `${base} + ${query}`);
+  }
+  assert.equal(buildSearchLink('https://www.hel.fi', undefined), 'https://www.hel.fi/');
+});
+
+test('buildSearchLink rejects links to other origins', () => {
+  const attacks = [
+    '@attacker.example/',
+    '//attacker.example/',
+    '/\\attacker.example/',
+    '\\attacker.example',
+    'https://attacker.example/',
+    'javascript:alert(1)',
+    '.attacker.example',
+    // The URL parser strips tabs and newlines, so only the origin check rejects these.
+    '/\t/attacker.example/',
+    '/\n/attacker.example/',
+    '/\r\n/attacker.example/',
+    '\t//attacker.example/',
+    // Same origin through userinfo, but the link would show another host.
+    '//attacker.example@www.hel.fi/',
+    '/\\attacker.example@www.hel.fi/',
+  ];
+
+  for (const query of attacks) {
+    assert.equal(buildSearchLink('https://www.hel.fi', query), 'https://www.hel.fi/', `Should reject ${query}`);
+  }
+});
+
+test('buildSearchLink percent-encodes quotes and angle brackets from the query', () => {
+  const link = buildSearchLink('https://www.hel.fi', '/fi/haku?q="><script>alert(1)</script>');
+
+  assert.ok(!link.includes('"'), 'Must not contain a double quote');
+  assert.ok(!link.includes('<'), 'Must not contain <');
+  assert.ok(!link.includes('>'), 'Must not contain >');
+  assert.ok(link.startsWith('https://www.hel.fi/fi/haku?q='));
+});
+
+test('newHitsEmail escapes hit fields and keeps hit urls on the site origin', async () => {
+  const configWithFormats: SiteConfigurationType = { ...baseConfig, fieldFormats: { url: 'url' } };
+
+  const html = await newHitsEmail(
+    'fi',
+    {
+      hits: [
+        { title: ['Sosiaali- & terveys <b>'], url: ['/fi/avoimet-tyopaikat/job-1'] },
+        { title: ['Other'], url: ['@attacker.example/'] },
+      ],
+      search_description: 'Haku',
+      search_link: '/fi/search',
+      remove_link: 'https://test.test/remove',
+      created_date: '1.1.2026',
+      expiry_date: '1.4.2026',
+    },
+    configWithFormats,
+  );
+
+  assert.ok(
+    html.includes(
+      '<li><a href="https://test.test/fi/avoimet-tyopaikat/job-1">Sosiaali- &amp; terveys &lt;b&gt;</a></li>',
+    ),
+  );
+  assert.ok(
+    html.includes('<li><a href="https://test.test/">Other</a></li>'),
+    'Off-site url must fall back to base url',
+  );
+});
+
+test('newHitsSms keeps hit fields and search_description as plain text', async () => {
+  const sms = await newHitsSms(
+    'fi',
+    { hits: [{ address: ['Katu & tie'] }], search_description: 'A & B', id: '1' },
+    baseConfig,
+  );
+
+  assert.ok(sms.includes('A & B'));
+  assert.ok(sms.includes('Katu & tie'));
 });
