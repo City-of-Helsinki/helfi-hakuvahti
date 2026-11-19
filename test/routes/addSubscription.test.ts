@@ -51,6 +51,16 @@ describe('/subscription', () => {
         expectedError: 'Invalid email format',
       },
       {
+        name: 'email with several recipients',
+        payload: { ...validPayload, email: '"x" <victim1@example.com>, victim2@example.com, "y"@example.com' },
+        expectedError: 'Invalid email format',
+      },
+      {
+        name: 'email over 254 characters',
+        payload: { ...validPayload, email: `${'a'.repeat(250)}@example.com` },
+        expectedError: 'Invalid email format',
+      },
+      {
         name: 'invalid SMS format',
         payload: { ...validPayload, sms: 'not-a-number' },
         expectedError: 'Invalid phone number format',
