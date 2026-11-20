@@ -17,7 +17,7 @@ const fieldFormatters: Record<string, (val: unknown, siteConfig: SiteConfigurati
       year: 'numeric',
     });
   },
-  url: (val, siteConfig) => siteConfig.urls.base + String(val ?? ''),
+  url: (val, siteConfig) => resolveSameOriginUrl(siteConfig.urls.base, val),
 };
 
 // Flatten elastic _source fields (arrays → first element) and apply configured formatters.
@@ -56,6 +56,26 @@ export const escapeHtml = (value: string): string =>
     .replaceAll("'", '&#39;');
 
 export const nl2br = (value: string): string => value.replaceAll('\n', '<br />');
+
+/**
+ * Resolves a root-relative path or a query string against the site's base URL.
+ */
+const resolveSameOriginUrl = (base: string, value: unknown): string => {
+  const baseUrl = new URL(base);
+  const path = typeof value === 'string' ? value : '';
+  const isRelative = (path.startsWith('/') && !/^\/[/\\]/.test(path)) || path.startsWith('?');
+  const url = isRelative ? URL.parse(path, baseUrl) : null;
+
+  return url?.origin === baseUrl.origin ? url.href : baseUrl.href;
+};
+
+/**
+ * Builds the HTML-escaped search page link for email templates.
+ *
+ * The query comes from the subscription request, so it is untrusted.
+ */
+export const buildSearchLink = (base: string, query: string | undefined): string =>
+  escapeHtml(resolveSameOriginUrl(base, query));
 
 export const buildTranslationContext = (
   lang: SubscriptionCollectionLanguageType,
@@ -131,8 +151,9 @@ export const confirmationEmail = async (
     {
       lang,
       link: data.link,
-      search_description:
-        data.search_description?.toLowerCase() || translate('email_confirmation_no_criteria', lang, siteConfig),
+      search_description: data.search_description
+        ? escapeHtml(data.search_description.toLowerCase())
+        : translate('email_confirmation_no_criteria', lang, siteConfig),
     },
     lang,
     translate('email_subject_confirmation', lang, siteConfig),
@@ -143,7 +164,6 @@ export const confirmationEmail = async (
 export const expiryEmail = async (
   lang: SubscriptionCollectionLanguageType,
   data: {
-    link: string;
     search_description: string;
     removal_date: string;
     remove_link: string;
@@ -156,12 +176,11 @@ export const expiryEmail = async (
     `${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/expiry_notification.html`,
     {
       lang,
-      link: data.link,
-      search_description: data.search_description,
+      search_description: escapeHtml(data.search_description),
       remove_link: data.remove_link,
       removal_date: data.removal_date,
       renewal_link: data.renewal_link,
-      search_link: siteConfig.urls.base + data.search_link,
+      search_link: buildSearchLink(siteConfig.urls.base, data.search_link),
     },
     lang,
     translate('email_subject_expiry', lang, siteConfig),
@@ -186,7 +205,9 @@ export const newHitsEmail = async (
       .map((item) =>
         sprightly(
           `${TEMPLATE_BASE_PATH}/${siteConfig.mail.templatePath}/hit_item.html`,
-          flattenHitForTemplate(item, siteConfig),
+          Object.fromEntries(
+            Object.entries(flattenHitForTemplate(item, siteConfig)).map(([key, value]) => [key, escapeHtml(value)]),
+          ),
         ),
       )
       .join('');
@@ -196,9 +217,9 @@ export const newHitsEmail = async (
       {
         lang,
         hits: hitsContent,
-        search_link: siteConfig.urls.base + data.search_link,
+        search_link: buildSearchLink(siteConfig.urls.base, data.search_link),
         remove_link: data.remove_link,
-        search_description: data.search_description,
+        search_description: escapeHtml(data.search_description),
         created_date: data.created_date,
         expiry_date: data.expiry_date,
       },

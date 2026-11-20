@@ -156,6 +156,11 @@ export class SiteConfigurationLoader {
       return false;
     }
     const required = ['urls', 'subscription', 'mail', 'elasticProxyUrl'];
-    return required.every((prop) => prop in config);
+    if (!required.every((prop) => prop in config)) {
+      return false;
+    }
+    // Email links are resolved against urls.base, which throws for an unparsable base.
+    const { urls } = config as { urls?: { base?: unknown } };
+    return typeof urls?.base === 'string' && URL.canParse(urls.base);
   }
 }

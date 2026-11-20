@@ -25,10 +25,12 @@ import {
 } from '../types/subscription.ts';
 
 // Validation helpers
+// Quoted local parts are not accepted: nodemailer would read a value such as
+// '"x" <a@a.fi>, b@b.fi, "y"@a.fi' as a list of several recipients.
 const isValidEmail = (email: string): boolean => {
   const re =
-    /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-  return re.test(String(email).toLowerCase());
+    /^([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  return email.length <= 254 && re.test(email.toLowerCase());
 };
 
 const phoneUtil = libphonenumber.PhoneNumberUtil.getInstance();

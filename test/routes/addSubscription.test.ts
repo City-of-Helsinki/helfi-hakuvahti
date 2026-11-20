@@ -51,6 +51,36 @@ describe('/subscription', () => {
         expectedError: 'Invalid email format',
       },
       {
+        name: 'email with several recipients',
+        payload: { ...validPayload, email: '"x" <victim1@example.com>, victim2@example.com, "y"@example.com' },
+        expectedError: 'Invalid email format',
+      },
+      {
+        name: 'email over 254 characters',
+        payload: { ...validPayload, email: `${'a'.repeat(250)}@example.com` },
+        expectedError: 'Invalid email format',
+      },
+      {
+        name: 'query that is not a path or query string',
+        payload: { ...validPayload, query: '@attacker.example/' },
+      },
+      {
+        name: 'query with protocol-relative path',
+        payload: { ...validPayload, query: '//attacker.example/' },
+      },
+      {
+        name: 'query with backslash path',
+        payload: { ...validPayload, query: '/\\attacker.example/' },
+      },
+      {
+        name: 'query over 2048 characters',
+        payload: { ...validPayload, query: `/search?q=${'a'.repeat(2048)}` },
+      },
+      {
+        name: 'search_description over 999 characters',
+        payload: { ...validPayload, search_description: 'a'.repeat(1000) },
+      },
+      {
         name: 'invalid SMS format',
         payload: { ...validPayload, sms: 'not-a-number' },
         expectedError: 'Invalid phone number format',
@@ -111,6 +141,22 @@ describe('/subscription', () => {
       {
         name: 'swedish language',
         payload: { ...validPayload, lang: 'sv' },
+      },
+      {
+        name: 'empty query',
+        payload: { ...validPayload, query: '' },
+      },
+      {
+        name: 'query string only',
+        payload: { ...validPayload, query: '?q=test' },
+      },
+      {
+        name: 'query of exactly 2048 characters',
+        payload: { ...validPayload, query: `/${'a'.repeat(2047)}` },
+      },
+      {
+        name: 'search_description of exactly 999 characters',
+        payload: { ...validPayload, search_description: 'a'.repeat(999) },
       },
       {
         name: 'email and SMS',
@@ -306,5 +352,31 @@ describe('/subscription plugin failures', () => {
     assert.strictEqual(res.statusCode, 400);
     const body = JSON.parse(res.body);
     assert.ok(body.error.includes('elastic_query'));
+  });
+
+  test('validates the Elasticsearch query when the URL has a query string or encoding', async (t) => {
+    t.mock.method(globalThis, 'fetch', async (url: string) => {
+      if (url.includes('/v1/documents/')) {
+        return jsonResponse({ id: 'mock-atv-document-id' });
+      }
+      if (url.includes('_search')) {
+        throw new Error('Elasticsearch query failed');
+      }
+      throw new Error(`Unexpected fetch URL: ${url}`);
+    });
+
+    const app = await build(t);
+
+    for (const url of ['/subscription?x=1', '/%73ubscription']) {
+      const res = await app.inject({
+        method: 'POST',
+        url,
+        headers: { Authorization: 'api-key test' },
+        payload: validPayload,
+      });
+
+      assert.strictEqual(res.statusCode, 400, url);
+      assert.ok(JSON.parse(res.body).error.includes('elastic_query'), url);
+    }
   });
 });

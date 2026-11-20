@@ -58,7 +58,6 @@ const buildTestData = (siteConfig: SiteConfigurationType) => {
       search_description: 'Testihaku',
     },
     expiry: {
-      link: `${base}/hakuvahti/search`,
       search_description: 'IT-asiantuntija',
       removal_date: '31.12.2025',
       remove_link: `${base}/hakuvahti/unsubscribe?subscription=abc123&hash=xyz`,

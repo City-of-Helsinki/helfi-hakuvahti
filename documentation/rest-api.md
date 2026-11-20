@@ -12,7 +12,7 @@ Adds a new subscription. At least one of `email` or `sms` is required.
 {
     "elastic_query": "<full elastic query as base64-encoded string>",
     "search_description": "<Some search with terms, used in notifications>",
-    "query": "<url back to webpage for search results>",
+    "query": "<path and query string of the search results page, e.g. /fi/search?q=x>",
     "email": "<email to subscribe (optional if sms provided)>",
     "sms": "<phone number in E.164 format, e.g. +358501234567 (optional if email provided)>",
     "site_id": "<id of a site configuration in conf/, e.g. rekry>",
@@ -22,6 +22,9 @@ Adds a new subscription. At least one of `email` or `sms` is required.
 ```
 
 - `site_id` is required and must match a filename under `conf/`.
+- `query` must be empty or start with `/` (not `//` or `/\`) or `?`, at most 2048 characters. Notification links resolve it against the site's base URL.
+- `search_description` is at most 999 characters. It is shown as plain text in emails and SMS.
+- `email` is at most 254 characters; quoted local parts (`"x"@example.com`) are not accepted.
 - `user_data_in_atv` (optional, truthy number): when set, `query`, `search_description`, and `elastic_query` are stored in ATV instead of MongoDB.
 - A phone number can be submitted on any site, but SMS delivery is gated by `enableSms`. When `enableSms` is `false` the confirmation SMS is suppressed and `hav:populate-queue` queues no SMS for the site; subscriptions created during that period never become `sms_confirmed`, so flipping `enableSms` on later does not deliver to them — only already SMS-confirmed subscriptions resume.
 
